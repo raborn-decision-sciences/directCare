@@ -1,0 +1,17 @@
+Package: directCareForecastR
+Title: Financial Forecasting for Direct Care Providers
+Version: 0.0.0.9000
+Authors@R: 
+    person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
+Description: This is the backend that performs data loading, cleaning, manipulation, and provides
+    financial forecasts for direct care practices. These practices do not take insurance and generally
+    rely on a membership model for consistent income and occasionally on per-visit payers for additional
+    income. This backend can import various bookkeeping files to calculate monthly overhead and uses
+    statistical models to project income based on user-provided assumptions.
+License: Apache License (>= 2)
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
