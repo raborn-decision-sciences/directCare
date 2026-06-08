@@ -9,6 +9,7 @@
 #' @param level Numeric confidence level (0-1)
 #' @return List with point forecasts, lower, and upper confidence bounds
 #' @noRd
+#' @importFrom stats lm predict qnorm ts
 .forecast_series <- function(series, method, horizon, frequency = 12, level = 0.95) {
   # Remove NAs and ensure we have data
   series_clean <- series[!is.na(series)]
