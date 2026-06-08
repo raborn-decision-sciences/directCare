@@ -22,10 +22,7 @@
 #'   summarize_overhead_monthly()
 #' }
 filter_gnucash_overhead <- function(data) {
-  
-  new_data <- data[which(grepl("Expenses", data$full_account_name)),]
-
-  new_data
-
+  data[which(grepl("Expenses", data$full_account_name)), ] |>
+    validate_overhead()
 }
 

@@ -19,11 +19,7 @@
 #' income <- normalize_gnucash_income(normalized_data)
 #' }
 normalize_gnucash_income <- function(data) {
-
   new_data <- data[which(grepl("Income", data$full_account_name)), ]
-
   names(new_data)[names(new_data) == "amount"] <- "revenue"
-
-  new_data
-  
+  validate_income(new_data)
 }

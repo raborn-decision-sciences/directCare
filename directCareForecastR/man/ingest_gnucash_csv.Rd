@@ -20,7 +20,8 @@ for a specific practice.}
 A tibble with columns: \code{practice_id}, \code{date},
 \code{week_start}, \code{month}, \code{year}, \code{full_account_name},
 \code{account_name}, \code{description}, \code{amount}, \code{category},
-\code{source}, and \code{is_refund}.
+and \code{source}. The \code{is_refund} column is added downstream by
+\code{filter_gnucash_overhead()} and \code{normalize_gnucash_income()}.
 }
 \description{
 Reads a GnuCash CSV export, maps account names to internal expense

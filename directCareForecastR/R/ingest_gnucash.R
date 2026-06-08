@@ -16,7 +16,8 @@
 #' @return A tibble with columns: \code{practice_id}, \code{date},
 #'   \code{week_start}, \code{month}, \code{year}, \code{full_account_name},
 #'   \code{account_name}, \code{description}, \code{amount}, \code{category},
-#'   \code{source}, and \code{is_refund}.
+#'   and \code{source}. The \code{is_refund} column is added downstream by
+#'   \code{filter_gnucash_overhead()} and \code{normalize_gnucash_income()}.
 #'
 #' @export
 #'
@@ -41,9 +42,7 @@ ingest_gnucash_csv <- function(path,
       date    = "Date"
     )
   mapped_data <- map_accounts(raw_data, account_map)
-  normalized  <- normalize_gnucash_csv(mapped_data, practice_id, source = "gnucash_csv")
-
-  validate_overhead(normalized)
+  normalize_gnucash_csv(mapped_data, practice_id, source = "gnucash_csv")
 }
 
 
