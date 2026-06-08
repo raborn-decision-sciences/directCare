@@ -12,7 +12,7 @@ ingest_gnucash_csv(path, practice_id, account_map = default_account_map())
 \item{practice_id}{Character or integer practice identifier.}
 
 \item{account_map}{A tibble of account mapping rules as returned by
-\code{\link{default_account_map}}. Override to customize category
+\code{default_account_map}. Override to customize category
 assignments for a specific practice.}
 }
 \value{
