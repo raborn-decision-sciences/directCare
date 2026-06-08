@@ -31,7 +31,8 @@ A tibble in the canonical normalized schema with columns
 \code{practice_id}, \code{date}, \code{week_start}, \code{month},
 \code{year}, \code{full_account_name}, \code{account_name},
 \code{description}, \code{amount} (overhead) or \code{revenue} (income),
-\code{category}, and \code{source} (set to \code{"manual"}).
+\code{category}, \code{source} (set to \code{"manual"}), and
+\code{is_refund} (added by the validation step for both types).
 }
 \description{
 Accepts a user-supplied data frame of overhead or income transactions and
