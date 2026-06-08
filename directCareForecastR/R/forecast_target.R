@@ -70,6 +70,30 @@ forecast_target <- function(income_summary,
     )
   }
 
+  if (dplyr::n_distinct(income_summary$practice_id) > 1L) {
+    rlang::abort(
+      paste0(
+        "forecast_target() requires a single practice. ",
+        "The supplied income_summary contains ",
+        dplyr::n_distinct(income_summary$practice_id),
+        " distinct practice_id values. Filter to one practice before forecasting."
+      ),
+      class = "dcForecastR_multiple_practices"
+    )
+  }
+
+  if (dplyr::n_distinct(overhead_summary$practice_id) > 1L) {
+    rlang::abort(
+      paste0(
+        "forecast_target() requires a single practice. ",
+        "The supplied overhead_summary contains ",
+        dplyr::n_distinct(overhead_summary$practice_id),
+        " distinct practice_id values. Filter to one practice before forecasting."
+      ),
+      class = "dcForecastR_multiple_practices"
+    )
+  }
+
   # Prepare data and detect frequency
   income_prep   <- .prepare_income(income_summary)
   overhead_prep <- .prepare_overhead(overhead_summary)

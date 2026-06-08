@@ -44,6 +44,18 @@ forecast_revenue <- function(income_summary,
 
   method <- match.arg(method)
 
+  if (dplyr::n_distinct(income_summary$practice_id) > 1L) {
+    rlang::abort(
+      paste0(
+        "forecast_revenue() requires a single practice. ",
+        "The supplied income_summary contains ",
+        dplyr::n_distinct(income_summary$practice_id),
+        " distinct practice_id values. Filter to one practice before forecasting."
+      ),
+      class = "dcForecastR_multiple_practices"
+    )
+  }
+
   # Prepare data and detect frequency
   income_prep      <- .prepare_income(income_summary)
   frequency_str    <- income_prep$frequency

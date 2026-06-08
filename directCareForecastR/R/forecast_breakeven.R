@@ -45,7 +45,31 @@ forecast_breakeven <- function(income_summary,
                                confidence_level = 0.95) {
   
   method <- match.arg(method)
-  
+
+  if (dplyr::n_distinct(income_summary$practice_id) > 1L) {
+    rlang::abort(
+      paste0(
+        "forecast_breakeven() requires a single practice. ",
+        "The supplied income_summary contains ",
+        dplyr::n_distinct(income_summary$practice_id),
+        " distinct practice_id values. Filter to one practice before forecasting."
+      ),
+      class = "dcForecastR_multiple_practices"
+    )
+  }
+
+  if (dplyr::n_distinct(overhead_summary$practice_id) > 1L) {
+    rlang::abort(
+      paste0(
+        "forecast_breakeven() requires a single practice. ",
+        "The supplied overhead_summary contains ",
+        dplyr::n_distinct(overhead_summary$practice_id),
+        " distinct practice_id values. Filter to one practice before forecasting."
+      ),
+      class = "dcForecastR_multiple_practices"
+    )
+  }
+
   # Prepare data and detect frequency
   income_prep <- .prepare_income(income_summary)
   overhead_prep <- .prepare_overhead(overhead_summary)
@@ -135,7 +159,13 @@ forecast_breakeven <- function(income_summary,
     periods_to_breakeven <- NA
     ci_lower <- NA
     ci_upper <- NA
-    warning("Break-even not reached within forecast horizon")
+    rlang::warn(
+      paste0(
+        "Break-even not reached within the forecast horizon of ",
+        horizon, " periods."
+      ),
+      class = "dcForecastR_breakeven_not_reached"
+    )
   } else {
     breakeven_date <- forecast_data$period_start[breakeven_idx]
     periods_to_breakeven <- breakeven_idx
