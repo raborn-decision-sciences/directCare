@@ -144,7 +144,6 @@ test_that("forecast_breakeven calculates current surplus/deficit", {
     month = 1:6,
     total_revenue = c(1000, 1500, 2000, 2500, 3000, 3500)
   )
-  
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
     year = rep(2025, 6),
@@ -153,19 +152,36 @@ test_that("forecast_breakeven calculates current surplus/deficit", {
     gross_overhead = rep(2000, 6),
     total_refunds = rep(0, 6)
   )
-  
-  result <- forecast_breakeven(
-    income_monthly,
-    overhead_monthly,
-    method = "linear"
-  )
-  
-  # Current surplus/deficit should be a number
+
+  result <- forecast_breakeven(income_monthly, overhead_monthly, method = "linear")
+
   expect_type(result$current_surplus_deficit, "double")
-  
-  # For the last month, revenue is 3500 and overhead is 2000
-  # So surplus should be positive
-  expect_true(result$current_surplus_deficit > 0)
+  # Last month revenue 3500 > overhead 2000 → already profitable
+  expect_gt(result$current_surplus_deficit, 0)
+})
+
+test_that("forecast_breakeven returns last observed date when already profitable", {
+  income_monthly <- tibble::tibble(
+    practice_id = rep(1, 6),
+    year = rep(2025, 6),
+    month = 1:6,
+    total_revenue = rep(5000, 6)  # always above overhead
+  )
+  overhead_monthly <- tibble::tibble(
+    practice_id = rep(1, 6),
+    year = rep(2025, 6),
+    month = 1:6,
+    total_overhead = rep(2000, 6),
+    gross_overhead = rep(2000, 6),
+    total_refunds = rep(0, 6)
+  )
+
+  result <- forecast_breakeven(income_monthly, overhead_monthly, method = "linear")
+
+  expect_equal(result$periods_to_breakeven, 0L)
+  expect_equal(result$breakeven_date, as.Date("2025-06-01"))
+  expect_equal(result$confidence_interval[["lower"]], as.Date("2025-06-01"))
+  expect_equal(result$confidence_interval[["upper"]], as.Date("2025-06-01"))
 })
 
 test_that("forecast_breakeven accepts different methods", {

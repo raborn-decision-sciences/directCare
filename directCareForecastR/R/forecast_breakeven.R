@@ -151,32 +151,41 @@ forecast_breakeven <- function(income_summary,
     net_forecast      = rev_fc$point - ovhd_fc$point
   )
   
-  # Find break-even point (first period where revenue > overhead)
-  breakeven_idx <- which(forecast_data$net_forecast > 0)[1]
-  
-  if (is.na(breakeven_idx)) {
-    breakeven_date <- NA
-    periods_to_breakeven <- NA
-    ci_lower <- NA
-    ci_upper <- NA
-    rlang::warn(
-      paste0(
-        "Break-even not reached within the forecast horizon of ",
-        horizon, " periods."
-      ),
-      class = "dcForecastR_breakeven_not_reached"
-    )
+  # Find break-even point (first period where revenue > overhead).
+  # If the practice is already profitable in the most recent observed period,
+  # report that immediately rather than looking into forecast periods.
+  if (current_surplus_deficit >= 0) {
+    breakeven_date       <- last_date
+    periods_to_breakeven <- 0L
+    ci_lower             <- last_date
+    ci_upper             <- last_date
   } else {
-    breakeven_date <- forecast_data$period_start[breakeven_idx]
-    periods_to_breakeven <- breakeven_idx
-    
-    # Estimate confidence interval for break-even timing
-    # Find weeks where upper/lower CI cross zero net
-    ci_lower_idx <- which((forecast_data$revenue_lower  - forecast_data$overhead_upper) > 0)[1]
-    ci_upper_idx <- which((forecast_data$revenue_upper  - forecast_data$overhead_lower) > 0)[1]
-    
-    ci_lower <- if (!is.na(ci_lower_idx)) forecast_data$period_start[ci_lower_idx] else NA
-    ci_upper <- if (!is.na(ci_upper_idx)) forecast_data$period_start[ci_upper_idx] else NA
+    breakeven_idx <- which(forecast_data$net_forecast > 0)[1]
+
+    if (is.na(breakeven_idx)) {
+      breakeven_date       <- NA
+      periods_to_breakeven <- NA
+      ci_lower             <- NA
+      ci_upper             <- NA
+      rlang::warn(
+        paste0(
+          "Break-even not reached within the forecast horizon of ",
+          horizon, " periods."
+        ),
+        class = "dcForecastR_breakeven_not_reached"
+      )
+    } else {
+      breakeven_date       <- forecast_data$period_start[breakeven_idx]
+      periods_to_breakeven <- breakeven_idx
+
+      # Confidence interval: pessimistic (lower rev - upper overhead)
+      #                      and optimistic (upper rev - lower overhead)
+      ci_lower_idx <- which((forecast_data$revenue_lower - forecast_data$overhead_upper) > 0)[1]
+      ci_upper_idx <- which((forecast_data$revenue_upper - forecast_data$overhead_lower) > 0)[1]
+
+      ci_lower <- if (!is.na(ci_lower_idx)) forecast_data$period_start[ci_lower_idx] else NA
+      ci_upper <- if (!is.na(ci_upper_idx)) forecast_data$period_start[ci_upper_idx] else NA
+    }
   }
   
   # Return results
