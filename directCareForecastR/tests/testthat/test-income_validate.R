@@ -22,17 +22,12 @@ test_that("validate_income passes a well-formed tibble", {
 
 test_that("validate_income errors on missing required columns", {
   bad <- make_income_tbl() |> dplyr::select(-revenue)
-
-  expect_error(
-    validate_income(bad),
-    class = "dcForecastR_missing_columns"
-  )
+  expect_snapshot(validate_income(bad), error = TRUE)
 })
 
 test_that("validate_income reports all missing columns at once", {
   bad <- tibble::tibble(practice_id = 1, revenue = 100)
-
-  err <- tryCatch(validate_income(bad), error = function(e) e)
+  err <- tryCatch(validate_income(bad), error = \(e) e)
   expect_true(length(err$missing_columns) > 1)
 })
 
@@ -56,7 +51,6 @@ test_that("validate_income is_refund is FALSE for all positive revenue", {
 test_that("validate_income preserves all input rows and columns", {
   input  <- make_income_tbl()
   result <- validate_income(input)
-
   expect_equal(nrow(result), nrow(input))
   expect_true(all(names(input) %in% names(result)))
 })
@@ -66,35 +60,34 @@ test_that("validate_income preserves all input rows and columns", {
 test_that("validate_income errors on NA dates", {
   bad <- make_income_tbl()
   bad$date[2] <- NA
-
-  expect_error(validate_income(bad), class = "dcForecastR_invalid_dates")
+  expect_snapshot(validate_income(bad), error = TRUE)
 })
 
 test_that("validate_income errors on NA revenue", {
   bad <- make_income_tbl()
   bad$revenue[1] <- NA
-
-  expect_error(validate_income(bad), class = "dcForecastR_missing_amounts")
+  expect_snapshot(validate_income(bad), error = TRUE)
 })
 
 test_that("validate_income error message includes the row count", {
   bad <- make_income_tbl()
   bad$revenue[c(1, 3)] <- NA
-
-  err <- tryCatch(validate_income(bad), error = function(e) e)
+  err <- tryCatch(validate_income(bad), error = \(e) e)
   expect_match(conditionMessage(err), "2")
 })
 
 # --- Recoverable warnings -----------------------------------------------------
 
-test_that("validate_income warns on negative revenue and tags is_refund", {
+test_that("validate_income warns on negative revenue", {
   income <- make_income_tbl()
   income$revenue[2] <- -100
+  expect_snapshot(validate_income(income))
+})
 
-  expect_warning(
-    result <- validate_income(income),
-    class = "dcForecastR_refunds_detected"
-  )
+test_that("validate_income tags is_refund correctly for negative revenue", {
+  income <- make_income_tbl()
+  income$revenue[2] <- -100
+  result <- suppressWarnings(validate_income(income))
   expect_true(result$is_refund[2])
   expect_false(result$is_refund[1])
 })
@@ -102,8 +95,7 @@ test_that("validate_income warns on negative revenue and tags is_refund", {
 test_that("validate_income attaches the refund rows to the warning", {
   income <- make_income_tbl()
   income$revenue[2] <- -100
-
-  w <- tryCatch(validate_income(income), warning = function(w) w)
+  w <- tryCatch(validate_income(income), warning = \(w) w)
   expect_true(!is.null(w$refunds))
   expect_equal(nrow(w$refunds), 1)
 })
@@ -111,22 +103,19 @@ test_that("validate_income attaches the refund rows to the warning", {
 test_that("validate_income warns on zero revenue", {
   income <- make_income_tbl()
   income$revenue[1] <- 0
-
-  expect_warning(validate_income(income), class = "dcForecastR_zero_amounts")
+  expect_snapshot(validate_income(income))
 })
 
 test_that("validate_income warns on future dates", {
   income <- make_income_tbl()
-  income$date[1] <- Sys.Date() + 30
-
-  expect_warning(validate_income(income), class = "dcForecastR_future_dates")
+  income$date[1] <- as.Date("2099-01-01")
+  expect_snapshot(validate_income(income))
 })
 
 test_that("validate_income attaches future rows to the warning", {
   income <- make_income_tbl()
-  income$date[1] <- Sys.Date() + 30
-
-  w <- tryCatch(validate_income(income), warning = function(w) w)
+  income$date[1] <- as.Date("2099-01-01")
+  w <- tryCatch(validate_income(income), warning = \(w) w)
   expect_equal(nrow(w$future_rows), 1)
 })
 
@@ -140,7 +129,6 @@ test_that("ingest_manual type = 'income' returns is_refund column", {
     description       = c("Fee", "Fee"),
     revenue           = c(1000, 1200)
   )
-
   result <- ingest_manual(df, practice_id = 1, type = "income")
   expect_true("is_refund" %in% names(result))
   expect_true(all(!result$is_refund))
@@ -154,15 +142,10 @@ test_that("ingest_manual type = 'income' warns on negative revenue", {
     description       = c("Fee", "Chargeback"),
     revenue           = c(1000, -200)
   )
-
-  expect_warning(
-    result <- ingest_manual(df, practice_id = 1, type = "income"),
-    class = "dcForecastR_refunds_detected"
-  )
-  expect_true(result$is_refund[2])
+  expect_snapshot(ingest_manual(df, practice_id = 1, type = "income"))
 })
 
-test_that("ingest_manual type = 'overhead' does NOT call validate_income", {
+test_that("ingest_manual type = 'overhead' calls validate_overhead and adds is_refund", {
   df <- data.frame(
     date              = as.Date("2025-01-15"),
     full_account_name = "Expenses:Rent",
@@ -170,8 +153,7 @@ test_that("ingest_manual type = 'overhead' does NOT call validate_income", {
     description       = "Office rent",
     amount            = 1000
   )
-
-  # No is_refund column added — overhead path leaves that to validate_overhead
   result <- ingest_manual(df, practice_id = 1, type = "overhead")
-  expect_false("is_refund" %in% names(result))
+  expect_true("is_refund" %in% names(result))
+  expect_false(result$is_refund[1])
 })

@@ -115,6 +115,19 @@ test_that("forecast_revenue records the chosen method", {
   expect_equal(result$method, "linear")
 })
 
+# --- Multi-practice guard -----------------------------------------------------
+
+test_that("forecast_revenue errors on multi-practice input", {
+  income <- tibble::tibble(
+    practice_id = c(rep(1, 6), rep(2, 6)),
+    year = rep(2025, 12), month = rep(1:6, 2),
+    total_revenue = seq(1000, 6000, length.out = 12)
+  )
+  expect_snapshot(forecast_revenue(income, method = "linear"), error = TRUE)
+})
+
+# --- Methods ------------------------------------------------------------------
+
 test_that("forecast_revenue ets and arima require the forecast package", {
   skip_if_not_installed("forecast")
 

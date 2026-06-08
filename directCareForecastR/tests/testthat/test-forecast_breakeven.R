@@ -62,20 +62,19 @@ test_that("forecast_breakeven works with weekly data", {
     total_refunds = rep(0, 5)
   )
   
-  expect_warning(
+  expect_snapshot(
     result <- forecast_breakeven(
       income_weekly,
       overhead_monthly,
       method = "linear",
       horizon = 52
-    ),
-    "weekly.*monthly|monthly.*weekly"
+    )
   )
 
-  # Check frequency detection
+  result <- suppressWarnings(
+    forecast_breakeven(income_weekly, overhead_monthly, method = "linear", horizon = 52)
+  )
   expect_equal(result$frequency, "weekly")
-
-  # Check forecast horizon
   expect_equal(nrow(result$forecast_data), 52)
 })
 
@@ -112,33 +111,28 @@ test_that("forecast_breakeven detects break-even point", {
 })
 
 test_that("forecast_breakeven warns when break-even not reached", {
-  # Create data that won't reach break-even
   income_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
     year = rep(2025, 6),
     month = 1:6,
-    total_revenue = rep(500, 6)  # Flat, low revenue
+    total_revenue = rep(500, 6)
   )
-  
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
     year = rep(2025, 6),
     month = 1:6,
-    total_overhead = rep(2000, 6),  # Much higher overhead
+    total_overhead = rep(2000, 6),
     gross_overhead = rep(2000, 6),
     total_refunds = rep(0, 6)
   )
-  
-  expect_warning(
-    result <- forecast_breakeven(
-      income_monthly,
-      overhead_monthly,
-      method = "linear",
-      horizon = 6  # Short horizon
-    ),
-    "Break-even not reached"
+
+  expect_snapshot(
+    forecast_breakeven(income_monthly, overhead_monthly, method = "linear", horizon = 6)
   )
-  
+
+  result <- suppressWarnings(
+    forecast_breakeven(income_monthly, overhead_monthly, method = "linear", horizon = 6)
+  )
   expect_true(is.na(result$breakeven_date))
   expect_true(is.na(result$periods_to_breakeven))
 })
@@ -209,4 +203,32 @@ test_that("forecast_breakeven accepts different methods", {
     income_monthly, overhead_monthly, method = "arima"
   )
   expect_equal(result_arima$method, "arima")
+})
+
+# --- Multi-practice guard -----------------------------------------------------
+
+test_that("forecast_breakeven errors on multi-practice income", {
+  income <- tibble::tibble(
+    practice_id = c(rep(1, 6), rep(2, 6)),
+    year = rep(2025, 12), month = rep(1:6, 2),
+    total_revenue = rep(2000, 12)
+  )
+  overhead <- tibble::tibble(
+    practice_id = rep(1, 6), year = rep(2025, 6), month = 1:6,
+    total_overhead = rep(1500, 6), gross_overhead = rep(1500, 6), total_refunds = rep(0, 6)
+  )
+  expect_snapshot(forecast_breakeven(income, overhead, method = "linear"), error = TRUE)
+})
+
+test_that("forecast_breakeven errors on multi-practice overhead", {
+  income <- tibble::tibble(
+    practice_id = rep(1, 6), year = rep(2025, 6), month = 1:6,
+    total_revenue = rep(2000, 6)
+  )
+  overhead <- tibble::tibble(
+    practice_id = c(rep(1, 6), rep(2, 6)),
+    year = rep(2025, 12), month = rep(1:6, 2),
+    total_overhead = rep(1500, 12), gross_overhead = rep(1500, 12), total_refunds = rep(0, 12)
+  )
+  expect_snapshot(forecast_breakeven(income, overhead, method = "linear"), error = TRUE)
 })

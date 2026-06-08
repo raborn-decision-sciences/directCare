@@ -29,14 +29,16 @@ test_that("filter_gnucash_overhead adds is_refund column via validate_overhead",
   expect_true(all(!result$is_refund))
 })
 
-test_that("filter_gnucash_overhead flags negative amounts as refunds", {
+test_that("filter_gnucash_overhead warns on negative amounts", {
   transactions <- make_transactions()
   transactions$amount[1] <- -200  # simulate a credit
+  expect_snapshot(filter_gnucash_overhead(transactions))
+})
 
-  expect_warning(
-    result <- filter_gnucash_overhead(transactions),
-    class = "dcForecastR_refunds_detected"
-  )
+test_that("filter_gnucash_overhead flags negative amounts as is_refund = TRUE", {
+  transactions <- make_transactions()
+  transactions$amount[1] <- -200
+  result <- suppressWarnings(filter_gnucash_overhead(transactions))
   expect_true(result$is_refund[1])
   expect_false(result$is_refund[2])
 })

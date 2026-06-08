@@ -237,3 +237,29 @@ test_that("forecast_target confidence interval bounds are dates or NA", {
   expect_true(check_date_or_na(ci["lower"]))
   expect_true(check_date_or_na(ci["upper"]))
 })
+
+# --- Multi-practice guard -----------------------------------------------------
+
+test_that("forecast_target errors on multi-practice income", {
+  income <- tibble::tibble(
+    practice_id = c(rep(1, 6), rep(2, 6)),
+    year = rep(2025, 12), month = rep(1:6, 2),
+    total_revenue = rep(2000, 12)
+  )
+  expect_snapshot(
+    forecast_target(income, make_monthly_overhead(), target_income = 1000, method = "linear"),
+    error = TRUE
+  )
+})
+
+test_that("forecast_target errors on multi-practice overhead", {
+  overhead <- tibble::tibble(
+    practice_id = c(rep(1, 6), rep(2, 6)),
+    year = rep(2025, 12), month = rep(1:6, 2),
+    total_overhead = rep(1500, 12), gross_overhead = rep(1500, 12), total_refunds = rep(0, 12)
+  )
+  expect_snapshot(
+    forecast_target(make_monthly_income(), overhead, target_income = 1000, method = "linear"),
+    error = TRUE
+  )
+})
