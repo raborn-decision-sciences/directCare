@@ -35,6 +35,13 @@
 #' }
 summarize_overhead_monthly <- function(overhead_tbl,
                                         include_refunds = TRUE) {
+  # Derive is_refund from amount sign if the column is absent. This mirrors the
+  # behaviour of summarize_income_monthly() and guards against calling this
+  # function directly on a tibble that hasn't passed through validate_overhead().
+  if (!"is_refund" %in% names(overhead_tbl)) {
+    overhead_tbl <- dplyr::mutate(overhead_tbl, is_refund = amount < 0)
+  }
+
   if (!include_refunds) {
     overhead_tbl <- dplyr::filter(overhead_tbl, !is_refund)
   }
