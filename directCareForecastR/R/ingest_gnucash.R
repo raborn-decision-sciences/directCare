@@ -6,7 +6,7 @@
 #' @param path Character string specifying the path to the GnuCash CSV file.
 #' @param practice_id Character or integer practice identifier.
 #' @param account_map A tibble of account mapping rules as returned by
-#'   \code{\link{default_account_map}}. Override to customize category
+#'   \code{default_account_map}. Override to customize category
 #'   assignments for a specific practice.
 #'
 #' @return A tibble conforming to the canonical overhead record format with
@@ -43,6 +43,13 @@ ingest_gnucash_csv <- function(path,
 #' Ingest GNUCash XML file
 #' Note yet implemented!
 #' 
+#' @param path Character string specifying the path to the GnuCash XML file.
+#' @param practice_id Character or integer practice identifier.
+#' @param account_map A tibble of account mapping rules as returned by
+#'   \code{default_account_map}. Override to customize category
+#'   assignments for a specific practice.
+#' @noRd
+#' @keywords internal
 ingest_gnucash_xml <- function(path, practice_id, account_map = default_account_map()) {
   rlang::abort(
     "GNUCash XML upload is not yet implemented.",
