@@ -17,18 +17,20 @@ test_that("ingest_gnucash_csv reads and normalizes CSV files correctly", {
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 2)
 
+  # is_refund is NOT added at this stage; it is added by filter_gnucash_overhead()
+  # and normalize_gnucash_income() after the rows are split
   expected_cols <- c(
     "practice_id", "date", "week_start", "month", "year",
     "full_account_name", "account_name", "description",
-    "amount", "category", "source", "is_refund"
+    "amount", "category", "source"
   )
   expect_true(all(expected_cols %in% names(result)))
+  expect_false("is_refund" %in% names(result))
 
   expect_equal(result$practice_id, c(1, 1))
   expect_equal(result$source, c("gnucash_csv", "gnucash_csv"))
   expect_equal(result$month, c(1L, 2L))
   expect_equal(result$year, c(2025L, 2025L))
-  expect_false(any(result$is_refund))
 
   unlink(temp_csv)
 })

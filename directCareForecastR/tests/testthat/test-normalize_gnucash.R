@@ -26,6 +26,8 @@ test_that("normalize_gnucash_csv produces correct normalized schema", {
   expect_true(all(expected_cols %in% names(result)))
   expect_false("Amount Num." %in% names(result))
   expect_false("ExtraColumn" %in% names(result))
+  # is_refund is added downstream by filter/normalize, not by ingest
+  expect_false("is_refund" %in% names(result))
 
   expect_s3_class(result$date, "Date")
   expect_s3_class(result$week_start, "Date")
@@ -46,19 +48,19 @@ test_that("normalize_gnucash_csv errors on missing required columns", {
   unlink(temp_csv)
 })
 
-test_that("normalize_gnucash_income filters to income rows and renames amount to revenue", {
+test_that("normalize_gnucash_income filters to income rows, renames amount to revenue, and adds is_refund", {
   normalized <- tibble::tibble(
-    practice_id = 1,
-    date = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
-    week_start = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
-    month = c(1L, 2L, 3L),
-    year = c(2025L, 2025L, 2025L),
+    practice_id       = 1,
+    date              = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
+    week_start        = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
+    month             = c(1L, 2L, 3L),
+    year              = c(2025L, 2025L, 2025L),
     full_account_name = c("Income:Sales", "Expenses:Rent", "Income:Consulting"),
-    account_name = c("Sales", "Rent", "Consulting"),
-    description = c("Payment", "Rent", "Project A"),
-    amount = c(1000, 1000, 2000),
-    category = c("other", "rent", "other"),
-    source = "gnucash_csv"
+    account_name      = c("Sales", "Rent", "Consulting"),
+    description       = c("Payment", "Rent", "Project A"),
+    amount            = c(1000, 1000, 2000),
+    category          = c("other", "rent", "other"),
+    source            = "gnucash_csv"
   )
 
   result <- normalize_gnucash_income(normalized)
@@ -68,6 +70,8 @@ test_that("normalize_gnucash_income filters to income rows and renames amount to
 
   expect_true("revenue" %in% names(result))
   expect_false("amount" %in% names(result))
+  expect_true("is_refund" %in% names(result))
 
   expect_equal(result$revenue, c(1000, 2000))
+  expect_true(all(!result$is_refund))
 })
