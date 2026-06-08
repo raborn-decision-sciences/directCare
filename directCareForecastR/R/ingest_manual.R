@@ -26,7 +26,8 @@
 #'   \code{practice_id}, \code{date}, \code{week_start}, \code{month},
 #'   \code{year}, \code{full_account_name}, \code{account_name},
 #'   \code{description}, \code{amount} (overhead) or \code{revenue} (income),
-#'   \code{category}, and \code{source} (set to \code{"manual"}).
+#'   \code{category}, \code{source} (set to \code{"manual"}), and
+#'   \code{is_refund} (added by the validation step for both types).
 #'
 #' @export
 #'
@@ -45,7 +46,8 @@
 ingest_manual <- function(df, practice_id, type = c("overhead", "income")) {
   type <- match.arg(type)
   if (type == "overhead") {
-    normalize_overhead_manual(df, practice_id, source = "manual")
+    normalize_overhead_manual(df, practice_id, source = "manual") |>
+      validate_overhead()
   } else {
     normalize_income_manual(df, practice_id, source = "manual") |>
       validate_income()
@@ -83,7 +85,7 @@ normalize_overhead_manual <- function(df, practice_id, source = "manual") {
         paste(missing_cols, collapse = ", "),
         ". Please provide: date, full_account_name, account_name, description, amount"
       ),
-      class = "directCareForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }
@@ -144,7 +146,7 @@ normalize_income_manual <- function(df, practice_id, source = "manual") {
   } else {
     rlang::abort(
       "Manual income data must have either 'revenue' or 'amount' column",
-      class = "directCareForecastR_missing_columns"
+      class = "dcForecastR_missing_columns"
     )
   }
 
@@ -157,7 +159,7 @@ normalize_income_manual <- function(df, practice_id, source = "manual") {
         paste(missing_cols, collapse = ", "),
         ". Please provide: date, full_account_name, account_name, description, revenue"
       ),
-      class = "directCareForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }

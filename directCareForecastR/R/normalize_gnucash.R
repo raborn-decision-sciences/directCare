@@ -29,7 +29,7 @@ normalize_gnucash_csv <- function(data, practice_id, source) {
         paste(missing_cols, collapse = ", "),
         ". Was this exported from GnuCash with all columns included?"
       ),
-      class = "directCareForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }

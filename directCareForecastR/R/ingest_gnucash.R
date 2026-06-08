@@ -57,6 +57,6 @@ ingest_gnucash_csv <- function(path,
 ingest_gnucash_xml <- function(path, practice_id, account_map = default_account_map()) {
   rlang::abort(
     "GNUCash XML upload is not yet implemented.",
-    class = "directCareForecastR_not_implemented"
+    class = "dcForecastR_not_implemented"
   )
 }
