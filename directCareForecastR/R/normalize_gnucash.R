@@ -1,13 +1,19 @@
-#' Normalize GNUCash CSV Data
+#' Normalize GnuCash CSV Data
 #'
-#' Processes a GNUCash data frame to select key columns, parse dates, and add
-#' time-based columns. Renames "Amount Num." to "Amount".
+#' Selects and renames the columns produced by \code{map_accounts()}, parses
+#' dates, and adds derived time columns (\code{week_start}, \code{month},
+#' \code{year}). Called internally by \code{ingest_gnucash_csv()}.
 #'
-#' @param data A data frame from \code{ingest_gnucash_csv()} containing GNUCash
-#'   transaction data.
+#' @param data A data frame from \code{map_accounts()} with columns
+#'   \code{date}, \code{Full Account Name}, \code{account},
+#'   \code{Description}, \code{amount}, and \code{category}.
+#' @param practice_id Character or integer practice identifier.
+#' @param source Character string recording the import source tag.
 #'
-#' @return A data frame with columns: Date, Full Account Name, Account Name,
-#'   Description, Amount, Week, Month, Year, and Source.
+#' @return A tibble with columns: \code{practice_id}, \code{date},
+#'   \code{week_start}, \code{month}, \code{year}, \code{full_account_name},
+#'   \code{account_name}, \code{description}, \code{amount}, \code{category},
+#'   \code{source}.
 #'
 #' @noRd
 normalize_gnucash_csv <- function(data, practice_id, source) {

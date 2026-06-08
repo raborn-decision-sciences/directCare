@@ -2,35 +2,42 @@
 % Please edit documentation in R/ingest_gnucash.R
 \name{ingest_gnucash_csv}
 \alias{ingest_gnucash_csv}
-\title{Ingest GnuCash CSV File}
+\title{Ingest GnuCash CSV Export}
 \usage{
 ingest_gnucash_csv(path, practice_id, account_map = default_account_map())
 }
 \arguments{
 \item{path}{Character string specifying the path to the GnuCash CSV file.}
 
-\item{practice_id}{Character or integer practice identifier.}
+\item{practice_id}{Character or integer practice identifier added to every
+row of the output.}
 
 \item{account_map}{A tibble of account mapping rules as returned by
-\code{default_account_map}. Override to customize category
-assignments for a specific practice.}
+\code{default_account_map()}. Override to customize category assignments
+for a specific practice.}
 }
 \value{
-A tibble conforming to the canonical overhead record format with
-columns: \code{practice_id}, \code{date}, \code{week_start},
-\code{month}, \code{year}, \code{full_account_name},
-\code{account_name}, \code{description}, \code{amount},
-\code{category}, \code{source}.
+A tibble with columns: \code{practice_id}, \code{date},
+\code{week_start}, \code{month}, \code{year}, \code{full_account_name},
+\code{account_name}, \code{description}, \code{amount}, \code{category},
+\code{source}, and \code{is_refund}.
 }
 \description{
-Reads a GnuCash CSV export, maps account names to internal categories,
-and returns a normalized overhead tibble.
+Reads a GnuCash CSV export, maps account names to internal expense
+categories, validates the result, and returns a normalized transaction
+tibble. The tibble contains both income and expense rows; use
+\code{normalize_gnucash_income()} or \code{filter_gnucash_overhead()} to
+split them before summarizing.
 }
 \examples{
 \dontrun{
-overhead <- ingest_gnucash_csv(
+# Load all transactions and split into income and overhead streams
+transactions <- ingest_gnucash_csv(
   path        = "path/to/gnucash_export.csv",
   practice_id = "practice_001"
 )
+
+income   <- normalize_gnucash_income(transactions)
+overhead <- filter_gnucash_overhead(transactions)
 }
 }

@@ -2,25 +2,29 @@
 % Please edit documentation in R/overhead_filter.R
 \name{filter_gnucash_overhead}
 \alias{filter_gnucash_overhead}
-\title{Filter GNUCash Data for Overhead Expenses}
+\title{Filter Transactions to Overhead Expenses}
 \usage{
 filter_gnucash_overhead(data)
 }
 \arguments{
-\item{data}{A data frame with a "full_account_name" column, typically from
-\code{normalize_gnucash_csv()}.}
+\item{data}{A tibble as returned by \code{ingest_gnucash_csv()} or
+\code{ingest_manual(type = "overhead")}, with a \code{full_account_name}
+column.}
 }
 \value{
-A filtered data frame containing only expense transactions.
+A filtered tibble containing only expense transactions, with the
+same columns as the input.
 }
 \description{
-Filters a GNUCash data frame to include only rows where the Full Account Name
-contains "Expenses".
+Filters a normalized transaction tibble to rows whose
+\code{full_account_name} contains \code{"Expenses"}, returning only expense
+transactions. Pipe the result into \code{summarize_overhead_monthly()} to
+produce the monthly totals used by the forecasting functions.
 }
 \examples{
 \dontrun{
-raw_data <- ingest_gnucash_csv("path/to/gnucash_export.csv")
-normalized_data <- normalize_gnucash_csv(raw_data)
-overhead <- filter_gnucash_overhead(normalized_data)
+overhead <- ingest_gnucash_csv("path/to/gnucash_export.csv", practice_id = 1) |>
+  filter_gnucash_overhead() |>
+  summarize_overhead_monthly()
 }
 }
