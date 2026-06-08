@@ -1,3 +1,8 @@
+# Claude Code
+.claude/skills/
+.claude/settings.local.json
+.agents/
+
 .Rproj.user
 .Rhistory
 .RData
@@ -6,3 +11,4 @@
 .quarto
 test-gnucash.csv
 *.tar.gz
+skills-lock.json
