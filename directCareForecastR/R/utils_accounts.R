@@ -14,7 +14,9 @@
 #'     \item{pattern}{Character string to match against the account name}
 #'     \item{category}{Category label assigned on a match: one of
 #'       \code{"rent"}, \code{"staff"}, \code{"supplies"}, \code{"software"},
-#'       \code{"insurance"}, \code{"marketing"}, or \code{"other"}}
+#'       \code{"insurance"}, \code{"marketing"}, \code{"labs"},
+#'       \code{"equipment"}, \code{"licenses"}, \code{"education"}, or
+#'       \code{"other"}}
 #'     \item{match_type}{How to apply the pattern: \code{"contains"} (fixed
 #'       substring), \code{"exact"} (full string equality), or \code{"regex"}
 #'       (Perl-compatible regular expression)}
@@ -39,23 +41,56 @@
 #' )
 default_account_map <- function() {
   tibble::tibble(
-    pattern     = c(
-      "rent", "lease",
+    pattern = c(
+      # Staff & payroll
       "salary", "wages", "payroll", "staff",
-      "supplies", "medical supplies", "office supplies",
+
+      # Medical / office supplies
+      "supplies", "medical supplies", "office supplies", "recurrent",
+
+      # Software & subscriptions (specific products first, then generic)
+      "adobe", "bamboo", "blaze", "spruce",
       "software", "subscription", "emr", "ehr",
+
+      # Insurance (must precede "equipment" so "Equipment Insurance" maps here,
+      # and precede "rent" so nothing unexpected matches)
       "insurance", "malpractice", "liability",
-      "marketing", "advertising",
-      "utilities", "electric", "internet", "phone"
+
+      # Marketing
+      "marketing", "advertising", "advertisement", "website",
+
+      # Lab costs
+      "lab", "clia",
+
+      # Equipment (after insurance, before "rent" so "Equipment Rental"
+      # maps here rather than to rent)
+      "equipment",
+
+      # Rent & occupancy (after equipment so "Equipment Rental" is caught above)
+      "rent", "lease",
+
+      # Licenses, certifications & business formation
+      "license", "permit", "llc",
+
+      # Continuing education & conferences
+      "education", "conference",
+
+      # Other / catch-all
+      "utilities", "electric", "internet", "phone", "misc", "dining"
     ),
-    category    = c(
-      "rent", "rent",
+    category = c(
       "staff", "staff", "staff", "staff",
-      "supplies", "supplies", "supplies",
+      "supplies", "supplies", "supplies", "supplies",
+      "software", "software", "software", "software",
       "software", "software", "software", "software",
       "insurance", "insurance", "insurance",
-      "marketing", "marketing",
-      "other", "other", "other", "other"
+      "marketing", "marketing", "marketing", "marketing",
+      "labs", "labs",
+      "equipment",
+      "rent", "rent",
+      "licenses", "licenses", "licenses",
+      "education", "education",
+      "other", "other", "other", "other", "other", "other"
     ),
     match_type  = "contains",
     ignore_case = TRUE

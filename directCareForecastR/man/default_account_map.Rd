@@ -12,7 +12,9 @@ A tibble with columns:
 \item{pattern}{Character string to match against the account name}
 \item{category}{Category label assigned on a match: one of
 \code{"rent"}, \code{"staff"}, \code{"supplies"}, \code{"software"},
-\code{"insurance"}, \code{"marketing"}, or \code{"other"}}
+\code{"insurance"}, \code{"marketing"}, \code{"labs"},
+\code{"equipment"}, \code{"licenses"}, \code{"education"}, or
+\code{"other"}}
 \item{match_type}{How to apply the pattern: \code{"contains"} (fixed
 substring), \code{"exact"} (full string equality), or \code{"regex"}
 (Perl-compatible regular expression)}
