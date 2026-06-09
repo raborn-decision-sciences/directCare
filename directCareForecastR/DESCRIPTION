@@ -1,6 +1,6 @@
 Package: directCareForecastR
 Title: Financial Forecasting for Direct Care Providers
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: 
     person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
 Description: This is the backend that performs data loading, cleaning, manipulation, and provides
