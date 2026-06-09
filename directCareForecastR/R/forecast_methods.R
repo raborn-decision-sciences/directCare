@@ -93,7 +93,15 @@
 
 #' ARIMA Forecast
 #'
-#' Auto ARIMA forecast using the forecast package
+#' Auto ARIMA forecast using the forecast package.
+#'
+#' High-frequency seasonality (frequency > 24, e.g. weekly data with
+#' frequency = 52) cannot be modelled by standard ARIMA — there are
+#' insufficient observations to estimate 52-lag seasonal parameters, and
+#' \code{auto.arima} silently degenerates to ARIMA(0,0,0), producing a flat
+#' forecast. When the ts object has a frequency above 24 we strip the
+#' seasonal hint (reset to frequency = 1) so that \code{auto.arima} fits a
+#' trend model instead.
 #'
 #' @param ts_obj Time series object
 #' @param horizon Integer number of periods to forecast
@@ -104,13 +112,20 @@
   if (!requireNamespace("forecast", quietly = TRUE)) {
     rlang::abort("Package 'forecast' required for ARIMA method. Install with install.packages('forecast')")
   }
-  
+
+  # Strip high-frequency seasonality: ARIMA cannot fit seasonal lags of 52
+  # (weekly) or similar large values — it needs hundreds of observations per
+  # cycle. Resetting to frequency = 1 allows auto.arima to model the trend.
+  if (stats::frequency(ts_obj) > 24) {
+    ts_obj <- stats::ts(as.numeric(ts_obj), frequency = 1)
+  }
+
   arima_fit <- forecast::auto.arima(ts_obj)
   arima_forecast <- forecast::forecast(arima_fit, h = horizon, level = level * 100)
-  
+
   list(
     point = as.numeric(arima_forecast$mean),
-    lower = as.numeric(arima_forecast$lower[, 1]),  # Extract first (and only) column
-    upper = as.numeric(arima_forecast$upper[, 1])   # Extract first (and only) column
+    lower = as.numeric(arima_forecast$lower[, 1]),
+    upper = as.numeric(arima_forecast$upper[, 1])
   )
 }
