@@ -25,6 +25,18 @@
       $current_surplus_deficit
       [1] -1500
       
+      $current_revenue
+      [1] 500
+      
+      $current_overhead
+      [1] 2000
+      
+      $current_overhead_avg
+      [1] 2000
+      
+      $overhead_avg_n
+      [1] 4
+      
       $confidence_interval
       lower upper 
          NA    NA 

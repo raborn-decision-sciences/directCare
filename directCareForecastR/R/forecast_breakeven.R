@@ -110,8 +110,35 @@ forecast_breakeven <- function(income_summary,
   latest_period <- combined |>
     dplyr::filter(!is.na(revenue) & !is.na(overhead)) |>
     dplyr::slice_tail(n = 1)
-  
+
   current_surplus_deficit <- latest_period$net
+
+  # Stable per-period overhead estimate for member-count calculations.
+  #
+  # When income is weekly but overhead is monthly (the common DPC case), almost
+  # every week in `combined` gets overhead = 0 after the full_join -- monthly
+  # totals land only on the handful of rows whose period_start happens to be the
+  # first of a month.  Pulling `latest_period$overhead` therefore returns 0 or a
+  # single month's lump sum depending on luck, making per-member calculations
+  # nonsensical.
+  #
+  # Fix: average the last up-to-3 periods of the *pre-join* overhead series
+  # (which still holds monthly totals), then divide by 4.33 if the income
+  # frequency is weekly.  This gives a realistic, stable weekly overhead figure
+  # regardless of when overhead was posted.
+  n_avg <- min(nrow(overhead_prep$data), 4L)
+  recent_ovhd <- overhead_prep$data |>
+    dplyr::arrange(period_start) |>
+    dplyr::slice_tail(n = n_avg)
+  avg_overhead_native <- mean(recent_ovhd$overhead, na.rm = TRUE)
+
+  # Convert to the same time unit as current_revenue when frequencies differ.
+  current_overhead_avg <- if (overhead_prep$frequency != frequency_str) {
+    # Overhead is monthly, income is weekly: divide to get $/week
+    avg_overhead_native / 4.33
+  } else {
+    avg_overhead_native
+  }
   
   # Forecast revenue and overhead separately
   rev_fc  <- .forecast_series(
@@ -190,12 +217,22 @@ forecast_breakeven <- function(income_summary,
   
   # Return results
   list(
-    breakeven_date = breakeven_date,
-    periods_to_breakeven = periods_to_breakeven,
+    breakeven_date          = breakeven_date,
+    periods_to_breakeven    = periods_to_breakeven,
     current_surplus_deficit = current_surplus_deficit,
-    confidence_interval = c(lower = ci_lower, upper = ci_upper),
-    forecast_data = forecast_data,
-    method = method,
-    frequency = frequency_str
+    current_revenue         = as.numeric(latest_period$revenue),
+    # current_overhead: raw single-period value (may be 0 for most weeks in
+    #   weekly data because monthly overhead is posted only on month-start rows).
+    current_overhead        = as.numeric(latest_period$overhead),
+    # current_overhead_avg: rolling mean over the last n_avg overhead periods,
+    #   converted to per-income-period units.  Use this for member-count
+    #   calculations -- it is robust to the posting-day spikes that make the
+    #   raw single-period value unreliable.
+    current_overhead_avg    = current_overhead_avg,
+    overhead_avg_n          = n_avg,
+    confidence_interval     = c(lower = ci_lower, upper = ci_upper),
+    forecast_data           = forecast_data,
+    method                  = method,
+    frequency               = frequency_str
   )
 }

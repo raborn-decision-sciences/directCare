@@ -26,8 +26,10 @@ test_that("forecast_breakeven works with monthly data", {
   
   # Check structure
   expect_type(result, "list")
-  expect_named(result, c("breakeven_date", "periods_to_breakeven", 
-                         "current_surplus_deficit", "confidence_interval",
+  expect_named(result, c("breakeven_date", "periods_to_breakeven",
+                         "current_surplus_deficit", "current_revenue",
+                         "current_overhead", "current_overhead_avg",
+                         "overhead_avg_n", "confidence_interval",
                          "forecast_data", "method", "frequency"))
   
   # Check frequency detection
