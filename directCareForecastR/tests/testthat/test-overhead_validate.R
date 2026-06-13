@@ -1,16 +1,16 @@
 make_overhead_tbl <- function(n = 3) {
   tibble::tibble(
-    practice_id       = rep(1, n),
-    date              = seq(as.Date("2025-01-01"), by = "month", length.out = n),
-    week_start        = seq(as.Date("2024-12-30"), by = "month", length.out = n),
-    month             = seq_len(n),
-    year              = rep(2025L, n),
+    practice_id = rep(1, n),
+    date = seq(as.Date("2025-01-01"), by = "month", length.out = n),
+    week_start = seq(as.Date("2024-12-30"), by = "month", length.out = n),
+    month = seq_len(n),
+    year = rep(2025L, n),
     full_account_name = rep("Expenses:Rent", n),
-    account_name      = rep("Rent", n),
-    description       = rep("Monthly rent", n),
-    amount            = rep(1000, n),
-    category          = rep("rent", n),
-    source            = "manual"
+    account_name = rep("Rent", n),
+    description = rep("Monthly rent", n),
+    amount = rep(1000, n),
+    category = rep("rent", n),
+    source = "manual"
   )
 }
 
@@ -55,7 +55,7 @@ test_that("validate_overhead is_refund is FALSE for all positive amounts", {
 })
 
 test_that("validate_overhead preserves all input rows and columns", {
-  input  <- make_overhead_tbl()
+  input <- make_overhead_tbl()
   result <- validate_overhead(input)
   expect_equal(nrow(result), nrow(input))
   expect_true(all(names(input) %in% names(result)))
@@ -164,16 +164,17 @@ test_that("validate_overhead attaches future rows to the warning", {
 
 test_that("filter_gnucash_overhead adds is_refund via validate_overhead", {
   transactions <- tibble::tibble(
-    practice_id       = 1,
-    date              = as.Date("2025-01-15"),
-    week_start        = as.Date("2025-01-13"),
-    month             = 1L, year = 2025L,
+    practice_id = 1,
+    date = as.Date("2025-01-15"),
+    week_start = as.Date("2025-01-13"),
+    month = 1L,
+    year = 2025L,
     full_account_name = "Expenses:Rent",
-    account_name      = "Rent",
-    description       = "Rent",
-    amount            = 1000,
-    category          = "rent",
-    source            = "gnucash_csv"
+    account_name = "Rent",
+    description = "Rent",
+    amount = 1000,
+    category = "rent",
+    source = "gnucash_csv"
   )
   result <- filter_gnucash_overhead(transactions)
   expect_true("is_refund" %in% names(result))

@@ -17,9 +17,13 @@
 #'
 #' @noRd
 normalize_gnucash_csv <- function(data, practice_id, source) {
-
   required_cols <- c(
-    "date", "Full Account Name", "account", "Description", "amount", "category"
+    "date",
+    "Full Account Name",
+    "account",
+    "Description",
+    "amount",
+    "category"
   )
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -37,20 +41,19 @@ normalize_gnucash_csv <- function(data, practice_id, source) {
   data |>
     dplyr::select(
       full_account_name = "Full Account Name",
-      account_name      = "account",
-      description       = "Description",
+      account_name = "account",
+      description = "Description",
       amount,
       category,
       date
     ) |>
     dplyr::mutate(
       practice_id = practice_id,
-      source      = source,
-      date        = lubridate::mdy(date),
-      week_start  = lubridate::floor_date(date, "week", week_start = 1),
-      month       = lubridate::month(date),
-      year        = lubridate::year(date)
+      source = source,
+      date = lubridate::mdy(date),
+      week_start = lubridate::floor_date(date, "week", week_start = 1),
+      month = lubridate::month(date),
+      year = lubridate::year(date)
     ) |>
     dplyr::relocate(practice_id, date, week_start, month, year)
-
 }

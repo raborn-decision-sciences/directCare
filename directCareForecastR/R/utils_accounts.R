@@ -43,56 +43,110 @@ default_account_map <- function() {
   tibble::tibble(
     pattern = c(
       # Staff & payroll
-      "salary", "wages", "payroll", "staff",
+      "salary",
+      "wages",
+      "payroll",
+      "staff",
 
       # Medical / office supplies
-      "supplies", "medical supplies", "office supplies", "recurrent",
+      "supplies",
+      "medical supplies",
+      "office supplies",
+      "recurrent",
 
       # Software & subscriptions (specific products first, then generic)
-      "adobe", "bamboo", "blaze", "spruce",
-      "software", "subscription", "emr", "ehr",
+      "adobe",
+      "bamboo",
+      "blaze",
+      "spruce",
+      "software",
+      "subscription",
+      "emr",
+      "ehr",
 
       # Insurance (must precede "equipment" so "Equipment Insurance" maps here,
       # and precede "rent" so nothing unexpected matches)
-      "insurance", "malpractice", "liability",
+      "insurance",
+      "malpractice",
+      "liability",
 
       # Marketing
-      "marketing", "advertising", "advertisement", "website",
+      "marketing",
+      "advertising",
+      "advertisement",
+      "website",
 
       # Lab costs
-      "lab", "clia",
+      "lab",
+      "clia",
 
       # Equipment (after insurance, before "rent" so "Equipment Rental"
       # maps here rather than to rent)
       "equipment",
 
       # Rent & occupancy (after equipment so "Equipment Rental" is caught above)
-      "rent", "lease",
+      "rent",
+      "lease",
 
       # Licenses, certifications & business formation
-      "license", "permit", "llc",
+      "license",
+      "permit",
+      "llc",
 
       # Continuing education & conferences
-      "education", "conference",
+      "education",
+      "conference",
 
       # Other / catch-all
-      "utilities", "electric", "internet", "phone", "misc", "dining"
+      "utilities",
+      "electric",
+      "internet",
+      "phone",
+      "misc",
+      "dining"
     ),
     category = c(
-      "staff", "staff", "staff", "staff",
-      "supplies", "supplies", "supplies", "supplies",
-      "software", "software", "software", "software",
-      "software", "software", "software", "software",
-      "insurance", "insurance", "insurance",
-      "marketing", "marketing", "marketing", "marketing",
-      "labs", "labs",
+      "staff",
+      "staff",
+      "staff",
+      "staff",
+      "supplies",
+      "supplies",
+      "supplies",
+      "supplies",
+      "software",
+      "software",
+      "software",
+      "software",
+      "software",
+      "software",
+      "software",
+      "software",
+      "insurance",
+      "insurance",
+      "insurance",
+      "marketing",
+      "marketing",
+      "marketing",
+      "marketing",
+      "labs",
+      "labs",
       "equipment",
-      "rent", "rent",
-      "licenses", "licenses", "licenses",
-      "education", "education",
-      "other", "other", "other", "other", "other", "other"
+      "rent",
+      "rent",
+      "licenses",
+      "licenses",
+      "licenses",
+      "education",
+      "education",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other",
+      "other"
     ),
-    match_type  = "contains",
+    match_type = "contains",
     ignore_case = TRUE
   )
 }
@@ -124,7 +178,6 @@ default_account_map <- function() {
 #' map_accounts(raw, default_account_map())
 #' }
 map_accounts <- function(raw_tbl, account_map = default_account_map()) {
-
   stopifnot(
     is.data.frame(raw_tbl),
     all(c("account", "amount", "date") %in% names(raw_tbl))
@@ -137,15 +190,24 @@ map_accounts <- function(raw_tbl, account_map = default_account_map()) {
   accounts <- raw_tbl$account
   for (i in seq_len(nrow(account_map))) {
     pending <- which(is.na(matched))
-    if (length(pending) == 0L) break
-    row      <- account_map[i, ]
-    needle   <- row$pattern
-    haystack <- if (row$ignore_case) tolower(accounts[pending]) else accounts[pending]
-    if (row$ignore_case) needle <- tolower(needle)
-    hits <- switch(row$match_type,
+    if (length(pending) == 0L) {
+      break
+    }
+    row <- account_map[i, ]
+    needle <- row$pattern
+    haystack <- if (row$ignore_case) {
+      tolower(accounts[pending])
+    } else {
+      accounts[pending]
+    }
+    if (row$ignore_case) {
+      needle <- tolower(needle)
+    }
+    hits <- switch(
+      row$match_type,
       contains = grepl(needle, haystack, fixed = TRUE),
-      exact    = haystack == needle,
-      regex    = grepl(needle, haystack, perl = TRUE),
+      exact = haystack == needle,
+      regex = grepl(needle, haystack, perl = TRUE),
       FALSE
     )
     matched[pending[hits]] <- row$category
@@ -158,7 +220,7 @@ map_accounts <- function(raw_tbl, account_map = default_account_map()) {
         "The following accounts could not be mapped and were assigned 'other': ",
         paste(unique(unmatched), collapse = ", ")
       ),
-      class     = "dcForecastR_unmapped_accounts",
+      class = "dcForecastR_unmapped_accounts",
       unmatched = unique(unmatched)
     )
     matched[is.na(matched)] <- "other"

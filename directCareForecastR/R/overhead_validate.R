@@ -1,4 +1,3 @@
-
 #' Validate Overhead Tibble
 #'
 #' Checks a normalized overhead tibble for common data quality issues.
@@ -13,10 +12,15 @@
 #'
 #' @export
 validate_overhead <- function(data) {
-
   required_cols <- c(
-    "practice_id", "date", "week_start", "month", "year",
-    "amount", "category", "source"
+    "practice_id",
+    "date",
+    "week_start",
+    "month",
+    "year",
+    "amount",
+    "category",
+    "source"
   )
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -25,7 +29,7 @@ validate_overhead <- function(data) {
         "Overhead tibble is missing required columns: ",
         paste(missing_cols, collapse = ", ")
       ),
-      class    = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }
@@ -62,8 +66,8 @@ validate_overhead <- function(data) {
         " negative amount(s) detected and flagged as refunds. ",
         "These will reduce overhead totals in the affected month(s)."
       ),
-      class   = "dcForecastR_refunds_detected",
-      refunds = data[refund_rows, ]   # attach the rows for UI inspection
+      class = "dcForecastR_refunds_detected",
+      refunds = data[refund_rows, ] # attach the rows for UI inspection
     )
   }
 

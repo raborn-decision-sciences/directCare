@@ -54,13 +54,14 @@
 #' # Project when the practice will clear $5,000/month net
 #' forecast_target(income, overhead, target_income = 5000, method = "linear")
 #' }
-forecast_target <- function(income_summary,
-                            overhead_summary,
-                            target_income,
-                            method = c("linear", "ets", "arima"),
-                            horizon = NULL,
-                            confidence_level = 0.95) {
-
+forecast_target <- function(
+  income_summary,
+  overhead_summary,
+  target_income,
+  method = c("linear", "ets", "arima"),
+  horizon = NULL,
+  confidence_level = 0.95
+) {
   method <- match.arg(method)
 
   if (!is.numeric(target_income) || length(target_income) != 1) {
@@ -95,19 +96,24 @@ forecast_target <- function(income_summary,
   }
 
   # Prepare data and detect frequency
-  income_prep   <- .prepare_income(income_summary)
+  income_prep <- .prepare_income(income_summary)
   overhead_prep <- .prepare_overhead(overhead_summary)
 
   if (income_prep$frequency != overhead_prep$frequency) {
     rlang::warn(
       paste0(
-        "Income data is ", income_prep$frequency, " but overhead data is ",
-        overhead_prep$frequency, ". Using ", income_prep$frequency, " frequency."
+        "Income data is ",
+        income_prep$frequency,
+        " but overhead data is ",
+        overhead_prep$frequency,
+        ". Using ",
+        income_prep$frequency,
+        " frequency."
       )
     )
   }
 
-  frequency_str    <- income_prep$frequency
+  frequency_str <- income_prep$frequency
   periods_per_year <- income_prep$periods_per_year
 
   if (is.null(horizon)) {
@@ -129,7 +135,7 @@ forecast_target <- function(income_summary,
 
   combined <- combined_raw |>
     dplyr::mutate(
-      revenue  = tidyr::replace_na(revenue, 0),
+      revenue = tidyr::replace_na(revenue, 0),
       overhead = tidyr::replace_na(overhead, 0)
     )
 
@@ -154,11 +160,11 @@ forecast_target <- function(income_summary,
   }
 
   required_revenue_now <- current_overhead_avg_t + target_income
-  current_gap          <- current_revenue - required_revenue_now
+  current_gap <- current_revenue - required_revenue_now
 
   # Forecast revenue and overhead independently; capture any data-volume warnings.
   data_warnings <- character(0)
-  rev_tracked  <- .forecast_series_tracked(
+  rev_tracked <- .forecast_series_tracked(
     combined$revenue,
     method = method,
     horizon = horizon,
@@ -179,8 +185,8 @@ forecast_target <- function(income_summary,
   ovhd_fc <- ovhd_tracked$fc
 
   # Generate forecast dates
-  last_date      <- max(combined$period_start, na.rm = TRUE)
-  date_unit      <- if (frequency_str == "weekly") "week" else "month"
+  last_date <- max(combined$period_start, na.rm = TRUE)
+  date_unit <- if (frequency_str == "weekly") "week" else "month"
   forecast_dates <- seq(
     last_date + lubridate::period(1, units = date_unit),
     by = date_unit,
@@ -191,32 +197,35 @@ forecast_target <- function(income_summary,
   required_revenue <- ovhd_fc$point + target_income
 
   forecast_data <- tibble::tibble(
-    period_start      = forecast_dates,
-    revenue_forecast  = rev_fc$point,
-    revenue_lower     = rev_fc$lower,
-    revenue_upper     = rev_fc$upper,
+    period_start = forecast_dates,
+    revenue_forecast = rev_fc$point,
+    revenue_lower = rev_fc$lower,
+    revenue_upper = rev_fc$upper,
     overhead_forecast = ovhd_fc$point,
-    required_revenue  = required_revenue,
-    net_vs_target     = rev_fc$point - required_revenue
+    required_revenue = required_revenue,
+    net_vs_target = rev_fc$point - required_revenue
   )
 
   # First period where revenue forecast meets or exceeds required revenue
   target_idx <- which(forecast_data$net_vs_target >= 0)[1]
 
   if (is.na(target_idx)) {
-    target_date       <- NA
+    target_date <- NA
     periods_to_target <- NA
-    ci_lower          <- NA
-    ci_upper          <- NA
+    ci_lower <- NA
+    ci_upper <- NA
     rlang::warn(
       paste0(
-        "Target net income of ", target_income,
-        " not reached within the forecast horizon of ", horizon, " periods."
+        "Target net income of ",
+        target_income,
+        " not reached within the forecast horizon of ",
+        horizon,
+        " periods."
       ),
       class = "dcForecastR_target_not_reached"
     )
   } else {
-    target_date       <- forecast_data$period_start[target_idx]
+    target_date <- forecast_data$period_start[target_idx]
     periods_to_target <- target_idx
 
     # CI bounds: pessimistic (lower CI revenue vs upper CI overhead + target)
@@ -224,23 +233,31 @@ forecast_target <- function(income_summary,
     ci_lower_required <- ovhd_fc$upper + target_income
     ci_upper_required <- ovhd_fc$lower + target_income
 
-    ci_lower_idx <- which((rev_fc$lower  - ci_lower_required) >= 0)[1]
-    ci_upper_idx <- which((rev_fc$upper  - ci_upper_required) >= 0)[1]
+    ci_lower_idx <- which((rev_fc$lower - ci_lower_required) >= 0)[1]
+    ci_upper_idx <- which((rev_fc$upper - ci_upper_required) >= 0)[1]
 
-    ci_lower <- if (!is.na(ci_lower_idx)) forecast_data$period_start[ci_lower_idx] else NA
-    ci_upper <- if (!is.na(ci_upper_idx)) forecast_data$period_start[ci_upper_idx] else NA
+    ci_lower <- if (!is.na(ci_lower_idx)) {
+      forecast_data$period_start[ci_lower_idx]
+    } else {
+      NA
+    }
+    ci_upper <- if (!is.na(ci_upper_idx)) {
+      forecast_data$period_start[ci_upper_idx]
+    } else {
+      NA
+    }
   }
 
   list(
-    target_date          = target_date,
-    periods_to_target    = periods_to_target,
-    current_gap          = current_gap,
+    target_date = target_date,
+    periods_to_target = periods_to_target,
+    current_gap = current_gap,
     required_revenue_now = required_revenue_now,
-    confidence_interval  = c(lower = ci_lower, upper = ci_upper),
-    forecast_data        = forecast_data,
-    target_income        = target_income,
-    method               = method,
-    frequency            = frequency_str,
-    data_warnings        = if (length(data_warnings) > 0L) data_warnings else NULL
+    confidence_interval = c(lower = ci_lower, upper = ci_upper),
+    forecast_data = forecast_data,
+    target_income = target_income,
+    method = method,
+    frequency = frequency_str,
+    data_warnings = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }

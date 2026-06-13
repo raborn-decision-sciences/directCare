@@ -20,10 +20,14 @@
 #'
 #' @export
 validate_income <- function(data) {
-
   required_cols <- c(
-    "practice_id", "date", "week_start", "month", "year",
-    "revenue", "source"
+    "practice_id",
+    "date",
+    "week_start",
+    "month",
+    "year",
+    "revenue",
+    "source"
   )
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0) {
@@ -32,7 +36,7 @@ validate_income <- function(data) {
         "Income tibble is missing required columns: ",
         paste(missing_cols, collapse = ", ")
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }
@@ -69,7 +73,7 @@ validate_income <- function(data) {
         " negative revenue row(s) detected and flagged as cancellations/chargebacks. ",
         "These will reduce revenue totals in the affected period(s)."
       ),
-      class   = "dcForecastR_refunds_detected",
+      class = "dcForecastR_refunds_detected",
       refunds = data[refund_rows, ]
     )
   }
@@ -92,7 +96,7 @@ validate_income <- function(data) {
         sum(future_rows),
         " row(s) have future dates. Verify these are not data entry errors."
       ),
-      class       = "dcForecastR_future_dates",
+      class = "dcForecastR_future_dates",
       future_rows = data[future_rows, ]
     )
   }

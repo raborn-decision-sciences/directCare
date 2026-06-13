@@ -37,11 +37,12 @@
 #'
 #' forecast_revenue(income, method = "linear")
 #' }
-forecast_revenue <- function(income_summary,
-                             method = c("linear", "ets", "arima"),
-                             horizon = NULL,
-                             confidence_level = 0.95) {
-
+forecast_revenue <- function(
+  income_summary,
+  method = c("linear", "ets", "arima"),
+  horizon = NULL,
+  confidence_level = 0.95
+) {
   method <- match.arg(method)
 
   if (dplyr::n_distinct(income_summary$practice_id) > 1L) {
@@ -57,8 +58,8 @@ forecast_revenue <- function(income_summary,
   }
 
   # Prepare data and detect frequency
-  income_prep      <- .prepare_income(income_summary)
-  frequency_str    <- income_prep$frequency
+  income_prep <- .prepare_income(income_summary)
+  frequency_str <- income_prep$frequency
   periods_per_year <- income_prep$periods_per_year
 
   # Default horizon based on frequency
@@ -80,12 +81,12 @@ forecast_revenue <- function(income_summary,
     frequency = periods_per_year,
     level = confidence_level
   )
-  rev_fc        <- rev_tracked$fc
+  rev_fc <- rev_tracked$fc
   data_warnings <- rev_tracked$warnings
 
   # Generate forecast dates
-  last_date   <- max(income_prep$data$period_start, na.rm = TRUE)
-  date_unit   <- if (frequency_str == "weekly") "week" else "month"
+  last_date <- max(income_prep$data$period_start, na.rm = TRUE)
+  date_unit <- if (frequency_str == "weekly") "week" else "month"
   forecast_dates <- seq(
     last_date + lubridate::period(1, units = date_unit),
     by = date_unit,
@@ -93,17 +94,17 @@ forecast_revenue <- function(income_summary,
   )
 
   forecast_data <- tibble::tibble(
-    period_start     = forecast_dates,
+    period_start = forecast_dates,
     revenue_forecast = rev_fc$point,
-    revenue_lower    = rev_fc$lower,
-    revenue_upper    = rev_fc$upper
+    revenue_lower = rev_fc$lower,
+    revenue_upper = rev_fc$upper
   )
 
   list(
     current_revenue = current_revenue,
-    forecast_data   = forecast_data,
-    method          = method,
-    frequency       = frequency_str,
-    data_warnings   = if (length(data_warnings) > 0L) data_warnings else NULL
+    forecast_data = forecast_data,
+    method = method,
+    frequency = frequency_str,
+    data_warnings = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }

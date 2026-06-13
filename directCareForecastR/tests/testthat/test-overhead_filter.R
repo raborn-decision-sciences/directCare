@@ -1,16 +1,20 @@
 make_transactions <- function() {
   tibble::tibble(
-    practice_id       = 1,
-    date              = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
-    week_start        = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
-    month             = c(1L, 2L, 3L),
-    year              = c(2025L, 2025L, 2025L),
-    full_account_name = c("Expenses:Rent", "Income:Sales", "Expenses:Utilities"),
-    account_name      = c("Rent", "Sales", "Utilities"),
-    description       = c("Office rent", "Payment", "Electric bill"),
-    amount            = c(1000, 500, 200),
-    category          = c("rent", "other", "other"),
-    source            = "gnucash_csv"
+    practice_id = 1,
+    date = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
+    week_start = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
+    month = c(1L, 2L, 3L),
+    year = c(2025L, 2025L, 2025L),
+    full_account_name = c(
+      "Expenses:Rent",
+      "Income:Sales",
+      "Expenses:Utilities"
+    ),
+    account_name = c("Rent", "Sales", "Utilities"),
+    description = c("Office rent", "Payment", "Electric bill"),
+    amount = c(1000, 500, 200),
+    category = c("rent", "other", "other"),
+    source = "gnucash_csv"
   )
 }
 
@@ -31,7 +35,7 @@ test_that("filter_gnucash_overhead adds is_refund column via validate_overhead",
 
 test_that("filter_gnucash_overhead warns on negative amounts", {
   transactions <- make_transactions()
-  transactions$amount[1] <- -200  # simulate a credit
+  transactions$amount[1] <- -200 # simulate a credit
   expect_snapshot(filter_gnucash_overhead(transactions))
 })
 
@@ -45,17 +49,17 @@ test_that("filter_gnucash_overhead flags negative amounts as is_refund = TRUE", 
 
 test_that("filter_gnucash_overhead returns empty data frame when no expenses", {
   transactions <- tibble::tibble(
-    practice_id       = 1,
-    date              = as.Date(c("2025-01-15", "2025-02-20")),
-    week_start        = as.Date(c("2025-01-13", "2025-02-17")),
-    month             = c(1L, 2L),
-    year              = c(2025L, 2025L),
+    practice_id = 1,
+    date = as.Date(c("2025-01-15", "2025-02-20")),
+    week_start = as.Date(c("2025-01-13", "2025-02-17")),
+    month = c(1L, 2L),
+    year = c(2025L, 2025L),
     full_account_name = c("Income:Sales", "Assets:Bank"),
-    account_name      = c("Sales", "Bank"),
-    description       = c("Payment", "Deposit"),
-    amount            = c(500, 1000),
-    category          = c("other", "other"),
-    source            = "gnucash_csv"
+    account_name = c("Sales", "Bank"),
+    description = c("Payment", "Deposit"),
+    amount = c(500, 1000),
+    category = c("other", "other"),
+    source = "gnucash_csv"
   )
 
   result <- filter_gnucash_overhead(transactions)

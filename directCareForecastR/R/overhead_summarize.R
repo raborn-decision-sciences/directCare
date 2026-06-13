@@ -33,10 +33,9 @@
 #'
 #' summarize_overhead_monthly(overhead)
 #' }
-summarize_overhead_monthly <- function(overhead_tbl,
-                                        include_refunds = TRUE) {
+summarize_overhead_monthly <- function(overhead_tbl, include_refunds = TRUE) {
   required_cols <- c("practice_id", "year", "month", "amount")
-  missing_cols  <- setdiff(required_cols, names(overhead_tbl))
+  missing_cols <- setdiff(required_cols, names(overhead_tbl))
   if (length(missing_cols) > 0) {
     rlang::abort(
       paste0(
@@ -44,7 +43,7 @@ summarize_overhead_monthly <- function(overhead_tbl,
         paste(missing_cols, collapse = ", "),
         ". Did the data pass through filter_gnucash_overhead() or ingest_manual()?"
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }
@@ -65,7 +64,7 @@ summarize_overhead_monthly <- function(overhead_tbl,
     dplyr::summarise(
       total_overhead = sum(amount),
       gross_overhead = sum(amount[!is_refund]),
-      total_refunds  = -sum(amount[is_refund]),
+      total_refunds = -sum(amount[is_refund]),
       .groups = "drop"
     )
 }
@@ -106,8 +105,7 @@ summarize_overhead_monthly <- function(overhead_tbl,
 #'
 #' summarize_overhead_weekly(overhead)
 #' }
-summarize_overhead_weekly <- function(overhead_tbl,
-                                       include_refunds = TRUE) {
+summarize_overhead_weekly <- function(overhead_tbl, include_refunds = TRUE) {
   if (!"week_start" %in% names(overhead_tbl)) {
     rlang::abort(
       paste0(
@@ -131,7 +129,7 @@ summarize_overhead_weekly <- function(overhead_tbl,
     dplyr::summarise(
       total_overhead = sum(amount),
       gross_overhead = sum(amount[!is_refund]),
-      total_refunds  = -sum(amount[is_refund]),
+      total_refunds = -sum(amount[is_refund]),
       .groups = "drop"
     )
 }

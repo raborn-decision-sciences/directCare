@@ -3,7 +3,11 @@ test_that("normalize_gnucash_csv produces correct normalized schema", {
 
   test_data <- data.frame(
     Date = c("01/15/2025", "02/20/2025", "03/10/2025"),
-    `Full Account Name` = c("Expenses:Rent", "Expenses:Utilities", "Income:Sales"),
+    `Full Account Name` = c(
+      "Expenses:Rent",
+      "Expenses:Utilities",
+      "Income:Sales"
+    ),
     `Account Name` = c("Rent", "Utilities", "Sales"),
     Description = c("Office rent", "Electric", "Payment"),
     `Amount Num.` = c(1000, 200, 500),
@@ -19,9 +23,17 @@ test_that("normalize_gnucash_csv produces correct normalized schema", {
   expect_equal(nrow(result), 3)
 
   expected_cols <- c(
-    "practice_id", "date", "week_start", "month", "year",
-    "full_account_name", "account_name", "description",
-    "amount", "category", "source"
+    "practice_id",
+    "date",
+    "week_start",
+    "month",
+    "year",
+    "full_account_name",
+    "account_name",
+    "description",
+    "amount",
+    "category",
+    "source"
   )
   expect_true(all(expected_cols %in% names(result)))
   expect_false("Amount Num." %in% names(result))
@@ -50,17 +62,17 @@ test_that("normalize_gnucash_csv errors on missing required columns", {
 
 test_that("normalize_gnucash_income filters to income rows, renames amount to revenue, and adds is_refund", {
   normalized <- tibble::tibble(
-    practice_id       = 1,
-    date              = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
-    week_start        = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
-    month             = c(1L, 2L, 3L),
-    year              = c(2025L, 2025L, 2025L),
+    practice_id = 1,
+    date = as.Date(c("2025-01-15", "2025-02-20", "2025-03-10")),
+    week_start = as.Date(c("2025-01-13", "2025-02-17", "2025-03-10")),
+    month = c(1L, 2L, 3L),
+    year = c(2025L, 2025L, 2025L),
     full_account_name = c("Income:Sales", "Expenses:Rent", "Income:Consulting"),
-    account_name      = c("Sales", "Rent", "Consulting"),
-    description       = c("Payment", "Rent", "Project A"),
-    amount            = c(1000, 1000, 2000),
-    category          = c("other", "rent", "other"),
-    source            = "gnucash_csv"
+    account_name = c("Sales", "Rent", "Consulting"),
+    description = c("Payment", "Rent", "Project A"),
+    amount = c(1000, 1000, 2000),
+    category = c("other", "rent", "other"),
+    source = "gnucash_csv"
   )
 
   result <- normalize_gnucash_income(normalized)

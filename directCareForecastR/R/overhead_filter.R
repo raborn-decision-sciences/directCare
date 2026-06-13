@@ -1,4 +1,3 @@
-
 #' Filter Transactions to Overhead Expenses
 #'
 #' Filters a normalized transaction tibble to rows whose
@@ -25,4 +24,3 @@ filter_gnucash_overhead <- function(data) {
   data[which(grepl("Expenses", data$full_account_name)), ] |>
     validate_overhead()
 }
-

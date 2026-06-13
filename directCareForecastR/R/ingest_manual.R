@@ -72,11 +72,16 @@ ingest_manual <- function(df, practice_id, type = c("overhead", "income")) {
 #'
 #' @noRd
 normalize_overhead_manual <- function(df, practice_id, source = "manual") {
-
   # Standardize column names if they come in different formats
   names(df) <- tolower(gsub(" ", "_", names(df)))
 
-  required_cols <- c("date", "full_account_name", "account_name", "description", "amount")
+  required_cols <- c(
+    "date",
+    "full_account_name",
+    "account_name",
+    "description",
+    "amount"
+  )
   missing_cols <- setdiff(required_cols, names(df))
   if (length(missing_cols) > 0) {
     rlang::abort(
@@ -106,14 +111,13 @@ normalize_overhead_manual <- function(df, practice_id, source = "manual") {
     ) |>
     dplyr::mutate(
       practice_id = practice_id,
-      source      = source,
-      date        = lubridate::as_date(date),
-      week_start  = lubridate::floor_date(date, "week", week_start = 1),
-      month       = lubridate::month(date),
-      year        = lubridate::year(date)
+      source = source,
+      date = lubridate::as_date(date),
+      week_start = lubridate::floor_date(date, "week", week_start = 1),
+      month = lubridate::month(date),
+      year = lubridate::year(date)
     ) |>
     dplyr::relocate(practice_id, date, week_start, month, year)
-
 }
 
 #' Normalize Manual Income Data
@@ -134,7 +138,6 @@ normalize_overhead_manual <- function(df, practice_id, source = "manual") {
 #'
 #' @noRd
 normalize_income_manual <- function(df, practice_id, source = "manual") {
-
   # Standardize column names if they come in different formats
   names(df) <- tolower(gsub(" ", "_", names(df)))
 
@@ -150,7 +153,13 @@ normalize_income_manual <- function(df, practice_id, source = "manual") {
     )
   }
 
-  required_cols <- c("date", "full_account_name", "account_name", "description", amount_col)
+  required_cols <- c(
+    "date",
+    "full_account_name",
+    "account_name",
+    "description",
+    amount_col
+  )
   missing_cols <- setdiff(required_cols, names(df))
   if (length(missing_cols) > 0) {
     rlang::abort(
@@ -180,12 +189,11 @@ normalize_income_manual <- function(df, practice_id, source = "manual") {
     ) |>
     dplyr::mutate(
       practice_id = practice_id,
-      source      = source,
-      date        = lubridate::as_date(date),
-      week_start  = lubridate::floor_date(date, "week", week_start = 1),
-      month       = lubridate::month(date),
-      year        = lubridate::year(date)
+      source = source,
+      date = lubridate::as_date(date),
+      week_start = lubridate::floor_date(date, "week", week_start = 1),
+      month = lubridate::month(date),
+      year = lubridate::year(date)
     ) |>
     dplyr::relocate(practice_id, date, week_start, month, year)
-
 }

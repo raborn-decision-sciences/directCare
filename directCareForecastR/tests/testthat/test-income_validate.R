@@ -1,16 +1,16 @@
 make_income_tbl <- function(n = 3) {
   tibble::tibble(
-    practice_id       = rep(1, n),
-    date              = seq(as.Date("2025-01-01"), by = "month", length.out = n),
-    week_start        = seq(as.Date("2024-12-30"), by = "month", length.out = n),
-    month             = seq_len(n),
-    year              = rep(2025L, n),
+    practice_id = rep(1, n),
+    date = seq(as.Date("2025-01-01"), by = "month", length.out = n),
+    week_start = seq(as.Date("2024-12-30"), by = "month", length.out = n),
+    month = seq_len(n),
+    year = rep(2025L, n),
     full_account_name = rep("Income:Membership", n),
-    account_name      = rep("Membership", n),
-    description       = rep("Monthly fee", n),
-    revenue           = rep(1000, n),
-    category          = rep("other", n),
-    source            = "manual"
+    account_name = rep("Membership", n),
+    description = rep("Monthly fee", n),
+    revenue = rep(1000, n),
+    category = rep("other", n),
+    source = "manual"
   )
 }
 
@@ -49,7 +49,7 @@ test_that("validate_income is_refund is FALSE for all positive revenue", {
 })
 
 test_that("validate_income preserves all input rows and columns", {
-  input  <- make_income_tbl()
+  input <- make_income_tbl()
   result <- validate_income(input)
   expect_equal(nrow(result), nrow(input))
   expect_true(all(names(input) %in% names(result)))
@@ -123,11 +123,11 @@ test_that("validate_income attaches future rows to the warning", {
 
 test_that("ingest_manual type = 'income' returns is_refund column", {
   df <- data.frame(
-    date              = as.Date(c("2025-01-15", "2025-02-20")),
+    date = as.Date(c("2025-01-15", "2025-02-20")),
     full_account_name = c("Income:Membership", "Income:Membership"),
-    account_name      = c("Membership", "Membership"),
-    description       = c("Fee", "Fee"),
-    revenue           = c(1000, 1200)
+    account_name = c("Membership", "Membership"),
+    description = c("Fee", "Fee"),
+    revenue = c(1000, 1200)
   )
   result <- ingest_manual(df, practice_id = 1, type = "income")
   expect_true("is_refund" %in% names(result))
@@ -136,22 +136,22 @@ test_that("ingest_manual type = 'income' returns is_refund column", {
 
 test_that("ingest_manual type = 'income' warns on negative revenue", {
   df <- data.frame(
-    date              = as.Date(c("2025-01-15", "2025-02-20")),
+    date = as.Date(c("2025-01-15", "2025-02-20")),
     full_account_name = c("Income:Membership", "Income:Membership"),
-    account_name      = c("Membership", "Membership"),
-    description       = c("Fee", "Chargeback"),
-    revenue           = c(1000, -200)
+    account_name = c("Membership", "Membership"),
+    description = c("Fee", "Chargeback"),
+    revenue = c(1000, -200)
   )
   expect_snapshot(ingest_manual(df, practice_id = 1, type = "income"))
 })
 
 test_that("ingest_manual type = 'overhead' calls validate_overhead and adds is_refund", {
   df <- data.frame(
-    date              = as.Date("2025-01-15"),
+    date = as.Date("2025-01-15"),
     full_account_name = "Expenses:Rent",
-    account_name      = "Rent",
-    description       = "Office rent",
-    amount            = 1000
+    account_name = "Rent",
+    description = "Office rent",
+    amount = 1000
   )
   result <- ingest_manual(df, practice_id = 1, type = "overhead")
   expect_true("is_refund" %in% names(result))

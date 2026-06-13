@@ -40,9 +40,8 @@
 #' monthly <- summarize_income_monthly(income)
 #' }
 summarize_income_monthly <- function(income_tbl, include_refunds = TRUE) {
-
   required_cols <- c("practice_id", "year", "month", "revenue")
-  missing_cols  <- setdiff(required_cols, names(income_tbl))
+  missing_cols <- setdiff(required_cols, names(income_tbl))
   if (length(missing_cols) > 0) {
     rlang::abort(
       paste0(
@@ -50,7 +49,7 @@ summarize_income_monthly <- function(income_tbl, include_refunds = TRUE) {
         paste(missing_cols, collapse = ", "),
         ". Did the data pass through normalize_gnucash_income() or ingest_manual()?"
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }
@@ -112,9 +111,8 @@ summarize_income_monthly <- function(income_tbl, include_refunds = TRUE) {
 #' weekly <- summarize_income_weekly(income)
 #' }
 summarize_income_weekly <- function(income_tbl, include_refunds = TRUE) {
-
   required_cols <- c("practice_id", "week_start", "revenue")
-  missing_cols  <- setdiff(required_cols, names(income_tbl))
+  missing_cols <- setdiff(required_cols, names(income_tbl))
   if (length(missing_cols) > 0) {
     rlang::abort(
       paste0(
@@ -122,7 +120,7 @@ summarize_income_weekly <- function(income_tbl, include_refunds = TRUE) {
         paste(missing_cols, collapse = ", "),
         ". Did the data pass through normalize_gnucash_income() or ingest_manual()?"
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_cols
     )
   }

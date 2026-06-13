@@ -11,11 +11,11 @@
 # rows, and a future-dated entry; those produce expected validate_overhead()
 # warnings that we suppress at the file level rather than treating as failures.
 
-csv_path     <- testthat::test_path("test-gnucash.csv")
+csv_path <- testthat::test_path("test-gnucash.csv")
 transactions <- suppressWarnings(ingest_gnucash_csv(csv_path, practice_id = 1))
-overhead     <- suppressWarnings(filter_gnucash_overhead(transactions))
-income       <- suppressWarnings(normalize_gnucash_income(transactions))
-monthly      <- summarize_overhead_monthly(overhead)
+overhead <- suppressWarnings(filter_gnucash_overhead(transactions))
+income <- suppressWarnings(normalize_gnucash_income(transactions))
+monthly <- summarize_overhead_monthly(overhead)
 
 # =============================================================================
 # Ingest
@@ -29,9 +29,17 @@ test_that("ingest_gnucash_csv reads the real export without error", {
 
 test_that("ingest_gnucash_csv returns the normalized schema", {
   expected_cols <- c(
-    "practice_id", "date", "week_start", "month", "year",
-    "full_account_name", "account_name", "description",
-    "amount", "category", "source"
+    "practice_id",
+    "date",
+    "week_start",
+    "month",
+    "year",
+    "full_account_name",
+    "account_name",
+    "description",
+    "amount",
+    "category",
+    "source"
   )
   expect_true(all(expected_cols %in% names(transactions)))
   expect_false("is_refund" %in% names(transactions))
@@ -44,8 +52,17 @@ test_that("ingest_gnucash_csv parses dates correctly", {
 
 test_that("ingest_gnucash_csv assigns categories from the default account map", {
   known_categories <- c(
-    "rent", "staff", "supplies", "software", "insurance",
-    "marketing", "labs", "equipment", "licenses", "education", "other"
+    "rent",
+    "staff",
+    "supplies",
+    "software",
+    "insurance",
+    "marketing",
+    "labs",
+    "equipment",
+    "licenses",
+    "education",
+    "other"
   )
   expect_true(all(transactions$category %in% known_categories))
   expect_false(anyNA(transactions$category))
@@ -56,15 +73,15 @@ test_that("ingest_gnucash_csv maps known DPC account names correctly", {
     unique(transactions$category[transactions$account_name == acct])
   }
 
-  expect_equal(get_category("Rent"),                "rent")
+  expect_equal(get_category("Rent"), "rent")
   expect_equal(get_category("Malpractice Insurance"), "insurance")
-  expect_equal(get_category("Payroll Expenses"),    "staff")
-  expect_equal(get_category("Advertisement"),       "marketing")
-  expect_equal(get_category("Labs"),                "labs")
-  expect_equal(get_category("EMR"),                 "software")
-  expect_equal(get_category("Equipment Rental"),    "equipment")
+  expect_equal(get_category("Payroll Expenses"), "staff")
+  expect_equal(get_category("Advertisement"), "marketing")
+  expect_equal(get_category("Labs"), "labs")
+  expect_equal(get_category("EMR"), "software")
+  expect_equal(get_category("Equipment Rental"), "equipment")
   expect_equal(get_category("Licenses and Permits"), "licenses")
-  expect_equal(get_category("Education"),           "education")
+  expect_equal(get_category("Education"), "education")
 })
 
 # =============================================================================
@@ -78,7 +95,7 @@ test_that("filter_gnucash_overhead returns only Expenses rows", {
 
 test_that("filter_gnucash_overhead removes Imbalance-USD and asset rows", {
   expect_false(any(grepl("Imbalance", overhead$full_account_name)))
-  expect_false(any(grepl("Assets",    overhead$full_account_name)))
+  expect_false(any(grepl("Assets", overhead$full_account_name)))
 })
 
 test_that("filter_gnucash_overhead contains no NA amounts", {
@@ -92,7 +109,7 @@ test_that("filter_gnucash_overhead contains no NA amounts", {
 test_that("normalize_gnucash_income returns empty tibble gracefully when no income rows exist", {
   expect_s3_class(income, "data.frame")
   expect_equal(nrow(income), 0)
-  expect_true("revenue"   %in% names(income))
+  expect_true("revenue" %in% names(income))
   expect_true("is_refund" %in% names(income))
 })
 
@@ -111,7 +128,7 @@ test_that("summarize_overhead_monthly produces one row per month", {
 
 test_that("summarize_overhead_monthly totals are non-negative after refund netting", {
   expect_true(all(monthly$gross_overhead >= 0))
-  expect_true(all(monthly$total_refunds  >= 0))
+  expect_true(all(monthly$total_refunds >= 0))
 })
 
 test_that("summarize_overhead_monthly gross_overhead >= total_overhead always", {
@@ -126,9 +143,9 @@ test_that("forecast_revenue runs on real monthly overhead data without error", {
   # Use overhead totals as a stand-in revenue series to exercise the
   # forecasting engine with real data magnitudes.
   mock_income <- tibble::tibble(
-    practice_id   = monthly$practice_id,
-    year          = monthly$year,
-    month         = monthly$month,
+    practice_id = monthly$practice_id,
+    year = monthly$year,
+    month = monthly$month,
     total_revenue = monthly$total_overhead
   )
 
@@ -140,15 +157,20 @@ test_that("forecast_revenue runs on real monthly overhead data without error", {
 
 test_that("forecast_breakeven runs on real overhead data without error", {
   mock_income <- tibble::tibble(
-    practice_id   = monthly$practice_id,
-    year          = monthly$year,
-    month         = monthly$month,
-    total_revenue = monthly$total_overhead * 0.5  # below overhead — will show deficit
+    practice_id = monthly$practice_id,
+    year = monthly$year,
+    month = monthly$month,
+    total_revenue = monthly$total_overhead * 0.5 # below overhead — will show deficit
   )
 
   expect_no_error(
     suppressWarnings(
-      result <- forecast_breakeven(mock_income, monthly, method = "linear", horizon = 24)
+      result <- forecast_breakeven(
+        mock_income,
+        monthly,
+        method = "linear",
+        horizon = 24
+      )
     )
   )
   expect_equal(result$frequency, "monthly")

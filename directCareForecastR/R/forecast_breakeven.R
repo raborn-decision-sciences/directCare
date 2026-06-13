@@ -35,15 +35,16 @@
 #' overhead <- ingest_gnucash_csv("expenses.csv", 1) |>
 #'   filter_gnucash_overhead() |>
 #'   summarize_overhead_monthly()
-#' 
+#'
 #' forecast_breakeven(income, overhead, method = "linear")
 #' }
-forecast_breakeven <- function(income_summary,
-                               overhead_summary,
-                               method = c("linear", "ets", "arima"),
-                               horizon = NULL,
-                               confidence_level = 0.95) {
-  
+forecast_breakeven <- function(
+  income_summary,
+  overhead_summary,
+  method = c("linear", "ets", "arima"),
+  horizon = NULL,
+  confidence_level = 0.95
+) {
   method <- match.arg(method)
 
   if (dplyr::n_distinct(income_summary$practice_id) > 1L) {
@@ -73,26 +74,31 @@ forecast_breakeven <- function(income_summary,
   # Prepare data and detect frequency
   income_prep <- .prepare_income(income_summary)
   overhead_prep <- .prepare_overhead(overhead_summary)
-  
+
   # Check that both have same frequency
   if (income_prep$frequency != overhead_prep$frequency) {
     rlang::warn(
       paste0(
-        "Income data is ", income_prep$frequency, " but overhead data is ",
-        overhead_prep$frequency, ". Using ", income_prep$frequency, " frequency."
+        "Income data is ",
+        income_prep$frequency,
+        " but overhead data is ",
+        overhead_prep$frequency,
+        ". Using ",
+        income_prep$frequency,
+        " frequency."
       )
     )
   }
-  
+
   # Use income frequency as primary
   frequency_str <- income_prep$frequency
   periods_per_year <- income_prep$periods_per_year
-  
+
   # Set default horizon if not provided
   if (is.null(horizon)) {
     horizon <- if (frequency_str == "weekly") 52 else 12
   }
-  
+
   # Merge income and overhead by period.
   # Derive latest_period *before* replace_na so the NA filter is meaningful:
   # after replace_na both columns are always non-NA, making the filter a no-op
@@ -110,9 +116,9 @@ forecast_breakeven <- function(income_summary,
 
   combined <- combined_raw |>
     dplyr::mutate(
-      revenue  = tidyr::replace_na(revenue, 0),
+      revenue = tidyr::replace_na(revenue, 0),
       overhead = tidyr::replace_na(overhead, 0),
-      net      = revenue - overhead
+      net = revenue - overhead
     )
 
   # Most-recent income period — use the pre-join income series so we always
@@ -157,7 +163,7 @@ forecast_breakeven <- function(income_summary,
   # Forecast revenue and overhead separately; capture any data-volume warnings
   # so they can flow through to interpretation text and reports.
   data_warnings <- character(0)
-  rev_tracked  <- .forecast_series_tracked(
+  rev_tracked <- .forecast_series_tracked(
     combined$revenue,
     method = method,
     horizon = horizon,
@@ -188,75 +194,88 @@ forecast_breakeven <- function(income_summary,
 
   # Create forecast data frame
   forecast_data <- tibble::tibble(
-    period_start      = forecast_dates,
-    revenue_forecast  = rev_fc$point,
-    revenue_lower     = rev_fc$lower,
-    revenue_upper     = rev_fc$upper,
+    period_start = forecast_dates,
+    revenue_forecast = rev_fc$point,
+    revenue_lower = rev_fc$lower,
+    revenue_upper = rev_fc$upper,
     overhead_forecast = ovhd_fc$point,
-    overhead_lower    = ovhd_fc$lower,
-    overhead_upper    = ovhd_fc$upper,
-    net_forecast      = rev_fc$point - ovhd_fc$point
+    overhead_lower = ovhd_fc$lower,
+    overhead_upper = ovhd_fc$upper,
+    net_forecast = rev_fc$point - ovhd_fc$point
   )
-  
+
   # Find break-even point (first period where revenue >= overhead).
   # If the practice is already at or above break-even in the most recent
   # observed period, report that immediately rather than looking into forecast
   # periods. The crossing check uses >= 0 to match: a net of exactly $0 means
   # revenue covers overhead and is treated as achieved.
   if (current_surplus_deficit >= 0) {
-    breakeven_date       <- last_date
+    breakeven_date <- last_date
     periods_to_breakeven <- 0L
-    ci_lower             <- last_date
-    ci_upper             <- last_date
+    ci_lower <- last_date
+    ci_upper <- last_date
   } else {
     breakeven_idx <- which(forecast_data$net_forecast >= 0)[1]
 
     if (is.na(breakeven_idx)) {
-      breakeven_date       <- NA
+      breakeven_date <- NA
       periods_to_breakeven <- NA
-      ci_lower             <- NA
-      ci_upper             <- NA
+      ci_lower <- NA
+      ci_upper <- NA
       rlang::warn(
         paste0(
           "Break-even not reached within the forecast horizon of ",
-          horizon, " periods."
+          horizon,
+          " periods."
         ),
         class = "dcForecastR_breakeven_not_reached"
       )
     } else {
-      breakeven_date       <- forecast_data$period_start[breakeven_idx]
+      breakeven_date <- forecast_data$period_start[breakeven_idx]
       periods_to_breakeven <- breakeven_idx
 
       # Confidence interval: pessimistic (lower rev - upper overhead)
       #                      and optimistic (upper rev - lower overhead)
-      ci_lower_idx <- which((forecast_data$revenue_lower - forecast_data$overhead_upper) >= 0)[1]
-      ci_upper_idx <- which((forecast_data$revenue_upper - forecast_data$overhead_lower) >= 0)[1]
+      ci_lower_idx <- which(
+        (forecast_data$revenue_lower - forecast_data$overhead_upper) >= 0
+      )[1]
+      ci_upper_idx <- which(
+        (forecast_data$revenue_upper - forecast_data$overhead_lower) >= 0
+      )[1]
 
-      ci_lower <- if (!is.na(ci_lower_idx)) forecast_data$period_start[ci_lower_idx] else NA
-      ci_upper <- if (!is.na(ci_upper_idx)) forecast_data$period_start[ci_upper_idx] else NA
+      ci_lower <- if (!is.na(ci_lower_idx)) {
+        forecast_data$period_start[ci_lower_idx]
+      } else {
+        NA
+      }
+      ci_upper <- if (!is.na(ci_upper_idx)) {
+        forecast_data$period_start[ci_upper_idx]
+      } else {
+        NA
+      }
     }
   }
-  
+
   # Return results
   list(
-    breakeven_date          = breakeven_date,
-    periods_to_breakeven    = periods_to_breakeven,
+    breakeven_date = breakeven_date,
+    periods_to_breakeven = periods_to_breakeven,
     current_surplus_deficit = current_surplus_deficit,
-    current_revenue         = current_revenue,
+    current_revenue = current_revenue,
     # current_overhead: raw single-period value from the most recent period
     #   where both income and overhead were observed. May be 0 for weekly
     #   data if no such period exists in the horizon; use current_overhead_avg.
-    current_overhead        = as.numeric(latest_period$overhead),
+    current_overhead = as.numeric(latest_period$overhead),
     # current_overhead_avg: rolling mean over the last n_avg overhead periods,
     #   converted to per-income-period units.  Use this for member-count
     #   calculations -- it is robust to the posting-day spikes that make the
     #   raw single-period value unreliable.
-    current_overhead_avg    = current_overhead_avg,
-    overhead_avg_n          = n_avg,
-    confidence_interval     = c(lower = ci_lower, upper = ci_upper),
-    forecast_data           = forecast_data,
-    method                  = method,
-    frequency               = frequency_str,
-    data_warnings           = if (length(data_warnings) > 0L) data_warnings else NULL
+    current_overhead_avg = current_overhead_avg,
+    overhead_avg_n = n_avg,
+    confidence_interval = c(lower = ci_lower, upper = ci_upper),
+    forecast_data = forecast_data,
+    method = method,
+    frequency = frequency_str,
+    data_warnings = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }

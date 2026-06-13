@@ -6,7 +6,7 @@ test_that("forecast_breakeven works with monthly data", {
     month = 1:6,
     total_revenue = c(500, 800, 1200, 1800, 2500, 3000)
   )
-  
+
   # Create sample monthly overhead data
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
@@ -16,34 +16,52 @@ test_that("forecast_breakeven works with monthly data", {
     gross_overhead = rep(2000, 6),
     total_refunds = rep(0, 6)
   )
-  
+
   result <- forecast_breakeven(
     income_monthly,
     overhead_monthly,
     method = "linear",
     horizon = 12
   )
-  
+
   # Check structure
   expect_type(result, "list")
-  expect_named(result, c("breakeven_date", "periods_to_breakeven",
-                         "current_surplus_deficit", "current_revenue",
-                         "current_overhead", "current_overhead_avg",
-                         "overhead_avg_n", "confidence_interval",
-                         "forecast_data", "method", "frequency",
-                         "data_warnings"))
-  
+  expect_named(
+    result,
+    c(
+      "breakeven_date",
+      "periods_to_breakeven",
+      "current_surplus_deficit",
+      "current_revenue",
+      "current_overhead",
+      "current_overhead_avg",
+      "overhead_avg_n",
+      "confidence_interval",
+      "forecast_data",
+      "method",
+      "frequency",
+      "data_warnings"
+    )
+  )
+
   # Check frequency detection
   expect_equal(result$frequency, "monthly")
-  
+
   # Check method
   expect_equal(result$method, "linear")
-  
+
   # Check forecast_data
   expect_s3_class(result$forecast_data, "data.frame")
   expect_equal(nrow(result$forecast_data), 12)
-  expect_true(all(c("period_start", "revenue_forecast", "overhead_forecast", 
-                    "net_forecast") %in% names(result$forecast_data)))
+  expect_true(all(
+    c(
+      "period_start",
+      "revenue_forecast",
+      "overhead_forecast",
+      "net_forecast"
+    ) %in%
+      names(result$forecast_data)
+  ))
 })
 
 test_that("forecast_breakeven works with weekly data", {
@@ -54,7 +72,7 @@ test_that("forecast_breakeven works with weekly data", {
     week_start = weeks,
     revenue = seq(500, 2000, length.out = 20)
   )
-  
+
   # Create sample monthly overhead (will be converted to weekly)
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 5),
@@ -64,7 +82,7 @@ test_that("forecast_breakeven works with weekly data", {
     gross_overhead = rep(1500, 5),
     total_refunds = rep(0, 5)
   )
-  
+
   expect_snapshot(
     result <- forecast_breakeven(
       income_weekly,
@@ -75,7 +93,12 @@ test_that("forecast_breakeven works with weekly data", {
   )
 
   result <- suppressWarnings(
-    forecast_breakeven(income_weekly, overhead_monthly, method = "linear", horizon = 52)
+    forecast_breakeven(
+      income_weekly,
+      overhead_monthly,
+      method = "linear",
+      horizon = 52
+    )
   )
   expect_equal(result$frequency, "weekly")
   expect_equal(nrow(result$forecast_data), 52)
@@ -89,7 +112,7 @@ test_that("forecast_breakeven detects break-even point", {
     month = 1:6,
     total_revenue = seq(1000, 3000, length.out = 6)
   )
-  
+
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
     year = rep(2025, 6),
@@ -98,14 +121,14 @@ test_that("forecast_breakeven detects break-even point", {
     gross_overhead = rep(2500, 6),
     total_refunds = rep(0, 6)
   )
-  
+
   result <- forecast_breakeven(
     income_monthly,
     overhead_monthly,
     method = "linear",
     horizon = 12
   )
-  
+
   # Should find a break-even point
   expect_false(is.na(result$breakeven_date))
   expect_false(is.na(result$periods_to_breakeven))
@@ -130,11 +153,21 @@ test_that("forecast_breakeven warns when break-even not reached", {
   )
 
   expect_snapshot(
-    forecast_breakeven(income_monthly, overhead_monthly, method = "linear", horizon = 6)
+    forecast_breakeven(
+      income_monthly,
+      overhead_monthly,
+      method = "linear",
+      horizon = 6
+    )
   )
 
   result <- suppressWarnings(
-    forecast_breakeven(income_monthly, overhead_monthly, method = "linear", horizon = 6)
+    forecast_breakeven(
+      income_monthly,
+      overhead_monthly,
+      method = "linear",
+      horizon = 6
+    )
   )
   expect_true(is.na(result$breakeven_date))
   expect_true(is.na(result$periods_to_breakeven))
@@ -156,7 +189,11 @@ test_that("forecast_breakeven calculates current surplus/deficit", {
     total_refunds = rep(0, 6)
   )
 
-  result <- forecast_breakeven(income_monthly, overhead_monthly, method = "linear")
+  result <- forecast_breakeven(
+    income_monthly,
+    overhead_monthly,
+    method = "linear"
+  )
 
   expect_type(result$current_surplus_deficit, "double")
   # Last month revenue 3500 > overhead 2000 → already profitable
@@ -168,7 +205,7 @@ test_that("forecast_breakeven returns last observed date when already profitable
     practice_id = rep(1, 6),
     year = rep(2025, 6),
     month = 1:6,
-    total_revenue = rep(5000, 6)  # always above overhead
+    total_revenue = rep(5000, 6) # always above overhead
   )
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 6),
@@ -179,7 +216,11 @@ test_that("forecast_breakeven returns last observed date when already profitable
     total_refunds = rep(0, 6)
   )
 
-  result <- forecast_breakeven(income_monthly, overhead_monthly, method = "linear")
+  result <- forecast_breakeven(
+    income_monthly,
+    overhead_monthly,
+    method = "linear"
+  )
 
   expect_equal(result$periods_to_breakeven, 0L)
   expect_equal(result$breakeven_date, as.Date("2025-06-01"))
@@ -194,7 +235,7 @@ test_that("forecast_breakeven accepts different methods", {
     month = 1:12,
     total_revenue = seq(1000, 3000, length.out = 12)
   )
-  
+
   overhead_monthly <- tibble::tibble(
     practice_id = rep(1, 12),
     year = rep(2025, 12),
@@ -203,23 +244,29 @@ test_that("forecast_breakeven accepts different methods", {
     gross_overhead = rep(2000, 12),
     total_refunds = rep(0, 12)
   )
-  
+
   # Linear should always work
   result_linear <- forecast_breakeven(
-    income_monthly, overhead_monthly, method = "linear"
+    income_monthly,
+    overhead_monthly,
+    method = "linear"
   )
   expect_equal(result_linear$method, "linear")
-  
+
   # ETS and ARIMA require the forecast package
   skip_if_not_installed("forecast")
-  
+
   result_ets <- forecast_breakeven(
-    income_monthly, overhead_monthly, method = "ets"
+    income_monthly,
+    overhead_monthly,
+    method = "ets"
   )
   expect_equal(result_ets$method, "ets")
-  
+
   result_arima <- forecast_breakeven(
-    income_monthly, overhead_monthly, method = "arima"
+    income_monthly,
+    overhead_monthly,
+    method = "arima"
   )
   expect_equal(result_arima$method, "arima")
 })
@@ -229,27 +276,43 @@ test_that("forecast_breakeven accepts different methods", {
 test_that("forecast_breakeven errors on multi-practice income", {
   income <- tibble::tibble(
     practice_id = c(rep(1, 6), rep(2, 6)),
-    year = rep(2025, 12), month = rep(1:6, 2),
+    year = rep(2025, 12),
+    month = rep(1:6, 2),
     total_revenue = rep(2000, 12)
   )
   overhead <- tibble::tibble(
-    practice_id = rep(1, 6), year = rep(2025, 6), month = 1:6,
-    total_overhead = rep(1500, 6), gross_overhead = rep(1500, 6), total_refunds = rep(0, 6)
+    practice_id = rep(1, 6),
+    year = rep(2025, 6),
+    month = 1:6,
+    total_overhead = rep(1500, 6),
+    gross_overhead = rep(1500, 6),
+    total_refunds = rep(0, 6)
   )
-  expect_snapshot(forecast_breakeven(income, overhead, method = "linear"), error = TRUE)
+  expect_snapshot(
+    forecast_breakeven(income, overhead, method = "linear"),
+    error = TRUE
+  )
 })
 
 test_that("forecast_breakeven errors on multi-practice overhead", {
   income <- tibble::tibble(
-    practice_id = rep(1, 6), year = rep(2025, 6), month = 1:6,
+    practice_id = rep(1, 6),
+    year = rep(2025, 6),
+    month = 1:6,
     total_revenue = rep(2000, 6)
   )
   overhead <- tibble::tibble(
     practice_id = c(rep(1, 6), rep(2, 6)),
-    year = rep(2025, 12), month = rep(1:6, 2),
-    total_overhead = rep(1500, 12), gross_overhead = rep(1500, 12), total_refunds = rep(0, 12)
+    year = rep(2025, 12),
+    month = rep(1:6, 2),
+    total_overhead = rep(1500, 12),
+    gross_overhead = rep(1500, 12),
+    total_refunds = rep(0, 12)
   )
-  expect_snapshot(forecast_breakeven(income, overhead, method = "linear"), error = TRUE)
+  expect_snapshot(
+    forecast_breakeven(income, overhead, method = "linear"),
+    error = TRUE
+  )
 })
 
 # --- Weekly income + monthly overhead -----------------------------------------
@@ -262,16 +325,16 @@ test_that("current_surplus_deficit uses rolling overhead avg for weekly income +
   # breakeven". The fix uses the pre-join overhead rolling average instead.
   income_weekly <- tibble::tibble(
     practice_id = rep(1, 20),
-    week_start  = seq(as.Date("2025-01-06"), by = "week", length.out = 20),
-    revenue     = seq(200, 400, length.out = 20)
+    week_start = seq(as.Date("2025-01-06"), by = "week", length.out = 20),
+    revenue = seq(200, 400, length.out = 20)
   )
   overhead_monthly <- tibble::tibble(
-    practice_id    = rep(1, 5),
-    year           = rep(2025, 5),
-    month          = 1:5,
+    practice_id = rep(1, 5),
+    year = rep(2025, 5),
+    month = 1:5,
     total_overhead = rep(2000, 5),
     gross_overhead = rep(2000, 5),
-    total_refunds  = rep(0, 5)
+    total_refunds = rep(0, 5)
   )
 
   result <- suppressWarnings(
@@ -287,16 +350,16 @@ test_that("current_surplus_deficit uses rolling overhead avg for weekly income +
 test_that("current_overhead_avg is non-zero for weekly income + monthly overhead", {
   income_weekly <- tibble::tibble(
     practice_id = rep(1, 12),
-    week_start  = seq(as.Date("2025-01-06"), by = "week", length.out = 12),
-    revenue     = rep(300, 12)
+    week_start = seq(as.Date("2025-01-06"), by = "week", length.out = 12),
+    revenue = rep(300, 12)
   )
   overhead_monthly <- tibble::tibble(
-    practice_id    = rep(1, 3),
-    year           = rep(2025, 3),
-    month          = 1:3,
+    practice_id = rep(1, 3),
+    year = rep(2025, 3),
+    month = 1:3,
     total_overhead = rep(1500, 3),
     gross_overhead = rep(1500, 3),
-    total_refunds  = rep(0, 3)
+    total_refunds = rep(0, 3)
   )
 
   result <- suppressWarnings(

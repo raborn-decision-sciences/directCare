@@ -8,17 +8,17 @@
 .detect_frequency <- function(data) {
   has_week_start <- "week_start" %in% names(data)
   has_year_month <- "year" %in% names(data) && "month" %in% names(data)
-  
+
   # If has week_start, it's weekly (even if it also has month/year)
   if (has_week_start) {
     return("weekly")
   }
-  
+
   # If has year + month, it's monthly
   if (has_year_month) {
     return("monthly")
   }
-  
+
   # Default to monthly if ambiguous
   return("monthly")
 }
@@ -39,13 +39,17 @@
   } else {
     rlang::abort("Income summary must have 'total_revenue' or 'revenue' column")
   }
-  
+
   # Detect frequency
   freq <- .detect_frequency(income_summary)
-  
+
   if (freq == "weekly") {
     prepared <- income_summary |>
-      dplyr::select(practice_id, period_start = week_start, revenue = dplyr::all_of(revenue_col)) |>
+      dplyr::select(
+        practice_id,
+        period_start = week_start,
+        revenue = dplyr::all_of(revenue_col)
+      ) |>
       dplyr::arrange(period_start)
 
     list(
@@ -80,13 +84,13 @@
 .prepare_overhead <- function(overhead_summary) {
   # Detect frequency
   freq <- .detect_frequency(overhead_summary)
-  
+
   if (freq == "weekly") {
     # Weekly data
     prepared <- overhead_summary |>
       dplyr::mutate(overhead = total_overhead) |>
       dplyr::select(practice_id, period_start = week_start, overhead)
-    
+
     list(
       data = prepared,
       frequency = "weekly",
@@ -100,7 +104,7 @@
         overhead = total_overhead
       ) |>
       dplyr::select(practice_id, period_start, overhead)
-    
+
     list(
       data = prepared,
       frequency = "monthly",
@@ -118,7 +122,7 @@
 #' @noRd
 .prepare_weekly_income <- function(income_summary) {
   result <- .prepare_income(income_summary)
-  
+
   if (result$frequency == "monthly") {
     # Convert monthly to weekly
     result$data |>
@@ -142,7 +146,7 @@
 #' @noRd
 .prepare_weekly_overhead <- function(overhead_summary) {
   result <- .prepare_overhead(overhead_summary)
-  
+
   if (result$frequency == "monthly") {
     # Convert monthly to weekly
     result$data |>

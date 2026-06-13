@@ -20,9 +20,17 @@ test_that("ingest_gnucash_csv reads and normalizes CSV files correctly", {
   # is_refund is NOT added at this stage; it is added by filter_gnucash_overhead()
   # and normalize_gnucash_income() after the rows are split
   expected_cols <- c(
-    "practice_id", "date", "week_start", "month", "year",
-    "full_account_name", "account_name", "description",
-    "amount", "category", "source"
+    "practice_id",
+    "date",
+    "week_start",
+    "month",
+    "year",
+    "full_account_name",
+    "account_name",
+    "description",
+    "amount",
+    "category",
+    "source"
   )
   expect_true(all(expected_cols %in% names(result)))
   expect_false("is_refund" %in% names(result))

@@ -1,4 +1,3 @@
-
 #' Filter GNUCash Data for Income
 #'
 #' Filters a GNUCash data frame to include only rows where the Full Account Name

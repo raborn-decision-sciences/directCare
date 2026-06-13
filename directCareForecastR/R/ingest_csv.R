@@ -75,17 +75,19 @@
 #'   type        = "overhead"
 #' )
 #' }
-ingest_csv_generic <- function(path,
-                                practice_id,
-                                col_date,
-                                col_amount,
-                                type             = c("both", "overhead", "income"),
-                                col_type         = NULL,
-                                overhead_pattern = "expense",
-                                income_pattern   = "income",
-                                col_category     = NULL,
-                                col_description  = NULL,
-                                date_format      = NULL) {
+ingest_csv_generic <- function(
+  path,
+  practice_id,
+  col_date,
+  col_amount,
+  type = c("both", "overhead", "income"),
+  col_type = NULL,
+  overhead_pattern = "expense",
+  income_pattern = "income",
+  col_category = NULL,
+  col_description = NULL,
+  date_format = NULL
+) {
   type <- match.arg(type)
 
   raw <- readr::read_csv(path, show_col_types = FALSE)
@@ -99,25 +101,27 @@ ingest_csv_generic <- function(path,
         "each row is an expense or income transaction ",
         "(e.g. col_type = \"type\")."
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = "col_type"
     )
   }
 
   # Validate required columns are present in the CSV.
-  required_in <- c(col_date, col_amount,
-                   if (type == "both") col_type else NULL)
-  missing_in  <- setdiff(required_in, names(raw))
+  required_in <- c(col_date, col_amount, if (type == "both") col_type else NULL)
+  missing_in <- setdiff(required_in, names(raw))
   if (length(missing_in) > 0) {
     rlang::abort(
       paste0(
-        "The following columns were not found in ", basename(path), ": ",
-        paste(missing_in, collapse = ", "), ". ",
+        "The following columns were not found in ",
+        basename(path),
+        ": ",
+        paste(missing_in, collapse = ", "),
+        ". ",
         "Check that col_date, col_amount",
         if (type == "both") ", and col_type" else "",
         " match the actual column names."
       ),
-      class           = "dcForecastR_missing_columns",
+      class = "dcForecastR_missing_columns",
       missing_columns = missing_in
     )
   }
@@ -128,13 +132,19 @@ ingest_csv_generic <- function(path,
   if (length(missing_opt) > 0) {
     rlang::warn(
       paste0(
-        "Optional column(s) not found in ", basename(path), " and will be ignored: ",
+        "Optional column(s) not found in ",
+        basename(path),
+        " and will be ignored: ",
         paste(missing_opt, collapse = ", ")
       ),
       class = "dcForecastR_missing_optional_columns"
     )
-    if (!is.null(col_category)    && col_category    %in% missing_opt) col_category    <- NULL
-    if (!is.null(col_description) && col_description %in% missing_opt) col_description <- NULL
+    if (!is.null(col_category) && col_category %in% missing_opt) {
+      col_category <- NULL
+    }
+    if (!is.null(col_description) && col_description %in% missing_opt) {
+      col_description <- NULL
+    }
   }
 
   # Parse dates.
@@ -146,7 +156,7 @@ ingest_csv_generic <- function(path,
       lubridate::parse_date_time(
         date_raw,
         orders = c("mdy", "ymd", "mdy HM", "ymd HMS"),
-        quiet  = TRUE
+        quiet = TRUE
       )
     )
   }
@@ -154,7 +164,10 @@ ingest_csv_generic <- function(path,
   if (anyNA(dates)) {
     rlang::abort(
       paste0(
-        sum(is.na(dates)), " date(s) in column '", col_date, "' could not be parsed. ",
+        sum(is.na(dates)),
+        " date(s) in column '",
+        col_date,
+        "' could not be parsed. ",
         "Supply date_format (e.g. date_format = \"%d/%m/%Y\") to specify the format explicitly."
       ),
       class = "dcForecastR_invalid_dates"
@@ -163,17 +176,25 @@ ingest_csv_generic <- function(path,
 
   # Build a base tibble with amount (renamed to revenue later for income rows).
   base_tbl <- tibble::tibble(
-    practice_id       = practice_id,
-    date              = dates,
-    week_start        = lubridate::floor_date(dates, "week", week_start = 1),
-    month             = lubridate::month(dates),
-    year              = lubridate::year(dates),
+    practice_id = practice_id,
+    date = dates,
+    week_start = lubridate::floor_date(dates, "week", week_start = 1),
+    month = lubridate::month(dates),
+    year = lubridate::year(dates),
     full_account_name = NA_character_,
-    account_name      = NA_character_,
-    description       = if (!is.null(col_description)) as.character(raw[[col_description]]) else NA_character_,
-    amount            = as.numeric(raw[[col_amount]]),
-    category          = if (!is.null(col_category)) as.character(raw[[col_category]]) else "other",
-    source            = "generic_csv"
+    account_name = NA_character_,
+    description = if (!is.null(col_description)) {
+      as.character(raw[[col_description]])
+    } else {
+      NA_character_
+    },
+    amount = as.numeric(raw[[col_amount]]),
+    category = if (!is.null(col_category)) {
+      as.character(raw[[col_category]])
+    } else {
+      "other"
+    },
+    source = "generic_csv"
   )
 
   # Fill NA categories from the col_category column with "other".
@@ -193,9 +214,9 @@ ingest_csv_generic <- function(path,
   # ── type = "both" ──────────────────────────────────────────────────────────
   # col_type existence was already checked in the required-columns guard above.
 
-  type_vals   <- as.character(raw[[col_type]])
+  type_vals <- as.character(raw[[col_type]])
   is_overhead <- grepl(overhead_pattern, type_vals, ignore.case = TRUE)
-  is_income   <- grepl(income_pattern,   type_vals, ignore.case = TRUE)
+  is_income <- grepl(income_pattern, type_vals, ignore.case = TRUE)
 
   # When a row matches both patterns, overhead takes priority (first-match-wins,
   # matching the behaviour of map_accounts()).
@@ -206,21 +227,28 @@ ingest_csv_generic <- function(path,
     unmatched_vals <- unique(type_vals[!is_overhead & !is_income])
     rlang::warn(
       paste0(
-        n_unmatched, " row(s) in column '", col_type, "' matched neither '",
-        overhead_pattern, "' (overhead) nor '", income_pattern, "' (income) ",
+        n_unmatched,
+        " row(s) in column '",
+        col_type,
+        "' matched neither '",
+        overhead_pattern,
+        "' (overhead) nor '",
+        income_pattern,
+        "' (income) ",
         "and were dropped. Unrecognised value(s): ",
-        paste(unmatched_vals, collapse = ", "), ". ",
+        paste(unmatched_vals, collapse = ", "),
+        ". ",
         "Adjust overhead_pattern or income_pattern if these rows should be included."
       ),
-      class           = "dcForecastR_unclassified_rows",
-      n_unmatched     = n_unmatched,
+      class = "dcForecastR_unclassified_rows",
+      n_unmatched = n_unmatched,
       unmatched_values = unmatched_vals
     )
   }
 
   overhead_tbl <- base_tbl[is_overhead, ] |> validate_overhead()
-  income_tbl   <- base_tbl[is_income, ]   |>
-    dplyr::rename(revenue = amount)        |>
+  income_tbl <- base_tbl[is_income, ] |>
+    dplyr::rename(revenue = amount) |>
     validate_income()
 
   list(overhead = overhead_tbl, income = income_tbl)
