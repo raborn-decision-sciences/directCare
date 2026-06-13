@@ -130,24 +130,26 @@ map_accounts <- function(raw_tbl, account_map = default_account_map()) {
     all(c("account", "amount", "date") %in% names(raw_tbl))
   )
 
-  matched <- purrr::map_chr(raw_tbl$account, function(acct) {
-    for (i in seq_len(nrow(account_map))) {
-      row        <- account_map[i, ]
-      needle     <- row$pattern
-      haystack   <- if (row$ignore_case) tolower(acct) else acct
-      if (row$ignore_case) needle <- tolower(needle)
-
-      matched <- switch(row$match_type,
-        contains = grepl(needle, haystack, fixed = TRUE),
-        exact    = haystack == needle,
-        regex    = grepl(needle, haystack, perl = TRUE),
-        FALSE
-      )
-
-      if (matched) return(row$category)
-    }
-    return(NA_character_)  # no match
-  })
+  # Vectorized first-match-wins: iterate over rules (short list), apply each
+  # rule to all still-unmatched accounts at once via grepl/==, then assign.
+  # O(n_rules) R-level iterations instead of O(n_accounts x n_rules).
+  matched <- rep(NA_character_, nrow(raw_tbl))
+  accounts <- raw_tbl$account
+  for (i in seq_len(nrow(account_map))) {
+    pending <- which(is.na(matched))
+    if (length(pending) == 0L) break
+    row      <- account_map[i, ]
+    needle   <- row$pattern
+    haystack <- if (row$ignore_case) tolower(accounts[pending]) else accounts[pending]
+    if (row$ignore_case) needle <- tolower(needle)
+    hits <- switch(row$match_type,
+      contains = grepl(needle, haystack, fixed = TRUE),
+      exact    = haystack == needle,
+      regex    = grepl(needle, haystack, perl = TRUE),
+      FALSE
+    )
+    matched[pending[hits]] <- row$category
+  }
 
   unmatched <- raw_tbl$account[is.na(matched)]
   if (length(unmatched) > 0) {
