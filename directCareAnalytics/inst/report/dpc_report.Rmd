@@ -1,0 +1,175 @@
+---
+title: "Direct Care Financial Report"
+date: "`r format(params$generated_on, '%B %d, %Y')`"
+output:
+  html_document:
+    theme: cosmo
+    toc: true
+    toc_float:
+      collapsed: false
+    css: report_style.css
+    self_contained: true
+params:
+  practice_name:   "Practice"
+  practice_id:     ""
+  forecast_type:   "breakeven"
+  result:          NULL
+  overhead_monthly: NULL
+  generated_on:    !r Sys.Date()
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 9, fig.height = 4.5, dpi = 150)
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(directCareAnalytics)   # plot + interpret helpers
+```
+
+---
+
+<div class="rds-header">
+  <div class="rds-brand">Raborn Decision Sciences</div>
+  <div class="rds-tagline">Financial Analytics for Direct Care Practices</div>
+</div>
+
+---
+
+# `r params$practice_name`
+
+**Practice ID:** `r params$practice_id`
+**Report type:** `r tools::toTitleCase(params$forecast_type)`
+**Generated:** `r format(params$generated_on, "%B %d, %Y")`
+
+---
+
+## Practice Overview
+
+```{r overhead-summary}
+om <- params$overhead_monthly
+if (!is.null(om) && nrow(om) > 0) {
+  months_of_data <- nrow(om)
+  avg_overhead   <- mean(om$total_overhead, na.rm = TRUE)
+  total_refunds  <- sum(om$total_refunds, na.rm = TRUE)
+
+  cat(
+    "- **Months of overhead data:** ", months_of_data, "\n",
+    "- **Average monthly overhead:** ", dollar(avg_overhead), "\n",
+    "- **Total refunds / credits recorded:** ", dollar(total_refunds), "\n",
+    sep = ""
+  )
+}
+```
+
+```{r overhead-chart, fig.cap="Monthly overhead by period"}
+om <- params$overhead_monthly
+if (!is.null(om) && nrow(om) > 0) {
+  om |>
+    mutate(period = as.Date(paste(year, month, "01", sep = "-"))) |>
+    ggplot(aes(x = period, y = total_overhead)) +
+    geom_col(fill = "#1e3a5f", alpha = 0.85) +
+    geom_line(aes(y = gross_overhead), colour = "#c0392b",
+              linewidth = 0.8, linetype = "dashed") +
+    scale_y_continuous(labels = dollar_format()) +
+    scale_x_date(date_labels = "%b %Y", date_breaks = "1 month") +
+    labs(
+      title    = "Monthly Overhead",
+      subtitle = "Bars = net overhead  |  Dashed line = gross overhead (before refunds)",
+      x = NULL, y = "Amount ($)"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+```
+
+---
+
+## Forecast Results
+
+```{r forecast-plot, fig.cap="Forecast output"}
+res  <- params$result
+type <- params$forecast_type
+
+if (!is.null(res)) {
+  if (type == "breakeven") {
+    directCareAnalytics:::plot_forecast_breakeven(res)
+  } else if (type == "revenue") {
+    directCareAnalytics:::plot_forecast_revenue(res)
+  } else if (type == "target") {
+    directCareAnalytics:::plot_forecast_target(res)
+  }
+}
+```
+
+```{r key-metrics}
+res  <- params$result
+type <- params$forecast_type
+if (!is.null(res)) {
+  if (type == "breakeven") {
+    cat(
+      "| Metric | Value |\n",
+      "|--------|-------|\n",
+      "| Break-even date |",
+        if (is.na(res$breakeven_date)) "Not reached in horizon"
+        else format(res$breakeven_date, "%B %Y"), "|\n",
+      "| Months to break-even |",
+        if (is.na(res$periods_to_breakeven)) "—"
+        else res$periods_to_breakeven, "|\n",
+      "| Current surplus / deficit |",
+        dollar(res$current_surplus_deficit), "|\n",
+      sep = ""
+    )
+  } else if (type == "revenue") {
+    cat(
+      "| Metric | Value |\n",
+      "|--------|-------|\n",
+      "| Current monthly revenue |", dollar(res$current_revenue), "|\n",
+      "| Projected (end of horizon) |",
+        dollar(tail(res$forecast_data$revenue_forecast, 1)), "|\n",
+      "| Forecast method |", res$method, "|\n",
+      sep = ""
+    )
+  } else if (type == "target") {
+    cat(
+      "| Metric | Value |\n",
+      "|--------|-------|\n",
+      "| Target date |",
+        if (is.na(res$target_date)) "Not reached in horizon"
+        else format(res$target_date, "%B %Y"), "|\n",
+      "| Revenue required now |", dollar(res$required_revenue_now), "|\n",
+      "| Current gap |", dollar(res$current_gap), "|\n",
+      sep = ""
+    )
+  }
+}
+```
+
+---
+
+## Interpretation
+
+```{r interpretation, results='asis'}
+res  <- params$result
+type <- params$forecast_type
+name <- params$practice_name
+
+if (!is.null(res)) {
+  txt <- if (type == "breakeven") {
+    directCareAnalytics:::interpret_breakeven(res, name)
+  } else if (type == "revenue") {
+    directCareAnalytics:::interpret_revenue(res, name)
+  } else if (type == "target") {
+    directCareAnalytics:::interpret_target(res, name)
+  } else ""
+  cat(txt)
+}
+```
+
+---
+
+<div class="rds-footer">
+  Prepared by **Raborn Decision Sciences** &nbsp;·&nbsp;
+  `r format(params$generated_on, "%B %Y")` &nbsp;·&nbsp;
+  Confidential — for internal practice use only
+</div>
