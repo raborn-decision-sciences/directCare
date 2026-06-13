@@ -1,0 +1,619 @@
+"Date","Transaction ID","Number","Description","Notes","Commodity/Currency","Void Reason","Action","Memo","Full Account Name","Account Name","Amount With Sym","Amount Num.","Value With Sym","Value Num.","Reconcile","Reconcile Date","Rate/Price"
+"02/02/2026","30290f414c5048ea9642098747f71e5f",NA,"Online Transfer / Payment: Credit from STRIPE",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$7.66",7.66,"$7.66",7.66,"n",NA,1
+"02/02/2026","30290f414c5048ea9642098747f71e5f",NA,"Online Transfer / Payment: Credit from STRIPE",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.66",-7.66,"-$7.66",-7.66,"n",NA,1
+"02/09/2026","618dd5281d324490bf2fde3389159d6e",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$277.70",277.7,"$277.70",277.7,"n",NA,1
+"02/09/2026","618dd5281d324490bf2fde3389159d6e",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$277.70",-277.7,"-$277.70",-277.7,"n",NA,1
+"02/23/2026","54a22870d3e146499c40ca54e2bbc48c",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$383.20",383.2,"$383.20",383.2,"n",NA,1
+"02/23/2026","54a22870d3e146499c40ca54e2bbc48c",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$383.20",-383.2,"-$383.20",-383.2,"n",NA,1
+"02/28/2026","c52ae18e31d24bbbbbf34dbefbc1a7bd",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$0.29",0.29,"$0.29",0.29,"n",NA,1
+"02/28/2026","c52ae18e31d24bbbbbf34dbefbc1a7bd",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$0.29",-0.29,"-$0.29",-0.29,"n",NA,1
+"03/02/2026","5701eaed79b1435986916ed3dd95e283",NA,"Online Transfer / Payment: Debit to JPMORGAN CHASE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$210.00",-210,"-$210.00",-210,"n",NA,1
+"03/02/2026","5701eaed79b1435986916ed3dd95e283",NA,"Online Transfer / Payment: Debit to JPMORGAN CHASE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$210.00",210,"$210.00",210,"n",NA,1
+"03/02/2026","95151b2304d24c1a9a3908f2e887aada",NA,"Same Day ACH Fee",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$10.00",-10,"-$10.00",-10,"n",NA,1
+"03/02/2026","95151b2304d24c1a9a3908f2e887aada",NA,"Same Day ACH Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$10.00",10,"$10.00",10,"n",NA,1
+"03/02/2026","168b247b1fad4b908334892548fc3e3b",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$9.71",9.71,"$9.71",9.71,"n",NA,1
+"03/02/2026","168b247b1fad4b908334892548fc3e3b",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.71",-9.71,"-$9.71",-9.71,"n",NA,1
+"03/09/2026","dbd72d5223af4b16aa39ec1a9c448e52",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$48.51",48.51,"$48.51",48.51,"n",NA,1
+"03/09/2026","dbd72d5223af4b16aa39ec1a9c448e52",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$48.51",-48.51,"-$48.51",-48.51,"n",NA,1
+"03/16/2026","fb4c4ed12d3049c686735359ce00bccb",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$348.00",-348,"-$348.00",-348,"n",NA,1
+"03/16/2026","fb4c4ed12d3049c686735359ce00bccb",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$348.00",348,"$348.00",348,"n",NA,1
+"03/16/2026","26fc4e7b520b4a29a053c5e3556c2ed0",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$634.49",634.49,"$634.49",634.49,"n",NA,1
+"03/16/2026","26fc4e7b520b4a29a053c5e3556c2ed0",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$634.49",-634.49,"-$634.49",-634.49,"n",NA,1
+"03/20/2026","b813b981512b4f83895db584a5a6b397",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$48.32",-48.32,"-$48.32",-48.32,"n",NA,1
+"03/20/2026","b813b981512b4f83895db584a5a6b397",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$48.32",48.32,"$48.32",48.32,"n",NA,1
+"03/23/2026","a9c2e3d8488c420ab9b10d0a22fee121",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$223.13",223.13,"$223.13",223.13,"n",NA,1
+"03/23/2026","a9c2e3d8488c420ab9b10d0a22fee121",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$223.13",-223.13,"-$223.13",-223.13,"n",NA,1
+"03/30/2026","7a2380588e9c44a3848c92f8cbce30ad",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$304.63",304.63,"$304.63",304.63,"n",NA,1
+"03/30/2026","7a2380588e9c44a3848c92f8cbce30ad",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$304.63",-304.63,"-$304.63",-304.63,"n",NA,1
+"03/31/2026","7bf019fb9d0e4a7ea9a05aeb8b53ea4b",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$0.76",0.76,"$0.76",0.76,"n",NA,1
+"03/31/2026","7bf019fb9d0e4a7ea9a05aeb8b53ea4b",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$0.76",-0.76,"-$0.76",-0.76,"n",NA,1
+"04/01/2026","4a706a4f91384d53aabe08f479b66741",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"04/01/2026","4a706a4f91384d53aabe08f479b66741",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"04/01/2026","4a706a4f91384d53aabe08f479b66741",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"04/06/2026","76663d324e424b4eb3916b342671e3a5",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$724.69",724.69,"$724.69",724.69,"n",NA,1
+"04/06/2026","76663d324e424b4eb3916b342671e3a5",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$724.69",-724.69,"-$724.69",-724.69,"n",NA,1
+"04/08/2026","8a6231b984e14266b0579be00f7f2287",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$500.00",500,"$500.00",500,"n",NA,1
+"04/08/2026","8a6231b984e14266b0579be00f7f2287",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"04/13/2026","0efa61731b3945b483b985dcd5bc5640",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$1,042.35",1042.35,"$1,042.35",1042.35,"n",NA,1
+"04/13/2026","0efa61731b3945b483b985dcd5bc5640",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$1,042.35",-1042.35,"-$1,042.35",-1042.35,"n",NA,1
+"04/14/2026","4291f39f4e104177a2c25c4538a11633",NA,"Online Transfer / Payment: Debit to QuestDiagnostics",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$258.28",-258.28,"-$258.28",-258.28,"n",NA,1
+"04/14/2026","4291f39f4e104177a2c25c4538a11633",NA,"Online Transfer / Payment: Debit to QuestDiagnostics",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$258.28",258.28,"$258.28",258.28,"n",NA,1
+"04/20/2026","cb2ea189070444fa9d0a1ea293637a15",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$48.32",-48.32,"-$48.32",-48.32,"n",NA,1
+"04/20/2026","cb2ea189070444fa9d0a1ea293637a15",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$48.32",48.32,"$48.32",48.32,"n",NA,1
+"04/20/2026","87ed21a01c6b4cb0b5d2a68718f74a6a",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$310.44",310.44,"$310.44",310.44,"n",NA,1
+"04/20/2026","87ed21a01c6b4cb0b5d2a68718f74a6a",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$310.44",-310.44,"-$310.44",-310.44,"n",NA,1
+"04/20/2026","0f0b56a57b7f4d2cbfd164cc62066341",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$99.00",-99,"-$99.00",-99,"n",NA,1
+"04/20/2026","0f0b56a57b7f4d2cbfd164cc62066341",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$99.00",99,"$99.00",99,"n",NA,1
+"04/22/2026","7fba8b35020f43d4826dfa227e671add",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$500.00",500,"$500.00",500,"n",NA,1
+"04/22/2026","7fba8b35020f43d4826dfa227e671add",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"04/27/2026","2c742b52947e4f6f8d06baa08d6ff38a",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$323.07",323.07,"$323.07",323.07,"n",NA,1
+"04/27/2026","2c742b52947e4f6f8d06baa08d6ff38a",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$323.07",-323.07,"-$323.07",-323.07,"n",NA,1
+"04/30/2026","edbf4dc641574f2c9c110e498b177b74",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$2.34",2.34,"$2.34",2.34,"n",NA,1
+"04/30/2026","edbf4dc641574f2c9c110e498b177b74",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$2.34",-2.34,"-$2.34",-2.34,"n",NA,1
+"05/02/2026","f9dd90814bd143cba8344c406ca8c92d",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"05/02/2026","f9dd90814bd143cba8344c406ca8c92d",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"05/02/2026","f9dd90814bd143cba8344c406ca8c92d",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"05/02/2026","0b117af90b004668b028297a4056ccee",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$105.00",-105,"-$105.00",-105,"n",NA,1
+"05/02/2026","0b117af90b004668b028297a4056ccee",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$105.00",105,"$105.00",105,"n",NA,1
+"05/02/2026","635c5b115ae14a56bb32f54919863a39",NA,"Zelle Payment to Alize Enriquez",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$50.00",-50,"-$50.00",-50,"n",NA,1
+"05/02/2026","635c5b115ae14a56bb32f54919863a39",NA,"Zelle Payment to Alize Enriquez",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$50.00",50,"$50.00",50,"n",NA,1
+"05/04/2026","60a943b53924451bad6f62509caa2a20",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$834.31",834.31,"$834.31",834.31,"n",NA,1
+"05/04/2026","60a943b53924451bad6f62509caa2a20",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$834.31",-834.31,"-$834.31",-834.31,"n",NA,1
+"05/06/2026","63f330e512a04e818f5bd8efdf4b0e9e",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$500.00",500,"$500.00",500,"n",NA,1
+"05/06/2026","63f330e512a04e818f5bd8efdf4b0e9e",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"05/08/2026","f3052c1a52094ad1a96a2fc9b1fe3c24",NA,"Online Transfer / Payment: Debit to AMEX EPAYMENT - SPARC GYNECOLOGY",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$1,972.12",-1972.12,"-$1,972.12",-1972.12,"n",NA,1
+"05/08/2026","f3052c1a52094ad1a96a2fc9b1fe3c24",NA,"Online Transfer / Payment: Debit to AMEX EPAYMENT - SPARC GYNECOLOGY",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$1,972.12",1972.12,"$1,972.12",1972.12,"n",NA,1
+"05/11/2026","3afbd238b63b49f0871e2894aa1ebf69",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$887.68",887.68,"$887.68",887.68,"n",NA,1
+"05/11/2026","3afbd238b63b49f0871e2894aa1ebf69",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$887.68",-887.68,"-$887.68",-887.68,"n",NA,1
+"05/11/2026","dcb5b16ccc3f4515aede5d8a57ef6558",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$80.00",-80,"-$80.00",-80,"n",NA,1
+"05/11/2026","dcb5b16ccc3f4515aede5d8a57ef6558",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$80.00",80,"$80.00",80,"n",NA,1
+"05/11/2026","017593a341e44a23ba2afe6010505552",NA,"Zelle Payment to Alize Enriquez",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$50.00",-50,"-$50.00",-50,"n",NA,1
+"05/11/2026","017593a341e44a23ba2afe6010505552",NA,"Zelle Payment to Alize Enriquez",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$50.00",50,"$50.00",50,"n",NA,1
+"05/15/2026","653ef0c83fc042b4b584ca8bc9c948ca",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$99.00",-99,"-$99.00",-99,"n",NA,1
+"05/15/2026","653ef0c83fc042b4b584ca8bc9c948ca",NA,"Online Transfer / Payment: Debit to Newlane",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$99.00",99,"$99.00",99,"n",NA,1
+"05/18/2026","ed57eae22c3045ccbbb2ae9d5b1597a8",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$679.10",679.1,"$679.10",679.1,"n",NA,1
+"05/18/2026","ed57eae22c3045ccbbb2ae9d5b1597a8",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$679.10",-679.1,"-$679.10",-679.1,"n",NA,1
+"05/20/2026","41afd43b69c04b9badad05b0e9a5cf8e",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$500.00",500,"$500.00",500,"n",NA,1
+"05/20/2026","41afd43b69c04b9badad05b0e9a5cf8e",NA,"Online Transfer / Payment: Credit from JPMORGAN CHANSE BANK, NA - CAMILLE IMBO",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"05/20/2026","5716b0ca49354a7fa73419f89d908b0b",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$48.32",-48.32,"-$48.32",-48.32,"n",NA,1
+"05/20/2026","5716b0ca49354a7fa73419f89d908b0b",NA,"Online Transfer / Payment: Debit to Reliant Capital",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$48.32",48.32,"$48.32",48.32,"n",NA,1
+"05/21/2026","712003c12320400cb9946ff9c60ffe6b",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$105.00",-105,"-$105.00",-105,"n",NA,1
+"05/21/2026","712003c12320400cb9946ff9c60ffe6b",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$105.00",105,"$105.00",105,"n",NA,1
+"05/26/2026","f3cc051adb9b4d719cca6fc6875cc99c",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$194.02",194.02,"$194.02",194.02,"n",NA,1
+"05/26/2026","f3cc051adb9b4d719cca6fc6875cc99c",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$194.02",-194.02,"-$194.02",-194.02,"n",NA,1
+"05/29/2026","3420c2d155b642618c9c59dc49009f5b",NA,"Online Transfer / Payment: Debit to AMEX EPAYMENT - SPARC GYNECOLOGY",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$2,679.21",-2679.21,"-$2,679.21",-2679.21,"n",NA,1
+"05/29/2026","3420c2d155b642618c9c59dc49009f5b",NA,"Online Transfer / Payment: Debit to AMEX EPAYMENT - SPARC GYNECOLOGY",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$2,679.21",2679.21,"$2,679.21",2679.21,"n",NA,1
+"05/31/2026","10529274ba84463aba8b798d1bbfcbd6",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$90.00",-90,"-$90.00",-90,"n",NA,1
+"05/31/2026","10529274ba84463aba8b798d1bbfcbd6",NA,"Zelle Payment to Erin Johnson",NA,"CURRENCY::USD",NA,"","","Expenses:Payroll Expenses","Payroll Expenses","$90.00",90,"$90.00",90,"n",NA,1
+"05/31/2026","322a1b6c86394298ae040fd1acec68fa",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$3.14",3.14,"$3.14",3.14,"n",NA,1
+"05/31/2026","322a1b6c86394298ae040fd1acec68fa",NA,"Interest Deposit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$3.14",-3.14,"-$3.14",-3.14,"n",NA,1
+"06/01/2026","ebcd691b89c1490d85d5d5d57fedab63",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"06/01/2026","ebcd691b89c1490d85d5d5d57fedab63",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"06/01/2026","ebcd691b89c1490d85d5d5d57fedab63",NA,"Zelle Payment to revel med - Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"06/01/2026","f75253556bba46c8910f609168ced42f",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Assets:Current Assets:Checking Account","Checking Account","$683.94",683.94,"$683.94",683.94,"n",NA,1
+"06/01/2026","f75253556bba46c8910f609168ced42f",NA,"Online Transfer / Payment: Credit from ElationHealth",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$683.94",-683.94,"-$683.94",-683.94,"n",NA,1
+"01/09/2026","9e5d779a67354374b02da7e71264dacd",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"01/09/2026","9e5d779a67354374b02da7e71264dacd",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"01/09/2026","ecc11c64acfe42129165b02bb4da108b",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"01/09/2026","ecc11c64acfe42129165b02bb4da108b",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"02/09/2026","1c5aac20b13a4c42be3b224a6fbc1d14",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"02/09/2026","1c5aac20b13a4c42be3b224a6fbc1d14",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"02/09/2026","9dd8ca93134b4bc8b9e74fbc4bbd5659",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"02/09/2026","9dd8ca93134b4bc8b9e74fbc4bbd5659",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"02/09/2026","6498c75f77ab4005872445c9286fa207",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"02/09/2026","6498c75f77ab4005872445c9286fa207",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"02/09/2026","98ed93bf6f0242508839840d252ab7a2",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"02/09/2026","98ed93bf6f0242508839840d252ab7a2",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"03/09/2026","9271db60e7a8426c9954c45674127d2d",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"03/09/2026","9271db60e7a8426c9954c45674127d2d",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"03/09/2026","a344cd63046e449a88031b795d7a4165",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"03/09/2026","a344cd63046e449a88031b795d7a4165",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"03/31/2026","33c15bd7c6614a3a9dcdd5ddcd2bafb3",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$17.99",17.99,"$17.99",17.99,"n",NA,1
+"03/31/2026","33c15bd7c6614a3a9dcdd5ddcd2bafb3",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.99",-17.99,"-$17.99",-17.99,"n",NA,1
+"03/31/2026","cae4ece0adff4130a9b31e239d897bf3",1,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"03/31/2026","cae4ece0adff4130a9b31e239d897bf3",1,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"03/31/2026","ca5b7b76aa77423495965a6b23837775",2,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$17.99",17.99,"$17.99",17.99,"n",NA,1
+"03/31/2026","ca5b7b76aa77423495965a6b23837775",2,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.99",-17.99,"-$17.99",-17.99,"n",NA,1
+"04/06/2026","5b950e887d2243e8a0d478658121bf3f",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$6.99",6.99,"$6.99",6.99,"n",NA,1
+"04/06/2026","5b950e887d2243e8a0d478658121bf3f",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.99",-6.99,"-$6.99",-6.99,"n",NA,1
+"04/09/2026","077917256b744e56ac9c3822b561fcf8",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"04/09/2026","077917256b744e56ac9c3822b561fcf8",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"04/09/2026","7f2ecd7f15d64759a63b62f514655997",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"04/09/2026","7f2ecd7f15d64759a63b62f514655997",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"04/30/2026","e08c76f3253c48b2ba2c53e7be4bc168",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"04/30/2026","e08c76f3253c48b2ba2c53e7be4bc168",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"04/30/2026","23bb04dba5b546d68ebbf1562077a7da",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$17.99",17.99,"$17.99",17.99,"n",NA,1
+"04/30/2026","23bb04dba5b546d68ebbf1562077a7da",NA,"ADOBE WEBSALES",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.99",-17.99,"-$17.99",-17.99,"n",NA,1
+"05/09/2026","410254d2cf3a4aef83482346106bf8c7",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"05/09/2026","410254d2cf3a4aef83482346106bf8c7",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"05/09/2026","e172aaf850bd47f69c4d22c44a2c5731",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"05/09/2026","e172aaf850bd47f69c4d22c44a2c5731",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"05/31/2026","6fa67eec04ee4c46944d23a4e4c527b4",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Expenses:Adobe","Adobe","$17.99",17.99,"$17.99",17.99,"n",NA,1
+"05/31/2026","6fa67eec04ee4c46944d23a4e4c527b4",NA,"ADOBE SYSTEMS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.99",-17.99,"-$17.99",-17.99,"n",NA,1
+"01/01/2026","bcd53d296b63426a835ccc86f2858638",NA,"CLIA expense",NA,"CURRENCY::USD",NA,"","","Expenses:CLIA","CLIA","$248.00",248,"$248.00",248,"n",NA,1
+"01/01/2026","bcd53d296b63426a835ccc86f2858638",NA,"CLIA expense",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$248.00",-248,"-$248.00",-248,"n",NA,1
+"01/25/2026","6f54ad5360f4470998081c5ed39cd18d",NA,"Tampa Bay Women Physicians ",NA,"CURRENCY::USD",NA,"","","Expenses:Conferences/Dining","Conferences/Dining","$48.45",48.45,"$48.45",48.45,"n",NA,1
+"01/25/2026","6f54ad5360f4470998081c5ed39cd18d",NA,"Tampa Bay Women Physicians ",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$48.45",-48.45,"-$48.45",-48.45,"n",NA,1
+"02/10/2026","9b254bb8f694488695488d9c2f116ae7",NA,"NASPAG",NA,"CURRENCY::USD",NA,"","","Expenses:Education","Education","$900.00",900,"$900.00",900,"n",NA,1
+"02/10/2026","9b254bb8f694488695488d9c2f116ae7",NA,"NASPAG",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$900.00",-900,"-$900.00",-900,"n",NA,1
+"03/31/2026","832acd481dd240b79c3e503b44aef1e1",NA,"NASPAG",NA,"CURRENCY::USD",NA,"","","Expenses:Education","Education","$425.00",425,"$425.00",425,"n",NA,1
+"03/31/2026","832acd481dd240b79c3e503b44aef1e1",NA,"NASPAG",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"03/16/2026","f7bd80bcb3cc4f6aa2eb3946dfbffab2",NA,"Nitrous Oxide and Colposcope Equipment Loan - Initial",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Financing","Equipment Financing","$348.00",348,"$348.00",348,"n",NA,1
+"03/16/2026","f7bd80bcb3cc4f6aa2eb3946dfbffab2",NA,"Nitrous Oxide and Colposcope Equipment Loan - Initial",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$348.00",-348,"-$348.00",-348,"n",NA,1
+"04/15/2026","eba4b1b146484f53a4e80bbe110dd0d7",NA,"Nitrous Oxide and Colposcope Equipment Loan",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Financing","Equipment Financing","$99.00",99,"$99.00",99,"n",NA,1
+"04/15/2026","eba4b1b146484f53a4e80bbe110dd0d7",NA,"Nitrous Oxide and Colposcope Equipment Loan",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$99.00",-99,"-$99.00",-99,"n",NA,1
+"05/15/2026","e60556110040457088d7f7f81e76f519",NA,"Nitrous Oxide and Colposcope Equipment Loan",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Financing","Equipment Financing","$99.00",99,"$99.00",99,"n",NA,1
+"05/15/2026","e60556110040457088d7f7f81e76f519",NA,"Nitrous Oxide and Colposcope Equipment Loan",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$99.00",-99,"-$99.00",-99,"n",NA,1
+"03/20/2026","a323cc752b76493ba5042d9e8152939f",NA,"Nitrous Oxide and Colposcope Equipment Loan - Insurance",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Insurance","Equipment Insurance","$48.32",48.32,"$48.32",48.32,"n",NA,1
+"03/20/2026","a323cc752b76493ba5042d9e8152939f",NA,"Nitrous Oxide and Colposcope Equipment Loan - Insurance",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$48.32",-48.32,"-$48.32",-48.32,"n",NA,1
+"01/02/2026","82bd527b37de4ab7ac8a0ffbb7c53215",NA,"Exam Table",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$250.00",250,"$250.00",250,"n",NA,1
+"01/02/2026","82bd527b37de4ab7ac8a0ffbb7c53215",NA,"Exam Table",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$250.00",-250,"-$250.00",-250,"n",NA,1
+"01/03/2026","156d857a604d47e2b6363bee0773b2e8",NA,"Posters for office, set of 5, women scientist",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$18.99",18.99,"$18.99",18.99,"n",NA,1
+"01/03/2026","156d857a604d47e2b6363bee0773b2e8",NA,"Posters for office, set of 5, women scientist",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$18.99",-18.99,"-$18.99",-18.99,"n",NA,1
+"01/03/2026","12c913d5ca49477c9409e678801ed04b",NA,"USB ethernet dongle",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$17.99",17.99,"$17.99",17.99,"n",NA,1
+"01/03/2026","12c913d5ca49477c9409e678801ed04b",NA,"USB ethernet dongle",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.99",-17.99,"-$17.99",-17.99,"n",NA,1
+"01/03/2026","de231e1db64f452e82456167c06d6fa4",NA,"Posters for office, set of 9, mental health",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$13.99",13.99,"$13.99",13.99,"n",NA,1
+"01/03/2026","de231e1db64f452e82456167c06d6fa4",NA,"Posters for office, set of 9, mental health",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$13.99",-13.99,"-$13.99",-13.99,"n",NA,1
+"01/03/2026","5d50e2bb4a9c4217819488526b0fc53c",NA,"Uterus diaroma",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$27.99",27.99,"$27.99",27.99,"n",NA,1
+"01/03/2026","5d50e2bb4a9c4217819488526b0fc53c",NA,"Uterus diaroma",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$27.99",-27.99,"-$27.99",-27.99,"n",NA,1
+"01/06/2026","645a161f4bd34092a31b3e380dca33dc",NA,"Pen lights",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$11.10",11.1,"$11.10",11.1,"n",NA,1
+"01/06/2026","645a161f4bd34092a31b3e380dca33dc",NA,"Pen lights",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$11.10",-11.1,"-$11.10",-11.1,"n",NA,1
+"01/06/2026","d83534f9ddb84d7c9b1be78d98b63eb7",NA,"Dum Dum Lollipops 400ct",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$28.95",28.95,"$28.95",28.95,"n",NA,1
+"01/06/2026","d83534f9ddb84d7c9b1be78d98b63eb7",NA,"Dum Dum Lollipops 400ct",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$28.95",-28.95,"-$28.95",-28.95,"n",NA,1
+"01/06/2026","52a7d81732db4a899d5195d644496f0b",NA,"No-Touch Thermometer",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$15.19",15.19,"$15.19",15.19,"n",NA,1
+"01/06/2026","52a7d81732db4a899d5195d644496f0b",NA,"No-Touch Thermometer",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$15.19",-15.19,"-$15.19",-15.19,"n",NA,1
+"01/06/2026","8018c5e835b54be3be131727699457ba",NA,"Blood pressure cuff and monitor",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$34.19",34.19,"$34.19",34.19,"n",NA,1
+"01/06/2026","8018c5e835b54be3be131727699457ba",NA,"Blood pressure cuff and monitor",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$34.19",-34.19,"-$34.19",-34.19,"n",NA,1
+"01/10/2026","1785033c667d4a24bb0354c26dad1aeb",NA,"8x10 picture frames, 5ct",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$18.99",18.99,"$18.99",18.99,"n",NA,1
+"01/10/2026","1785033c667d4a24bb0354c26dad1aeb",NA,"8x10 picture frames, 5ct",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$18.99",-18.99,"-$18.99",-18.99,"n",NA,1
+"01/10/2026","563a7dd461a545cabcea835e10ae9d91",NA,"11x14 picture frames, 5ct, 2 packs",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$29.98",29.98,"$29.98",29.98,"n",NA,1
+"01/10/2026","563a7dd461a545cabcea835e10ae9d91",NA,"11x14 picture frames, 5ct, 2 packs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.98",-29.98,"-$29.98",-29.98,"n",NA,1
+"01/24/2026","d35840d4e7cf45f68710a76275335c06",NA,"40lb weights set of 4",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$30.31",30.31,"$30.31",30.31,"n",NA,1
+"01/24/2026","d35840d4e7cf45f68710a76275335c06",NA,"40lb weights set of 4",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$30.31",-30.31,"-$30.31",-30.31,"n",NA,1
+"01/24/2026","c46d1f052bd3464b98737989dd3eac05",NA,"10x10 heavy duty popup tent",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$83.78",83.78,"$83.78",83.78,"n",NA,1
+"01/24/2026","c46d1f052bd3464b98737989dd3eac05",NA,"10x10 heavy duty popup tent",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$83.78",-83.78,"-$83.78",-83.78,"n",NA,1
+"02/01/2026","5ffe55dd980f4964825e3d907dc836cd",NA,"Women's hospital gown, single",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$7.99",7.99,"$7.99",7.99,"n",NA,1
+"02/01/2026","5ffe55dd980f4964825e3d907dc836cd",NA,"Women's hospital gown, single",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.99",-7.99,"-$7.99",-7.99,"n",NA,1
+"02/01/2026","54bf59e8b8dc45289a10a20819e01cd9",NA,"Women's hospital gown, single",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$7.99",7.99,"$7.99",7.99,"n",NA,1
+"02/01/2026","54bf59e8b8dc45289a10a20819e01cd9",NA,"Women's hospital gown, single",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.99",-7.99,"-$7.99",-7.99,"n",NA,1
+"02/01/2026","6a3c6bf317a8493cb7e1b8931eede061",NA,"Flyer holder, 2-pack",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$15.39",15.39,"$15.39",15.39,"n",NA,1
+"02/01/2026","6a3c6bf317a8493cb7e1b8931eede061",NA,"Flyer holder, 2-pack",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$15.39",-15.39,"-$15.39",-15.39,"n",NA,1
+"02/01/2026","85c4d544126049e3b93aacb1e4b8e4a2",NA,"Office chairs (FB marketplace)",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$60.00",60,"$60.00",60,"n",NA,1
+"02/01/2026","85c4d544126049e3b93aacb1e4b8e4a2",NA,"Office chairs (FB marketplace)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$60.00",-60,"-$60.00",-60,"n",NA,1
+"02/01/2026","c5e38f1f478741d083827c67257c1831",NA,"Office side table",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$40.00",40,"$40.00",40,"n",NA,1
+"02/01/2026","c5e38f1f478741d083827c67257c1831",NA,"Office side table",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$40.00",-40,"-$40.00",-40,"n",NA,1
+"02/18/2026","82c880935e664266a666e9a60665df5b",NA,"set of 5 multipurpose forceps 5-12in",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$14.99",14.99,"$14.99",14.99,"n",NA,1
+"02/18/2026","82c880935e664266a666e9a60665df5b",NA,"set of 5 multipurpose forceps 5-12in",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.99",-14.99,"-$14.99",-14.99,"n",NA,1
+"02/18/2026","6aa165a56be44b7eb60ecc9be1ee15a2",NA,"handheld mirror",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$4.98",4.98,"$4.98",4.98,"n",NA,1
+"02/18/2026","6aa165a56be44b7eb60ecc9be1ee15a2",NA,"handheld mirror",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$4.98",-4.98,"-$4.98",-4.98,"n",NA,1
+"02/18/2026","1ed4ff7d8b8e410ca0fe491e8f4ada36",NA,"Blanket basket storage bin",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$22.99",22.99,"$22.99",22.99,"n",NA,1
+"02/18/2026","1ed4ff7d8b8e410ca0fe491e8f4ada36",NA,"Blanket basket storage bin",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$22.99",-22.99,"-$22.99",-22.99,"n",NA,1
+"02/18/2026","136c422cb73e43b1bc683920c06d9790",NA,"Mini rectangular trash can 5L",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$23.29",23.29,"$23.29",23.29,"n",NA,1
+"02/18/2026","136c422cb73e43b1bc683920c06d9790",NA,"Mini rectangular trash can 5L",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$23.29",-23.29,"-$23.29",-23.29,"n",NA,1
+"02/22/2026","aa459cdabebe4192bd36f816ecfa898f",NA,"Rectangulr trash can 30L",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$37.97",37.97,"$37.97",37.97,"n",NA,1
+"02/22/2026","aa459cdabebe4192bd36f816ecfa898f",NA,"Rectangulr trash can 30L",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$37.97",-37.97,"-$37.97",-37.97,"n",NA,1
+"02/22/2026","411ac77d149841e58f0770cba00df544",NA,"Biohazard stickers (pack of 10)",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$6.64",6.64,"$6.64",6.64,"n",NA,1
+"02/22/2026","411ac77d149841e58f0770cba00df544",NA,"Biohazard stickers (pack of 10)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.64",-6.64,"-$6.64",-6.64,"n",NA,1
+"02/22/2026","95d729ee805743b5b082c69e3bd4d6d5",NA,"8 in prize wheel spinner",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$9.49",9.49,"$9.49",9.49,"n",NA,1
+"02/22/2026","95d729ee805743b5b082c69e3bd4d6d5",NA,"8 in prize wheel spinner",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.49",-9.49,"-$9.49",-9.49,"n",NA,1
+"02/24/2026","e1d567092bf44194977875df4c907a2c",NA,"Growth Chart for Wall 79in",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$15.19",15.19,"$15.19",15.19,"n",NA,1
+"02/24/2026","e1d567092bf44194977875df4c907a2c",NA,"Growth Chart for Wall 79in",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$15.19",-15.19,"-$15.19",-15.19,"n",NA,1
+"03/08/2026","3e74210f66e54a8a907f239ebb11c30b",NA,"Salon Tray Table",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$36.99",36.99,"$36.99",36.99,"n",NA,1
+"03/08/2026","3e74210f66e54a8a907f239ebb11c30b",NA,"Salon Tray Table",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.99",-36.99,"-$36.99",-36.99,"n",NA,1
+"03/20/2026","70dc23b9dfd845a996241ff9eae34339",NA,"Mandala Scrubs",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$46.66",46.66,"$46.66",46.66,"n",NA,1
+"03/20/2026","70dc23b9dfd845a996241ff9eae34339",NA,"Mandala Scrubs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$46.66",-46.66,"-$46.66",-46.66,"n",NA,1
+"03/25/2026","09ebabfd9d5649a3ac656bfec06be13c",NA,"Allis Tissue Forceps 10"" 4 x 5",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$12.99",12.99,"$12.99",12.99,"n",NA,1
+"03/25/2026","09ebabfd9d5649a3ac656bfec06be13c",NA,"Allis Tissue Forceps 10"" 4 x 5",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$12.99",-12.99,"-$12.99",-12.99,"n",NA,1
+"03/25/2026","4ef23623e0114ce3a7852d842b663900",NA,"Mayo Hegar needle holder 8""",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$16.42",16.42,"$16.42",16.42,"n",NA,1
+"03/25/2026","4ef23623e0114ce3a7852d842b663900",NA,"Mayo Hegar needle holder 8""",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$16.42",-16.42,"-$16.42",-16.42,"n",NA,1
+"03/25/2026","f227eeeb2479472db8013312e6c910b2",NA,"Locking sponge forceps 9-1/2""",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$7.34",7.34,"$7.34",7.34,"n",NA,1
+"03/25/2026","f227eeeb2479472db8013312e6c910b2",NA,"Locking sponge forceps 9-1/2""",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.34",-7.34,"-$7.34",-7.34,"n",NA,1
+"03/25/2026","00e72e8987214987ab8860f36990b505",NA,"Alligator ear forceps 12""",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$21.57",21.57,"$21.57",21.57,"n",NA,1
+"03/25/2026","00e72e8987214987ab8860f36990b505",NA,"Alligator ear forceps 12""",NA,"CURRENCY::USD",NA,"I hope you’re doing well. I recently saw the Psychometrician opening at Cambium Assessment and applied because it aligns closely with my background in operational psychometrics, high-stakes assessment, and R-based analytical workflows. I had also explored the Senior Psychometrician opening earlier this spring and have remained very interested in the work Cambium is doing in educational assessment. If you have any insight into the team or hiring process, I’d really appreciate it","","Imbalance-USD","Imbalance-USD","-$21.57",-21.57,"-$21.57",-21.57,"n",NA,1
+"03/25/2026","39e938d050864c99b5f85d0c16ccac7e",NA,"Assorted Pozzi tenaculum forceps 10"" (set of 3)",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$14.99",14.99,"$14.99",14.99,"n",NA,1
+"03/25/2026","39e938d050864c99b5f85d0c16ccac7e",NA,"Assorted Pozzi tenaculum forceps 10"" (set of 3)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.99",-14.99,"-$14.99",-14.99,"n",NA,1
+"03/30/2026","b57d07dbf70d4c0e86f4d403f33d224a",NA,"Women's hospital gown, single, 2XL-3XL",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$9.94",9.94,"$9.94",9.94,"n",NA,1
+"03/30/2026","b57d07dbf70d4c0e86f4d403f33d224a",NA,"Women's hospital gown, single, 2XL-3XL",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.94",-9.94,"-$9.94",-9.94,"n",NA,1
+"03/30/2026","b94dfede07094a10907d6b82e26c1614",NA,"Women's hospital gown, single, S-M",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$8.99",8.99,"$8.99",8.99,"n",NA,1
+"03/30/2026","b94dfede07094a10907d6b82e26c1614",NA,"Women's hospital gown, single, S-M",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.99",-8.99,"-$8.99",-8.99,"n",NA,1
+"04/18/2026","6a652af6281a4bee98af68892a14f990",NA,"gas cylinder holder wall-mounted bracket (White, 2)",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$19.88",19.88,"$19.88",19.88,"n",NA,1
+"04/18/2026","6a652af6281a4bee98af68892a14f990",NA,"gas cylinder holder wall-mounted bracket (White, 2)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$19.88",-19.88,"-$19.88",-19.88,"n",NA,1
+"04/27/2026","e11d2ad8183a491aadb4e0b8752c16d2",NA,"Aquarium scissors, 12""",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$8.99",8.99,"$8.99",8.99,"n",NA,1
+"04/27/2026","e11d2ad8183a491aadb4e0b8752c16d2",NA,"Aquarium scissors, 12""",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.99",-8.99,"-$8.99",-8.99,"n",NA,1
+"05/01/2026","995b84c71ea147e1b0f9396729f9b1e2",NA,"8-sheet strip cut papper shredder 3.4 gallon",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Purchase","Equipment Purchase","$27.57",27.57,"$27.57",27.57,"n",NA,1
+"05/01/2026","995b84c71ea147e1b0f9396729f9b1e2",NA,"8-sheet strip cut papper shredder 3.4 gallon",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$27.57",-27.57,"-$27.57",-27.57,"n",NA,1
+"01/02/2026","320a82e634464f2688131cc24b100e37",NA,"Home Depot Truck Rental",NA,"CURRENCY::USD",NA,"","","Expenses:Equipment:Equipment Rental","Equipment Rental","$35.38",35.38,"$35.38",35.38,"n",NA,1
+"01/02/2026","320a82e634464f2688131cc24b100e37",NA,"Home Depot Truck Rental",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$35.38",-35.38,"-$35.38",-35.38,"n",NA,1
+"05/21/2026","3ac611313dc8451f9152ea9088532979",NA,"NIPPON SANSO MATHESON INC Cylinder Rental",NA,"CURRENCY::USD",NA,"","HRCM 400 CYLMGMTfEE","Expenses:Equipment:Equipment Rental","Equipment Rental","$6.48",6.48,"$6.48",6.48,"n",NA,1
+"05/21/2026","3ac611313dc8451f9152ea9088532979",NA,"NIPPON SANSO MATHESON INC Cylinder Rental",NA,"CURRENCY::USD",NA,"","SMALL MEDICAL","Expenses:Equipment:Equipment Rental","Equipment Rental","$15.00",15,"$15.00",15,"n",NA,1
+"05/21/2026","3ac611313dc8451f9152ea9088532979",NA,"NIPPON SANSO MATHESON INC Cylinder Rental",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$21.48",-21.48,"-$21.48",-21.48,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: CT/GC RNA, TMA, UROGEN","Expenses:Labs","Labs","$18.00",18,"$18.00",18,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: CYTYC PAP & RVW","Expenses:Labs","Labs","$21.50",21.5,"$21.50",21.5,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: HPV HR","Expenses:Labs","Labs","$35.00",35,"$35.00",35,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 2: BAC VAGINOSIS RNA","Expenses:Labs","Labs","$30.00",30,"$30.00",30,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 2: CANDIDA VAGINITIS","Expenses:Labs","Labs","$50.00",50,"$50.00",50,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 2: TRICHMONAS VAG RNA","Expenses:Labs","Labs","$26.00",26,"$26.00",26,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 2: CT/GC RNA, TMA, UROGEN","Expenses:Labs","Labs","$18.00",18,"$18.00",18,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 3: T-3 UPTAKE","Expenses:Labs","Labs","$2.46",2.46,"$2.46",2.46,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 3: T-4 (THYROXINE)","Expenses:Labs","Labs","$2.46",2.46,"$2.46",2.46,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 3: DRAW FEE, PSC SPEC.","Expenses:Labs","Labs","$5.00",5,"$5.00",5,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: FERRITIN","Expenses:Labs","Labs","$3.30",3.3,"$3.30",3.3,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: PROLACTIN","Expenses:Labs","Labs","$5.00",5,"$5.00",5,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: PTT, ACTIVATED","Expenses:Labs","Labs","$3.00",3,"$3.00",3,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: CBC(H/H,RBC,WBC,PLT)","Expenses:Labs","Labs","$2.04",2.04,"$2.04",2.04,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: FSH & LH (S)","Expenses:Labs","Labs","$9.00",9,"$9.00",9,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: IRON, TOTAL, & IBC","Expenses:Labs","Labs","$3.57",3.57,"$3.57",3.57,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: PRO TIME WITH INR","Expenses:Labs","Labs","$3.20",3.2,"$3.20",3.2,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 4: TSH W/REFL FT4","Expenses:Labs","Labs","$2.75",2.75,"$2.75",2.75,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 5: UA, COMP W/RFL CULT","Expenses:Labs","Labs","$0.00",0,"$0.00",0,"n",NA,0
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimin 5: CT/GC RNA,TMA,UROGEN","Expenses:Labs","Labs","$18.00",18,"$18.00",18,"n",NA,1
+"03/26/2026","5bff854b0d44465ead5dd8e573ec46c8",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$258.28",-258.28,"-$258.28",-258.28,"n",NA,1
+"04/27/2026","0dcdd796a2a442889a7e30a2803fc5cc",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: CT/GC RNA, TMA, UROGEN","Expenses:Labs","Labs","$1,053.31",1053.31,"$1,053.31",1053.31,"n",NA,1
+"04/27/2026","0dcdd796a2a442889a7e30a2803fc5cc",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$1,053.31",-1053.31,"-$1,053.31",-1053.31,"n",NA,1
+"04/27/2026","4f17e396fb874b2bb04aefcbfe6dfcfd",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: CYTYC PAP & RVW","Expenses:Labs","Labs","$21.50",21.5,"$21.50",21.5,"n",NA,1
+"04/27/2026","4f17e396fb874b2bb04aefcbfe6dfcfd",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: PATH REVIEW, LIQ PAP","Expenses:Labs","Labs","$17.84",17.84,"$17.84",17.84,"n",NA,1
+"04/27/2026","4f17e396fb874b2bb04aefcbfe6dfcfd",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: HPV DNA, CERVICAL","Expenses:Labs","Labs","$40.25",40.25,"$40.25",40.25,"n",NA,1
+"04/27/2026","4f17e396fb874b2bb04aefcbfe6dfcfd",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$79.59",-79.59,"-$79.59",-79.59,"n",NA,1
+"05/06/2026","268957b60a7944eb95cd3f60dae2c20f",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: IV-PATH,G&M,2SP,PC","Expenses:Labs","Labs","$42.90",42.9,"$42.90",42.9,"n",NA,1
+"05/06/2026","268957b60a7944eb95cd3f60dae2c20f",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","Specimen 1: IV-PATH,G&M,2SP,TC","Expenses:Labs","Labs","$87.10",87.1,"$87.10",87.1,"n",NA,1
+"05/06/2026","268957b60a7944eb95cd3f60dae2c20f",NA,"Quest Diagnostics",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$130.00",-130,"-$130.00",-130,"n",NA,1
+"12/02/2025","92537b7b5e7d44109a970122edd83872",NA,"NPDB.HRSA.GOV",NA,"CURRENCY::USD",NA,"","","Expenses:Licenses and Permits","Licenses and Permits","$3.00",3,"$3.00",3,"n",NA,1
+"12/02/2025","92537b7b5e7d44109a970122edd83872",NA,"NPDB.HRSA.GOV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$3.00",-3,"-$3.00",-3,"n",NA,1
+"02/01/2026","7bd0e88dce6847e4916a38ec5e45fa85",NA,"FLORIDA DOH - MQA - OS",NA,"CURRENCY::USD",NA,"","","Expenses:Licenses and Permits","Licenses and Permits","$364.76",364.76,"$364.76",364.76,"n",NA,1
+"02/01/2026","7bd0e88dce6847e4916a38ec5e45fa85",NA,"FLORIDA DOH - MQA - OS",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$364.76",-364.76,"-$364.76",-364.76,"n",NA,1
+"02/01/2026","3789e5568a3a4687bf8329f60cb7ab5b",NA,"CEBROKER",NA,"CURRENCY::USD",NA,"","","Expenses:Licenses and Permits","Licenses and Permits","$79.00",79,"$79.00",79,"n",NA,1
+"02/01/2026","3789e5568a3a4687bf8329f60cb7ab5b",NA,"CEBROKER",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$79.00",-79,"-$79.00",-79,"n",NA,1
+"02/03/2026","f2fc5ae4e50c4be287ab00b46d62d67d",NA,"CPR TAMPA 2 TAMPA",NA,"CURRENCY::USD",NA,"","","Expenses:Licenses and Permits","Licenses and Permits","$337.00",337,"$337.00",337,"n",NA,1
+"02/03/2026","f2fc5ae4e50c4be287ab00b46d62d67d",NA,"CPR TAMPA 2 TAMPA",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$337.00",-337,"-$337.00",-337,"n",NA,1
+"08/15/2026","0b2681a48d1b41cf85bd61ad3b797f09",NA,"LLC Startup costs",NA,"CURRENCY::USD",NA,"","","Expenses:LLC","LLC","$140.00",140,"$140.00",140,"n",NA,1
+"08/15/2026","0b2681a48d1b41cf85bd61ad3b797f09",NA,"LLC Startup costs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$140.00",-140,"-$140.00",-140,"n",NA,1
+"01/06/2026","09e2d033633a4d5e8b97a33c18feb96b",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Expenses:Malpractice Insurance","Malpractice Insurance","$754.26",754.26,"$754.26",754.26,"n",NA,1
+"01/06/2026","09e2d033633a4d5e8b97a33c18feb96b",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$754.26",-754.26,"-$754.26",-754.26,"n",NA,1
+"01/10/2026","80937f7c9d13424483174df4a70b93e3",NA,"FLORIDA BIRTH NICA TALLAHASSEE FL (Liability)",NA,"CURRENCY::USD",NA,"","","Expenses:Malpractice Insurance","Malpractice Insurance","$250.00",250,"$250.00",250,"n",NA,1
+"01/10/2026","80937f7c9d13424483174df4a70b93e3",NA,"FLORIDA BIRTH NICA TALLAHASSEE FL (Liability)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$250.00",-250,"-$250.00",-250,"n",NA,1
+"03/02/2026","5f3c424b9b9c40569e89c28ec21060a1",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Expenses:Malpractice Insurance","Malpractice Insurance","$725.25",725.25,"$725.25",725.25,"n",NA,1
+"03/02/2026","5f3c424b9b9c40569e89c28ec21060a1",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$725.25",-725.25,"-$725.25",-725.25,"n",NA,1
+"03/02/2026","f7bf8648eba1417887fecf96f570b0a1",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Expenses:Malpractice Insurance","Malpractice Insurance","$754.26",754.26,"$754.26",754.26,"n",NA,1
+"03/02/2026","f7bf8648eba1417887fecf96f570b0a1",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$754.26",-754.26,"-$754.26",-754.26,"n",NA,1
+"06/02/2026","4ea2f2aadf89464e9f3d186f31e29d85",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Expenses:Malpractice Insurance","Malpractice Insurance","$754.26",754.26,"$754.26",754.26,"n",NA,1
+"06/02/2026","4ea2f2aadf89464e9f3d186f31e29d85",NA,"Coverys - Malpractice Insurance",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$754.26",-754.26,"-$754.26",-754.26,"n",NA,1
+"10/23/2025","ed2778010ba04d7098081b5c6212daa9",NA,"CANVA business cards",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$42.50",42.5,"$42.50",42.5,"n",NA,1
+"10/23/2025","ed2778010ba04d7098081b5c6212daa9",NA,"CANVA business cards",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$42.50",-42.5,"-$42.50",-42.5,"n",NA,1
+"10/25/2025","afa9fc9936e64ae0ba0a32e308ddfe15",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$10.00",10,"$10.00",10,"n",NA,1
+"10/25/2025","afa9fc9936e64ae0ba0a32e308ddfe15",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$10.00",-10,"-$10.00",-10,"n",NA,1
+"10/29/2025","44cf54a0fea547698207f12899f36400",NA,"CANVA flag",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$174.52",174.52,"$174.52",174.52,"n",NA,1
+"10/29/2025","44cf54a0fea547698207f12899f36400",NA,"CANVA flag",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$174.52",-174.52,"-$174.52",-174.52,"n",NA,1
+"11/01/2025","98005378773e4a1ebdd8ff946dfeb25d",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$37.67",37.67,"$37.67",37.67,"n",NA,1
+"11/01/2025","98005378773e4a1ebdd8ff946dfeb25d",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$37.67",-37.67,"-$37.67",-37.67,"n",NA,1
+"11/09/2025","468775e042124de0b066e960ba3ffa87",NA,"ETSY",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$40.64",40.64,"$40.64",40.64,"n",NA,1
+"11/09/2025","468775e042124de0b066e960ba3ffa87",NA,"ETSY",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$40.64",-40.64,"-$40.64",-40.64,"n",NA,1
+"11/10/2025","51b8b846d8594d63ade473a3bc9140af",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$50.00",50,"$50.00",50,"n",NA,1
+"11/10/2025","51b8b846d8594d63ade473a3bc9140af",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$50.00",-50,"-$50.00",-50,"n",NA,1
+"11/29/2025","0585e1a65a3b48078c13fc2e9e6dd6d6",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$100.00",100,"$100.00",100,"n",NA,1
+"11/29/2025","0585e1a65a3b48078c13fc2e9e6dd6d6",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$100.00",-100,"-$100.00",-100,"n",NA,1
+"12/01/2025","ce6b5328c2364599a2dc01a4527c479c",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$10.49",10.49,"$10.49",10.49,"n",NA,1
+"12/01/2025","ce6b5328c2364599a2dc01a4527c479c",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$10.49",-10.49,"-$10.49",-10.49,"n",NA,1
+"01/01/2026","fa03bde876264f3a842ebd7740038a3a",NA,"Yelp ",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$41.00",41,"$41.00",41,"n",NA,1
+"01/01/2026","fa03bde876264f3a842ebd7740038a3a",NA,"Yelp ",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$41.00",-41,"-$41.00",-41,"n",NA,1
+"01/01/2026","5cd6ed2a325244bba6d511dc719fb41c",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$6.89",6.89,"$6.89",6.89,"n",NA,1
+"01/01/2026","5cd6ed2a325244bba6d511dc719fb41c",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.89",-6.89,"-$6.89",-6.89,"n",NA,1
+"01/02/2026","62fd832f450b44a68bc98143a20f9543",NA,"Vistaprint",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$103.38",103.38,"$103.38",103.38,"n",NA,1
+"01/02/2026","62fd832f450b44a68bc98143a20f9543",NA,"Vistaprint",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$103.38",-103.38,"-$103.38",-103.38,"n",NA,1
+"01/03/2026","1fc370c6b923417a98cecd1e68a242b6",NA,"Scented candles, 12ct",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$17.98",17.98,"$17.98",17.98,"n",NA,1
+"01/03/2026","1fc370c6b923417a98cecd1e68a242b6",NA,"Scented candles, 12ct",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.98",-17.98,"-$17.98",-17.98,"n",NA,1
+"01/06/2026","b90708d573d7475ea414e1830e7168a7",NA,"Patient gifts - lotion and lip balm, 24ct each",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$22.79",22.79,"$22.79",22.79,"n",NA,1
+"01/06/2026","b90708d573d7475ea414e1830e7168a7",NA,"Patient gifts - lotion and lip balm, 24ct each",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$22.79",-22.79,"-$22.79",-22.79,"n",NA,1
+"01/06/2026","b1a7e803b51b4d299497587727bc88af",NA,"Healthy Family Fair Sponsor 2/7",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$250.00",250,"$250.00",250,"n",NA,1
+"01/06/2026","b1a7e803b51b4d299497587727bc88af",NA,"Healthy Family Fair Sponsor 2/7",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$250.00",-250,"-$250.00",-250,"n",NA,1
+"01/06/2026","72b70449a3f844f5a7ead341c9e83312",NA,"Tampa Bay Moms Group",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$250.00",250,"$250.00",250,"n",NA,1
+"01/06/2026","72b70449a3f844f5a7ead341c9e83312",NA,"Tampa Bay Moms Group",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$250.00",-250,"-$250.00",-250,"n",NA,1
+"01/24/2026","b80d81a2f6ef4d288e1bb26572424959",NA,"CANVA banner",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$103.79",103.79,"$103.79",103.79,"n",NA,1
+"01/24/2026","b80d81a2f6ef4d288e1bb26572424959",NA,"CANVA banner",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$103.79",-103.79,"-$103.79",-103.79,"n",NA,1
+"01/27/2026","09efef7334cf441cada61d937bd05801",NA,"WWW.PEACHJAR.COM",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$100.00",100,"$100.00",100,"n",NA,1
+"01/27/2026","09efef7334cf441cada61d937bd05801",NA,"WWW.PEACHJAR.COM",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$100.00",-100,"-$100.00",-100,"n",NA,1
+"01/27/2026","7cec6eda9d694974890eb83fd6cb5342",NA,"CANVA postcards",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$115.03",115.03,"$115.03",115.03,"n",NA,1
+"01/27/2026","7cec6eda9d694974890eb83fd6cb5342",NA,"CANVA postcards",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$115.03",-115.03,"-$115.03",-115.03,"n",NA,1
+"02/01/2026","bf4109130b9c4f9ebd11e4f609b67bd1",NA,"Yelp ",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$150.00",150,"$150.00",150,"n",NA,1
+"02/01/2026","bf4109130b9c4f9ebd11e4f609b67bd1",NA,"Yelp ",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$150.00",-150,"-$150.00",-150,"n",NA,1
+"03/01/2026","bcf50568e12b42a0b013e10a87b9c86d",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$52.87",52.87,"$52.87",52.87,"n",NA,1
+"03/01/2026","bcf50568e12b42a0b013e10a87b9c86d",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$52.87",-52.87,"-$52.87",-52.87,"n",NA,1
+"03/06/2026","13f1282a2a1a4c0383a6c033a6f6cf39",NA,"Meta ads Mar 6 2026 0:00 - Mar 8 2026 15:33",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$25.00",25,"$25.00",25,"n",NA,1
+"03/06/2026","13f1282a2a1a4c0383a6c033a6f6cf39",NA,"Meta ads Mar 6 2026 0:00 - Mar 8 2026 15:33",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$25.00",-25,"-$25.00",-25,"n",NA,1
+"03/08/2026","2efe2f9e8ce749a6baa919b6a58c02d1",NA,"Tampa Bay Moms Group",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$250.00",250,"$250.00",250,"n",NA,1
+"03/08/2026","2efe2f9e8ce749a6baa919b6a58c02d1",NA,"Tampa Bay Moms Group",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$250.00",-250,"-$250.00",-250,"n",NA,1
+"03/11/2026","7316cbaf2fcc4db9be911161998d91d3",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$14.00",14,"$14.00",14,"n",NA,1
+"03/11/2026","7316cbaf2fcc4db9be911161998d91d3",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.00",-14,"-$14.00",-14,"n",NA,1
+"03/14/2026","5a1e718da7344160bdcf3bb37089c5cd",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$14.00",14,"$14.00",14,"n",NA,1
+"03/14/2026","5a1e718da7344160bdcf3bb37089c5cd",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.00",-14,"-$14.00",-14,"n",NA,1
+"03/15/2026","12f3406a5100423699bde2872bd90fc1",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$14.00",14,"$14.00",14,"n",NA,1
+"03/15/2026","12f3406a5100423699bde2872bd90fc1",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.00",-14,"-$14.00",-14,"n",NA,1
+"03/16/2026","b90c239d0ee14fe1ab7a86c25922d136",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$26.00",26,"$26.00",26,"n",NA,1
+"03/16/2026","b90c239d0ee14fe1ab7a86c25922d136",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.00",-26,"-$26.00",-26,"n",NA,1
+"03/17/2026","820bd7409ecd47e9aea0a27f2af6cde1",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$26.00",26,"$26.00",26,"n",NA,1
+"03/17/2026","820bd7409ecd47e9aea0a27f2af6cde1",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.00",-26,"-$26.00",-26,"n",NA,1
+"03/18/2026","42c188a5368c4229850e9d467fbb778a",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"03/18/2026","42c188a5368c4229850e9d467fbb778a",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"03/18/2026","700fab5e79d748bc88eebc69745b29af",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$26.00",26,"$26.00",26,"n",NA,1
+"03/18/2026","700fab5e79d748bc88eebc69745b29af",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.00",-26,"-$26.00",-26,"n",NA,1
+"03/19/2026","24e94ff9c384448b86759da8e531e6e8",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$38.00",38,"$38.00",38,"n",NA,1
+"03/19/2026","24e94ff9c384448b86759da8e531e6e8",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.00",-38,"-$38.00",-38,"n",NA,1
+"03/21/2026","cb7886ef87b94c16bb2233b8f8114699",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$38.00",38,"$38.00",38,"n",NA,1
+"03/21/2026","cb7886ef87b94c16bb2233b8f8114699",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.00",-38,"-$38.00",-38,"n",NA,1
+"03/23/2026","5cea71ab2acc4354b87e642e64f18418",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$38.00",38,"$38.00",38,"n",NA,1
+"03/23/2026","5cea71ab2acc4354b87e642e64f18418",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.00",-38,"-$38.00",-38,"n",NA,1
+"03/26/2026","aaf6867147a04c37bc751d2abc30e13b",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$38.00",38,"$38.00",38,"n",NA,1
+"03/26/2026","aaf6867147a04c37bc751d2abc30e13b",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.00",-38,"-$38.00",-38,"n",NA,1
+"03/26/2026","4d4f931cacf14252ba18761b440bbe50",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$38.00",38,"$38.00",38,"n",NA,1
+"03/26/2026","4d4f931cacf14252ba18761b440bbe50",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.00",-38,"-$38.00",-38,"n",NA,1
+"03/29/2026","b0374bce5c5146bfb9781e10661bea41",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$200.00",200,"$200.00",200,"n",NA,1
+"03/29/2026","b0374bce5c5146bfb9781e10661bea41",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$200.00",-200,"-$200.00",-200,"n",NA,1
+"04/01/2026","7bf3f5ff45294885bcf97451d4776ab8",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$78.60",78.6,"$78.60",78.6,"n",NA,1
+"04/01/2026","7bf3f5ff45294885bcf97451d4776ab8",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$78.60",-78.6,"-$78.60",-78.6,"n",NA,1
+"04/02/2026","b646723a00814a14b7ab25175e355163",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$67.15",67.15,"$67.15",67.15,"n",NA,1
+"04/02/2026","b646723a00814a14b7ab25175e355163",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$67.15",-67.15,"-$67.15",-67.15,"n",NA,1
+"04/12/2026","f8f9eebd44124910b8c37b3edc485456",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$350.00",350,"$350.00",350,"n",NA,1
+"04/12/2026","f8f9eebd44124910b8c37b3edc485456",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$350.00",-350,"-$350.00",-350,"n",NA,1
+"04/28/2026","2db86d6a0b4541868f3bef7b2b1685fc",NA,"Dollar Tree - Grand Opening Supplies",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$17.92",17.92,"$17.92",17.92,"n",NA,1
+"04/28/2026","2db86d6a0b4541868f3bef7b2b1685fc",NA,"Dollar Tree - Grand Opening Supplies",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.92",-17.92,"-$17.92",-17.92,"n",NA,1
+"04/30/2026","e1cd16a54e344908a653651f6f0db573",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$500.00",500,"$500.00",500,"n",NA,1
+"04/30/2026","e1cd16a54e344908a653651f6f0db573",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"05/01/2026","5c522eb40fdf43128271a76faefdb4ab",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$23.43",23.43,"$23.43",23.43,"n",NA,1
+"05/01/2026","5c522eb40fdf43128271a76faefdb4ab",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$23.43",-23.43,"-$23.43",-23.43,"n",NA,1
+"05/02/2026","1008b78f23e948a98057db135c8f92cb",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$39.64",39.64,"$39.64",39.64,"n",NA,1
+"05/02/2026","1008b78f23e948a98057db135c8f92cb",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$39.64",-39.64,"-$39.64",-39.64,"n",NA,1
+"05/18/2026","ce4effadbd2544f78c5c2f6567515b27",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$500.00",500,"$500.00",500,"n",NA,1
+"05/18/2026","ce4effadbd2544f78c5c2f6567515b27",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$500.00",-500,"-$500.00",-500,"n",NA,1
+"06/01/2026","c61b8869ac20455dac37b310f1129aeb",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$350.52",350.52,"$350.52",350.52,"n",NA,1
+"06/01/2026","c61b8869ac20455dac37b310f1129aeb",NA,"GOOGLE ADSENSE advertisement",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$350.52",-350.52,"-$350.52",-350.52,"n",NA,1
+"06/02/2026","826d48e5ab0540d8b2dbb8b95e86ec6b",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Advertisement","Advertisement","$13.57",13.57,"$13.57",13.57,"n",NA,1
+"06/02/2026","826d48e5ab0540d8b2dbb8b95e86ec6b",NA,"Facebook Ads",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$13.57",-13.57,"-$13.57",-13.57,"n",NA,1
+"11/12/2025","048574d31a4a4e5a95300e60499ad472",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$150.00",-150,"-$150.00",-150,"n",NA,1
+"11/12/2025","048574d31a4a4e5a95300e60499ad472",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$150.00",150,"$150.00",150,"n",NA,1
+"11/12/2025","83bc8f0db97d4b1cbdf7953f01db7909",NA,"Square Space Acuity",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$192.00",192,"$192.00",192,"n",NA,1
+"11/12/2025","83bc8f0db97d4b1cbdf7953f01db7909",NA,"Square Space Acuity",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$192.00",-192,"-$192.00",-192,"n",NA,1
+"11/14/2025","f61f10c12870442c8139db1f598ff07b",NA,"Square Space Acuity",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$192.00",-192,"-$192.00",-192,"n",NA,1
+"11/14/2025","f61f10c12870442c8139db1f598ff07b",NA,"Square Space Acuity",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$192.00",192,"$192.00",192,"n",NA,1
+"11/15/2025","9be740225d4b460590ea9f8ece899bdb",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"11/15/2025","9be740225d4b460590ea9f8ece899bdb",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"11/19/2025","d3c79810fbe3433b9d689c6a8a74272b",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$16.80",16.8,"$16.80",16.8,"n",NA,1
+"11/19/2025","d3c79810fbe3433b9d689c6a8a74272b",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$16.80",-16.8,"-$16.80",-16.8,"n",NA,1
+"11/19/2025","0d80980bc5a44a60bb7f9c10bc6e625b",NA,"Square Space Campaigns",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$10.00",10,"$10.00",10,"n",NA,1
+"11/19/2025","0d80980bc5a44a60bb7f9c10bc6e625b",NA,"Square Space Campaigns",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$10.00",-10,"-$10.00",-10,"n",NA,1
+"12/15/2025","2543e85c876f473ba97cefa5a715d698",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"12/15/2025","2543e85c876f473ba97cefa5a715d698",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"12/19/2025","0133ddec6bfc480da652d1c3fb8b2a1d",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"12/19/2025","0133ddec6bfc480da652d1c3fb8b2a1d",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"01/15/2026","3c0d6c1a5f3d4f09a3bc665bcabf98b4",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"01/15/2026","3c0d6c1a5f3d4f09a3bc665bcabf98b4",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"01/15/2026","3416e892ce8e4540a88f74cbd3efefd5",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"01/15/2026","3416e892ce8e4540a88f74cbd3efefd5",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$36.00",36,"$36.00",36,"n",NA,1
+"01/19/2026","73d5d7eba90c49ef9394ed306c973db6",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"01/19/2026","73d5d7eba90c49ef9394ed306c973db6",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"01/19/2026","3d5218b5937241ef98c4797d4c601dca",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"01/19/2026","3d5218b5937241ef98c4797d4c601dca",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"02/15/2026","8c2c4fc93c7c4e32a58450cce6dea7ee",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"02/15/2026","8c2c4fc93c7c4e32a58450cce6dea7ee",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"02/15/2026","952673f303e54fbcaec265a47218e42d",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"02/15/2026","952673f303e54fbcaec265a47218e42d",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$36.00",36,"$36.00",36,"n",NA,1
+"02/19/2026","a0ed9a97a2d04081b09fe874d9d5b1b4",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"02/19/2026","a0ed9a97a2d04081b09fe874d9d5b1b4",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"02/19/2026","7c8bf2a13a194b8992d0effa4ab09a37",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"02/19/2026","7c8bf2a13a194b8992d0effa4ab09a37",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"03/15/2026","b6638feecf6d49f9a162dc145c9e44e0",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"03/15/2026","b6638feecf6d49f9a162dc145c9e44e0",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"03/15/2026","170d5df76531406aa64bb12bc04b25cf",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","-$24.40",-24.4,"-$24.40",-24.4,"n",NA,1
+"03/15/2026","170d5df76531406aa64bb12bc04b25cf",NA,"Square Space Statement Credit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","$24.40",24.4,"$24.40",24.4,"n",NA,1
+"04/15/2026","2dfe2615733e4c96bf2d682a93dafcf9",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"04/15/2026","2dfe2615733e4c96bf2d682a93dafcf9",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"04/19/2026","05dcaf77097542e8b2ee146b699b0564",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$26.80",26.8,"$26.80",26.8,"n",NA,1
+"04/19/2026","05dcaf77097542e8b2ee146b699b0564",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$26.80",-26.8,"-$26.80",-26.8,"n",NA,1
+"04/23/2026","96793ca8b0ee41d49fadd46f97d30444",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$14.56",14.56,"$14.56",14.56,"n",NA,1
+"04/23/2026","96793ca8b0ee41d49fadd46f97d30444",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.56",-14.56,"-$14.56",-14.56,"n",NA,1
+"04/26/2026","e41934858541439e9f76cf9c612da986",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$12.88",12.88,"$12.88",12.88,"n",NA,1
+"04/26/2026","e41934858541439e9f76cf9c612da986",NA,"Square Space Workshop",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$12.88",-12.88,"-$12.88",-12.88,"n",NA,1
+"05/15/2026","155670f147fa46a69378f829fbb9d84e",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$36.00",36,"$36.00",36,"n",NA,1
+"05/15/2026","155670f147fa46a69378f829fbb9d84e",NA,"Square Space Website",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$36.00",-36,"-$36.00",-36,"n",NA,1
+"05/19/2026","a8deedaa6e9547e6b5fe447fa6aee887",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Expenses:Marketing:Website","Website","$43.60",43.6,"$43.60",43.6,"n",NA,1
+"05/19/2026","a8deedaa6e9547e6b5fe447fa6aee887",NA,"Square Space INV",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$43.60",-43.6,"-$43.60",-43.6,"n",NA,1
+"01/01/2026","08d57482a35d42bd8c5df86c78468766",NA,"Bamboo Health - Implementation Fee",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Bamboo Health","Bamboo Health","$350.00",350,"$350.00",350,"n",NA,1
+"01/01/2026","08d57482a35d42bd8c5df86c78468766",NA,"Bamboo Health - Implementation Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$350.00",-350,"-$350.00",-350,"n",NA,1
+"01/09/2026","7e267ac348fc4438b0413f8c200ff5c1",NA,"Bamboo Health - PMP Gateway License Fee - Year 1 ",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Bamboo Health","Bamboo Health","$125.00",125,"$125.00",125,"n",NA,1
+"01/09/2026","7e267ac348fc4438b0413f8c200ff5c1",NA,"Bamboo Health - PMP Gateway License Fee - Year 1 ",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$125.00",-125,"-$125.00",-125,"n",NA,1
+"03/17/2026","14d1497c68e0472ca2ca2037dd2f976e",NA,"Blaze Today",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Blaze","Blaze","$35.88",35.88,"$35.88",35.88,"n",NA,1
+"03/17/2026","14d1497c68e0472ca2ca2037dd2f976e",NA,"Blaze Today",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$35.88",-35.88,"-$35.88",-35.88,"n",NA,1
+"02/15/2026","8b0b17e0520042ad8156698402079504",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$425.00",425,"$425.00",425,"n",NA,1
+"02/15/2026","8b0b17e0520042ad8156698402079504",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"02/15/2026","1440e0bbfb294cbcb31fd732a6fcac03",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$25.00",25,"$25.00",25,"n",NA,1
+"02/15/2026","1440e0bbfb294cbcb31fd732a6fcac03",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$25.00",-25,"-$25.00",-25,"n",NA,1
+"03/15/2026","5bdc05b5f102413e9b93b013c9ec15ba",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$25.00",25,"$25.00",25,"n",NA,1
+"03/15/2026","5bdc05b5f102413e9b93b013c9ec15ba",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$25.00",-25,"-$25.00",-25,"n",NA,1
+"03/15/2026","46301bf184e24628931a48a5a5022eeb",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$425.00",425,"$425.00",425,"n",NA,1
+"03/15/2026","46301bf184e24628931a48a5a5022eeb",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"04/15/2026","feb51c26552e4065bda6d599e9b610c5",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$425.00",425,"$425.00",425,"n",NA,1
+"04/15/2026","feb51c26552e4065bda6d599e9b610c5",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"04/15/2026","33c60762d9bd4f1990f8b06489d660dc",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$25.00",25,"$25.00",25,"n",NA,1
+"04/15/2026","33c60762d9bd4f1990f8b06489d660dc",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$25.00",-25,"-$25.00",-25,"n",NA,1
+"05/15/2026","d0f405a8d14744f2b246f892cea5a822",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$425.00",425,"$425.00",425,"n",NA,1
+"05/15/2026","d0f405a8d14744f2b246f892cea5a822",NA,"EHR - Standard - Prescribing Provider (12-Month Commit)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"05/15/2026","c3adf6b885554ce2bcc6fee33adb3aeb",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:EMR","EMR","$25.00",25,"$25.00",25,"n",NA,1
+"05/15/2026","c3adf6b885554ce2bcc6fee33adb3aeb",NA," Integrated Telehealth (Annual paid Monthly)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$25.00",-25,"-$25.00",-25,"n",NA,1
+"01/28/2026","7aa6040350e34877915dbd1f08715b19",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Spruce","Spruce","$51.08",51.08,"$51.08",51.08,"n",NA,1
+"01/28/2026","7aa6040350e34877915dbd1f08715b19",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$51.08",-51.08,"-$51.08",-51.08,"n",NA,1
+"03/28/2026","d8afc0428bb74f338f2295b613aea526",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","Communicator Plan Per User","Expenses:Medical Software:Spruce","Spruce","$49.00",49,"$49.00",49,"n",NA,1
+"03/28/2026","d8afc0428bb74f338f2295b613aea526",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","E911 Registration Fee - Prorated Charges","Expenses:Medical Software:Spruce","Spruce","$0.29",0.29,"$0.29",0.29,"n",NA,1
+"03/28/2026","d8afc0428bb74f338f2295b613aea526",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","E911 Registration Fee","Expenses:Medical Software:Spruce","Spruce","$0.54",0.54,"$0.54",0.54,"n",NA,1
+"03/28/2026","d8afc0428bb74f338f2295b613aea526",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","Taxes","Expenses:Medical Software:Spruce","Spruce","$2.19",2.19,"$2.19",2.19,"n",NA,1
+"03/28/2026","d8afc0428bb74f338f2295b613aea526",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$52.02",-52.02,"-$52.02",-52.02,"n",NA,1
+"04/28/2026","0545893a8d684d69b89347b522957cf1",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Spruce","Spruce","$51.08",51.08,"$51.08",51.08,"n",NA,1
+"04/28/2026","0545893a8d684d69b89347b522957cf1",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$51.08",-51.08,"-$51.08",-51.08,"n",NA,1
+"05/28/2026","fa3cb015c2354729a974c8141dbb1bbe",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Expenses:Medical Software:Spruce","Spruce","$104.46",104.46,"$104.46",104.46,"n",NA,1
+"05/28/2026","fa3cb015c2354729a974c8141dbb1bbe",NA,"SPRUCE HEALTH subscription",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$104.46",-104.46,"-$104.46",-104.46,"n",NA,1
+"12/18/2025","9246832a87c24d9ba9307f971a8d4bf0",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"12/18/2025","9246832a87c24d9ba9307f971a8d4bf0",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"01/18/2026","4d3f6c121aeb46d387a688c264b31b69",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"01/18/2026","4d3f6c121aeb46d387a688c264b31b69",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"02/18/2026","cd899753868e4f5c90b90055d2825241",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"02/18/2026","cd899753868e4f5c90b90055d2825241",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"03/18/2026","44386920b0f3447bb39e8da0bd8a63b4",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"03/18/2026","44386920b0f3447bb39e8da0bd8a63b4",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"04/16/2026","712c8ea178784328b200ae0ff98cc28a",NA,"Backgroundchecks.com",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$49.98",49.98,"$49.98",49.98,"n",NA,1
+"04/16/2026","712c8ea178784328b200ae0ff98cc28a",NA,"Backgroundchecks.com",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$49.98",-49.98,"-$49.98",-49.98,"n",NA,1
+"04/18/2026","f410b09e4b9f4ccc8c9898421989aafa",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"04/18/2026","f410b09e4b9f4ccc8c9898421989aafa",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"04/27/2026","1f69847cf25c4dc3ba8e67f7cb5d925b",NA,"Multicolored scented candles (36 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$31.99",31.99,"$31.99",31.99,"n",NA,1
+"04/27/2026","1f69847cf25c4dc3ba8e67f7cb5d925b",NA,"Multicolored scented candles (36 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$31.99",-31.99,"-$31.99",-31.99,"n",NA,1
+"04/27/2026","a13f5c25c2214dbd89787a240baf4234",NA,"Balloons, winter snowflake, 12"" (60 pack) x2",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$19.98",19.98,"$19.98",19.98,"n",NA,1
+"04/27/2026","a13f5c25c2214dbd89787a240baf4234",NA,"Balloons, winter snowflake, 12"" (60 pack) x2",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$19.98",-19.98,"-$19.98",-19.98,"n",NA,1
+"04/27/2026","dbf1c5603e7148ea9399f562fb0e0ca5",NA,"Ink pad, 20 colors, finger stamp",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$8.54",8.54,"$8.54",8.54,"n",NA,1
+"04/27/2026","dbf1c5603e7148ea9399f562fb0e0ca5",NA,"Ink pad, 20 colors, finger stamp",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.54",-8.54,"-$8.54",-8.54,"n",NA,1
+"04/27/2026","2c419b6a8cf44fceab1cbc0ebea3bc7c",NA,"Photo booth props kit (10 pcs)",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$8.99",8.99,"$8.99",8.99,"n",NA,1
+"04/27/2026","2c419b6a8cf44fceab1cbc0ebea3bc7c",NA,"Photo booth props kit (10 pcs)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.99",-8.99,"-$8.99",-8.99,"n",NA,1
+"04/27/2026","740e8443c7b84b65910ee1e7dee39dad",NA,"Foil curtain backgrop, iridescent metallic (2 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$9.98",9.98,"$9.98",9.98,"n",NA,1
+"04/27/2026","740e8443c7b84b65910ee1e7dee39dad",NA,"Foil curtain backgrop, iridescent metallic (2 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.98",-9.98,"-$9.98",-9.98,"n",NA,1
+"04/27/2026","7e4b857743d84f8aa00b273a1bcf050e",NA,"Balloons, metallic green gold, 12"" (60 pack) x2",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$18.98",18.98,"$18.98",18.98,"n",NA,1
+"04/27/2026","7e4b857743d84f8aa00b273a1bcf050e",NA,"Balloons, metallic green gold, 12"" (60 pack) x2",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$18.98",-18.98,"-$18.98",-18.98,"n",NA,1
+"04/27/2026","651b102dfdeb49b78c4623facdfa7124",NA,"Acrylic paint pens, 4 colors (8 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$5.99",5.99,"$5.99",5.99,"n",NA,1
+"04/27/2026","651b102dfdeb49b78c4623facdfa7124",NA,"Acrylic paint pens, 4 colors (8 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$5.99",-5.99,"-$5.99",-5.99,"n",NA,1
+"04/27/2026","7fd8ff49816b4980aa20d706c7ff4891",NA,"Tree-shaped fingerprint guest book canvas painting",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"04/27/2026","7fd8ff49816b4980aa20d706c7ff4891",NA,"Tree-shaped fingerprint guest book canvas painting",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"04/27/2026","38560c2ece3c44e1b9b6ac156cfa1ea5",NA,"Tablecloth and sequin table runner set, green and gold, 54"" x 108""",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$11.15",11.15,"$11.15",11.15,"n",NA,1
+"04/27/2026","38560c2ece3c44e1b9b6ac156cfa1ea5",NA,"Tablecloth and sequin table runner set, green and gold, 54"" x 108""",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$11.15",-11.15,"-$11.15",-11.15,"n",NA,1
+"04/29/2026","0ec2ac4ffd5743e49e480957095a1e42",NA,"Michaels - Grand Opening Balloons Helium",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$127.76",127.76,"$127.76",127.76,"n",NA,1
+"04/29/2026","0ec2ac4ffd5743e49e480957095a1e42",NA,"Michaels - Grand Opening Balloons Helium",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$127.76",-127.76,"-$127.76",-127.76,"n",NA,1
+"05/18/2026","c1aa79465bbc4aadbc959af6bb26172e",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Expenses:Misc","Misc","$20.00",20,"$20.00",20,"n",NA,1
+"05/18/2026","c1aa79465bbc4aadbc959af6bb26172e",NA,"OPENAI CHATGPT",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.00",-20,"-$20.00",-20,"n",NA,1
+"11/12/2025","d8d09929fc1f47ada1b9c3e8cf3d2e00",NA,"AmEx Membership Fee",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$375.00",375,"$375.00",375,"n",NA,1
+"11/12/2025","d8d09929fc1f47ada1b9c3e8cf3d2e00",NA,"AmEx Membership Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$375.00",-375,"-$375.00",-375,"n",NA,1
+"01/07/2026","7d327fda64e64f548e0fbadf7a35fa0a",NA,"Late Fee",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$39.00",39,"$39.00",39,"n",NA,1
+"01/07/2026","7d327fda64e64f548e0fbadf7a35fa0a",NA,"Late Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$39.00",-39,"-$39.00",-39,"n",NA,1
+"01/13/2026","47823bba68cf4085b4b1af9c39776dd1",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$43.35",43.35,"$43.35",43.35,"n",NA,1
+"01/13/2026","47823bba68cf4085b4b1af9c39776dd1",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$43.35",-43.35,"-$43.35",-43.35,"n",NA,1
+"02/10/2026","74618a7df13f4256819ff6562d26c9da",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$37.27",37.27,"$37.27",37.27,"n",NA,1
+"02/10/2026","74618a7df13f4256819ff6562d26c9da",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$37.27",-37.27,"-$37.27",-37.27,"n",NA,1
+"03/07/2026","6d6e9e06ad47499f8f49504a2e37674d",NA,"Late Fee",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$39.00",39,"$39.00",39,"n",NA,1
+"03/07/2026","6d6e9e06ad47499f8f49504a2e37674d",NA,"Late Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$39.00",-39,"-$39.00",-39,"n",NA,1
+"03/13/2026","1a14be149b8a4406ba7605e6bcded7d3",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$47.20",47.2,"$47.20",47.2,"n",NA,1
+"03/13/2026","1a14be149b8a4406ba7605e6bcded7d3",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$47.20",-47.2,"-$47.20",-47.2,"n",NA,1
+"04/12/2026","b9685f126c924b3e8ae05767aa63a019",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Expenses:Misc fees","Misc fees","$35.70",35.7,"$35.70",35.7,"n",NA,1
+"04/12/2026","b9685f126c924b3e8ae05767aa63a019",NA,"Interest Charge on Promotional Balances",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$35.70",-35.7,"-$35.70",-35.7,"n",NA,1
+"10/30/2025","419c67348c9e422b91b0562a1f485e8b",NA,"Table cloths, 10ct",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"10/30/2025","419c67348c9e422b91b0562a1f485e8b",NA,"Table cloths, 10ct",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"01/04/2026","2d355694d8824d1ca73567efbbcdbd0e",NA,"Costco - KS GLOVE MED",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$20.32",20.32,"$20.32",20.32,"n",NA,1
+"01/04/2026","2d355694d8824d1ca73567efbbcdbd0e",NA,"Costco - KS GLOVE MED",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.32",-20.32,"-$20.32",-20.32,"n",NA,1
+"01/06/2026","bfd05b6c026e46498c373576f13a9fc4",NA,"Lubricant",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$14.99",14.99,"$14.99",14.99,"n",NA,1
+"01/06/2026","bfd05b6c026e46498c373576f13a9fc4",NA,"Lubricant",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.99",-14.99,"-$14.99",-14.99,"n",NA,1
+"01/06/2026","aef56b3cba9246ffbbbf6dcb40b9c860",NA,"Wound Rulers",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$9.95",9.95,"$9.95",9.95,"n",NA,1
+"01/06/2026","aef56b3cba9246ffbbbf6dcb40b9c860",NA,"Wound Rulers",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.95",-9.95,"-$9.95",-9.95,"n",NA,1
+"01/06/2026","f49e64e0b8374b5b99f8f40853497ba1",NA,"First Aid Kit",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$20.95",20.95,"$20.95",20.95,"n",NA,1
+"01/06/2026","f49e64e0b8374b5b99f8f40853497ba1",NA,"First Aid Kit",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$20.95",-20.95,"-$20.95",-20.95,"n",NA,1
+"01/27/2026","7215d5cae12244dc967c11bb87087d5e",NA,"Glossy printing paper 150ct, 2 packs",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$38.50",38.5,"$38.50",38.5,"n",NA,1
+"01/27/2026","7215d5cae12244dc967c11bb87087d5e",NA,"Glossy printing paper 150ct, 2 packs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$38.50",-38.5,"-$38.50",-38.5,"n",NA,1
+"02/01/2026","08ccb0f52813424095e8a9b2d954dcaf",NA,"Medical exam table paper, 1 roll",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$9.79",9.79,"$9.79",9.79,"n",NA,1
+"02/01/2026","08ccb0f52813424095e8a9b2d954dcaf",NA,"Medical exam table paper, 1 roll",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.79",-9.79,"-$9.79",-9.79,"n",NA,1
+"02/18/2026","b1c0c57ddb3b4056bdabfd11bc14f02d",NA,"Mini Surgical Skin Markers, box of 30",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$19.03",19.03,"$19.03",19.03,"n",NA,1
+"02/18/2026","b1c0c57ddb3b4056bdabfd11bc14f02d",NA,"Mini Surgical Skin Markers, box of 30",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$19.03",-19.03,"-$19.03",-19.03,"n",NA,1
+"02/18/2026","e3cb59991c5a4b7ebb657deed265d79c",NA,"6 inch cotton swabs, 100pcs",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$8.98",8.98,"$8.98",8.98,"n",NA,1
+"02/18/2026","e3cb59991c5a4b7ebb657deed265d79c",NA,"6 inch cotton swabs, 100pcs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.98",-8.98,"-$8.98",-8.98,"n",NA,1
+"02/18/2026","b9045ce47b5944b3b6b40555e0026ff8",NA,"PHP-45 instant heat pack, 4"" x 5"", pack of 24",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$19.95",19.95,"$19.95",19.95,"n",NA,1
+"02/18/2026","b9045ce47b5944b3b6b40555e0026ff8",NA,"PHP-45 instant heat pack, 4"" x 5"", pack of 24",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$19.95",-19.95,"-$19.95",-19.95,"n",NA,1
+"02/18/2026","ccde52f7b7d849e0abfbb3cff17fedf0",NA,"Feminine pads, ultra thin, size 1, 36 count",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$5.26",5.26,"$5.26",5.26,"n",NA,1
+"02/18/2026","ccde52f7b7d849e0abfbb3cff17fedf0",NA,"Feminine pads, ultra thin, size 1, 36 count",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$5.26",-5.26,"-$5.26",-5.26,"n",NA,1
+"02/18/2026","3940aea741f14597a56a55ed717df0a9",NA,"27 guage 1 inch needle, 100 pcs",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$8.99",8.99,"$8.99",8.99,"n",NA,1
+"02/18/2026","3940aea741f14597a56a55ed717df0a9",NA,"27 guage 1 inch needle, 100 pcs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$8.99",-8.99,"-$8.99",-8.99,"n",NA,1
+"02/18/2026","df31c5bb4f6c48739e36bfa66817787a",NA,"steri-strip 1/2"" x 4"" 20 pack of 6 strips (120 total)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$14.45",14.45,"$14.45",14.45,"n",NA,1
+"02/18/2026","df31c5bb4f6c48739e36bfa66817787a",NA,"steri-strip 1/2"" x 4"" 20 pack of 6 strips (120 total)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.45",-14.45,"-$14.45",-14.45,"n",NA,1
+"02/18/2026","f1163726aca341548d437ff7fb579750",NA,"10ml syringe for liquids, pack of 12",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$7.59",7.59,"$7.59",7.59,"n",NA,1
+"02/18/2026","f1163726aca341548d437ff7fb579750",NA,"10ml syringe for liquids, pack of 12",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.59",-7.59,"-$7.59",-7.59,"n",NA,1
+"02/18/2026","4d41bde1a7b24f7f9dc645e19a177e20",NA,"silver nitrate caustic wooden sticks 6"", 30 count",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$14.44",14.44,"$14.44",14.44,"n",NA,1
+"02/18/2026","4d41bde1a7b24f7f9dc645e19a177e20",NA,"silver nitrate caustic wooden sticks 6"", 30 count",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$14.44",-14.44,"-$14.44",-14.44,"n",NA,1
+"02/22/2026","b597dca99a794f48b235982ffa41bbfe",NA,"Biohazard waste bags (20pcs)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$6.49",6.49,"$6.49",6.49,"n",NA,1
+"02/22/2026","b597dca99a794f48b235982ffa41bbfe",NA,"Biohazard waste bags (20pcs)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.49",-6.49,"-$6.49",-6.49,"n",NA,1
+"03/08/2026","7c2807d4cfdc45209e6c54b93be53e9f",NA,"8 inch large cotton swaps 300 pcs",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$16.99",16.99,"$16.99",16.99,"n",NA,1
+"03/08/2026","7c2807d4cfdc45209e6c54b93be53e9f",NA,"8 inch large cotton swaps 300 pcs",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$16.99",-16.99,"-$16.99",-16.99,"n",NA,1
+"03/08/2026","96e02677881b4f12ba49c8edd3359b44",NA,"% First Aid Antiseptic 3 bottles of 1 oz",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$13.88",13.88,"$13.88",13.88,"n",NA,1
+"03/08/2026","96e02677881b4f12ba49c8edd3359b44",NA,"% First Aid Antiseptic 3 bottles of 1 oz",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$13.88",-13.88,"-$13.88",-13.88,"n",NA,1
+"03/08/2026","48101d34ceaa493abd80bff1c6d68fd1",NA,"Dealmed vaginal speculum - disposable",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$16.49",16.49,"$16.49",16.49,"n",NA,1
+"03/08/2026","48101d34ceaa493abd80bff1c6d68fd1",NA,"Dealmed vaginal speculum - disposable",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$16.49",-16.49,"-$16.49",-16.49,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Accutest 10P Urine Test S 100/Bt","Expenses:Recurrent materials","Recurrent materials","$17.98",17.98,"$17.98",17.98,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Lidocaine HcL Inj SDV 5mL 1% 10/Bx (NOT DELIVERED)","Expenses:Recurrent materials","Recurrent materials","$0.00",0,"$0.00",0,"n",NA,0
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Monsels Solution w/Droppe 2oz Ea","Expenses:Recurrent materials","Recurrent materials","$32.02",32.02,"$32.02",32.02,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Needle Spinal 27GX3.5 25/BX","Expenses:Recurrent materials","Recurrent materials","$60.68",60.68,"$60.68",60.68,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Shipping and/or handling","Expenses:Recurrent materials","Recurrent materials","$16.75",16.75,"$16.75",16.75,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","Tax","Expenses:Recurrent materials","Recurrent materials","$3.41",3.41,"$3.41",3.41,"n",NA,1
+"03/25/2026","faab819007ad4b0e82092b5f7255a1f9",NA,"Henry Schein",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$130.84",-130.84,"-$130.84",-130.84,"n",NA,1
+"03/25/2026","cfedd4868c284c4cace532ff6824bb67",NA,"Clinical Guard Pregnancy Test Strips (25 count)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$7.99",7.99,"$7.99",7.99,"n",NA,1
+"03/25/2026","cfedd4868c284c4cace532ff6824bb67",NA,"Clinical Guard Pregnancy Test Strips (25 count)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$7.99",-7.99,"-$7.99",-7.99,"n",NA,1
+"03/25/2026","74d951a90d484d0c922ffe7a16e60190",NA,"Scalpel blades with #10 scalpels (10 pcs)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$6.89",6.89,"$6.89",6.89,"n",NA,1
+"03/25/2026","74d951a90d484d0c922ffe7a16e60190",NA,"Scalpel blades with #10 scalpels (10 pcs)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.89",-6.89,"-$6.89",-6.89,"n",NA,1
+"03/25/2026","9e1e9e59f7b34c06af64603897ddfc67",NA,"Antiseptic numbing wipes (30 prep pads)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$9.99",9.99,"$9.99",9.99,"n",NA,1
+"03/25/2026","9e1e9e59f7b34c06af64603897ddfc67",NA,"Antiseptic numbing wipes (30 prep pads)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$9.99",-9.99,"-$9.99",-9.99,"n",NA,1
+"03/25/2026","fb08914849d54391867a1ff97c60bb86",NA,"SIMS Sounds 13"" ",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$10.02",10.02,"$10.02",10.02,"n",NA,1
+"03/25/2026","fb08914849d54391867a1ff97c60bb86",NA,"SIMS Sounds 13"" ",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$10.02",-10.02,"-$10.02",-10.02,"n",NA,1
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Accutest 10P Urine Test S 100/Bt","Expenses:Recurrent materials","Recurrent materials","$17.98",17.98,"$17.98",17.98,"n",NA,1
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Lidocaine HcL Inj SDV 5mL 1% 10/Bx (NOT DELIVERED)","Expenses:Recurrent materials","Recurrent materials","$0.00",0,"$0.00",0,"n",NA,0
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Monsels Solution w/Droppe 2oz Ea","Expenses:Recurrent materials","Recurrent materials","$32.02",32.02,"$32.02",32.02,"n",NA,1
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Needle Spinal 27GX3.5 25/BX","Expenses:Recurrent materials","Recurrent materials","$0.00",0,"$0.00",0,"n",NA,0
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Shipping and/or handling","Expenses:Recurrent materials","Recurrent materials","$0.00",0,"$0.00",0,"n",NA,0
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","Sales Tax","Expenses:Recurrent materials","Recurrent materials","$3.41",3.41,"$3.41",3.41,"n",NA,1
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"I hope you’re doing well. I recently saw the Psychometrician opening at Cambium Assessment and applied because it aligns closely with my background in operational psychometrics, high-stakes assessment, and R-based analytical workflows. I had also explored the Senior Psychometrician opening earlier this spring and have remained very interested in the work Cambium is doing in educational assessment. If you have any insight into the team or hiring process, I’d really appreciate itI hope you’re doing well. I recently saw the Psychometrician opening at Cambium Assessment and applied because it aligns closely with my background in operational psychometrics, high-stakes assessment, and R-based analytical workflows. I had also explored the Senior Psychometrician opening earlier this spring and have remained very interested in the work Cambium is doing in educational assessment. If you have any insight into the team or hiring process, I’d really appreciate itI hope you’re doing well. I recently saw the Psychometrician opening at Cambium Assessment and applied because it aligns closely with my background in operational psychometrics, high-stakes assessment, and R-based analytical workflows. I had also explored the Senior Psychometrician opening earlier this spring and have remained very interested in the work Cambium is doing in educational assessment. If you have any insight into the team or hiring process, I’d really appreciate itI hope you’re doing well. I recently saw the Psychometrician opening at Cambium Assessment and applied because it aligns closely with my background in operational psychometrics, high-stakes assessment, and R-based analytical workflows. I had also explored the Senior Psychometrician opening earlier this spring and have remained very interested in the work Cambium is doing in educational assessment. If you have any insight into the team or hiring process, I’d really appreciate it","Freight Charges","Expenses:Recurrent materials","Recurrent materials","$16.75",16.75,"$16.75",16.75,"n",NA,1
+"03/26/2026","7e001738a0eb4d9687ac5e041c3dcee1",1,"Henry Schein",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$70.16",-70.16,"-$70.16",-70.16,"n",NA,1
+"03/26/2026","86c30499c020468b9b662611c6c4c7eb",2,"Henry Schein",NA,"CURRENCY::USD",NA,"","Lidocaine HcL Inj SDV 5mL 1% 10/Bx (NOT DELIVERED)","Expenses:Recurrent materials","Recurrent materials","$0.00",0,"$0.00",0,"n",NA,0
+"03/26/2026","86c30499c020468b9b662611c6c4c7eb",2,"Henry Schein",NA,"CURRENCY::USD",NA,"","Needle Spinal 27GX3.5 25/BX","Expenses:Recurrent materials","Recurrent materials","$60.68",60.68,"$60.68",60.68,"n",NA,1
+"03/26/2026","86c30499c020468b9b662611c6c4c7eb",2,"Henry Schein",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$60.68",-60.68,"-$60.68",-60.68,"n",NA,1
+"03/26/2026","380a77ae88a644039e494ba28e359fc8",3,"Henry Schein",NA,"CURRENCY::USD",NA,"","Lidocaine HcL Inj SDV 5mL 1% 10/Bx (NOT DELIVERED)","Expenses:Recurrent materials","Recurrent materials","$17.65",17.65,"$17.65",17.65,"n",NA,1
+"03/26/2026","380a77ae88a644039e494ba28e359fc8",3,"Henry Schein",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$17.65",-17.65,"-$17.65",-17.65,"n",NA,1
+"04/20/2026","7f3d0f11305048f5966eb3d00c94ec88",NA,"NIPPON SANSON MATHESON INC (O2/NO2)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$231.58",231.58,"$231.58",231.58,"n",NA,1
+"04/20/2026","7f3d0f11305048f5966eb3d00c94ec88",NA,"NIPPON SANSON MATHESON INC (O2/NO2)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$231.58",-231.58,"-$231.58",-231.58,"n",NA,1
+"04/28/2026","e873466f33c5422aa1c3d7e9ed36d6fb",NA,"Chucks pads disposable 23"" x 36"" (50 count)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$29.99",29.99,"$29.99",29.99,"n",NA,1
+"04/28/2026","e873466f33c5422aa1c3d7e9ed36d6fb",NA,"Chucks pads disposable 23"" x 36"" (50 count)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.99",-29.99,"-$29.99",-29.99,"n",NA,1
+"04/28/2026","fc5168f8e62c4b6fafb3d0e3fadd8527",NA,"Exam table paper, 21"" x 125' (12 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$51.42",51.42,"$51.42",51.42,"n",NA,1
+"04/28/2026","fc5168f8e62c4b6fafb3d0e3fadd8527",NA,"Exam table paper, 21"" x 125' (12 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$51.42",-51.42,"-$51.42",-51.42,"n",NA,1
+"04/28/2026","728e6d41ac724b3697bf58e21e726be2",NA,"18 guage 1"" needle (100 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$6.99",6.99,"$6.99",6.99,"n",NA,1
+"04/28/2026","728e6d41ac724b3697bf58e21e726be2",NA,"18 guage 1"" needle (100 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.99",-6.99,"-$6.99",-6.99,"n",NA,1
+"04/28/2026","37cf4371affc4188a7bcfc6b68e5a9c4",NA,"First aid antiseptic, 8fl oz (1 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$6.88",6.88,"$6.88",6.88,"n",NA,1
+"04/28/2026","37cf4371affc4188a7bcfc6b68e5a9c4",NA,"First aid antiseptic, 8fl oz (1 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$6.88",-6.88,"-$6.88",-6.88,"n",NA,1
+"05/01/2026","f36dcbd0beb84192b7ed31ef074d58e5",NA,"disinfecting wipes, 320 count (2 pack)",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$29.68",29.68,"$29.68",29.68,"n",NA,1
+"05/01/2026","f36dcbd0beb84192b7ed31ef074d58e5",NA,"disinfecting wipes, 320 count (2 pack)",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$29.68",-29.68,"-$29.68",-29.68,"n",NA,1
+"05/06/2026","74384f8ef52a4b758efa46fda68409b9",NA,"white vinegar",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$2.19",2.19,"$2.19",2.19,"n",NA,1
+"05/06/2026","74384f8ef52a4b758efa46fda68409b9",NA,"white vinegar",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$2.19",-2.19,"-$2.19",-2.19,"n",NA,1
+"06/01/2026","c11b87fb54f2474ca0cf8a91b45f4578",NA,"Urine Test Strips 100 Count",NA,"CURRENCY::USD",NA,"","","Expenses:Recurrent materials","Recurrent materials","$18.99",18.99,"$18.99",18.99,"n",NA,1
+"06/01/2026","c11b87fb54f2474ca0cf8a91b45f4578",NA,"Urine Test Strips 100 Count",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$18.99",-18.99,"-$18.99",-18.99,"n",NA,1
+"01/01/2026","5e3356866c114ba48eceaca9582a7bde",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"01/01/2026","5e3356866c114ba48eceaca9582a7bde",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"01/01/2026","5e3356866c114ba48eceaca9582a7bde",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"02/01/2026","21943bb2fb944f21bf8d0d755259a8d5",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"02/01/2026","21943bb2fb944f21bf8d0d755259a8d5",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"02/01/2026","21943bb2fb944f21bf8d0d755259a8d5",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"03/01/2026","7e1f4cd351f740c68e5ac085a6edf0f2",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Rent","Rent","$650.00",650,"$650.00",650,"n",NA,1
+"03/01/2026","7e1f4cd351f740c68e5ac085a6edf0f2",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Expenses:Rent and Utilities:Utilities","Utilities","$140.00",140,"$140.00",140,"n",NA,1
+"03/01/2026","7e1f4cd351f740c68e5ac085a6edf0f2",NA,"Rent - 9th Street",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$790.00",-790,"-$790.00",-790,"n",NA,1
+"12/24/2025","32dbcfe6c26c46f88ff52b3883cf7477",NA,"City of St Petersburg, FL Local Business Tax",NA,"CURRENCY::USD",NA,"","","Expenses:Taxes:Local","Local","$65.00",65,"$65.00",65,"n",NA,1
+"12/24/2025","32dbcfe6c26c46f88ff52b3883cf7477",NA,"City of St Petersburg, FL Local Business Tax",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$65.00",-65,"-$65.00",-65,"n",NA,1
+"12/24/2025","8994baf5fe99417e9c8890c2ea6ef4d0",NA,"City of St Petersburg, FL Local Business Tax Convenience Fee",NA,"CURRENCY::USD",NA,"","","Expenses:Taxes:Local","Local","$2.00",2,"$2.00",2,"n",NA,1
+"12/24/2025","8994baf5fe99417e9c8890c2ea6ef4d0",NA,"City of St Petersburg, FL Local Business Tax Convenience Fee",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$2.00",-2,"-$2.00",-2,"n",NA,1
+"10/01/2025","a1b2c3d4e5f64a1b8c9d0e1f2a3b4c5d",NA,"Monthly Membership Fees - October 2025",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$170.00",-170,"-$170.00",-170,"n",NA,1
+"11/01/2025","b2c3d4e5f6a74b2c9d0e1f2a3b4c5d6e",NA,"Monthly Membership Fees - November 2025",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$255.00",-255,"-$255.00",-255,"n",NA,1
+"12/01/2025","c3d4e5f6a7b84c3d0e1f2a3b4c5d6e7f",NA,"Monthly Membership Fees - December 2025",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$425.00",-425,"-$425.00",-425,"n",NA,1
+"12/18/2025","d4e5f6a7b8c94d4e1f2a3b4c5d6e7f8a",NA,"Fee-for-Service Visit - Dec 2025",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$150.00",-150,"-$150.00",-150,"n",NA,1
+"01/01/2026","e5f6a7b8c9d04e5f2a3b4c5d6e7f8a9b",NA,"Monthly Membership Fees - January 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$850.00",-850,"-$850.00",-850,"n",NA,1
+"01/14/2026","f6a7b8c9d0e14f6a3b4c5d6e7f8a9b0c",NA,"Fee-for-Service Visit - Jan 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$95.00",-95,"-$95.00",-95,"n",NA,1
+"01/22/2026","a7b8c9d0e1f24a7b4c5d6e7f8a9b0c1d",NA,"Fee-for-Service Visit - Jan 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$120.00",-120,"-$120.00",-120,"n",NA,1
+"02/01/2026","b8c9d0e1f2a34b8c5d6e7f8a9b0c1d2e",NA,"Monthly Membership Fees - February 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$1530.00",-1530,"-$1530.00",-1530,"n",NA,1
+"02/10/2026","c9d0e1f2a3b44c9d6e7f8a9b0c1d2e3f",NA,"Fee-for-Service Visit - Feb 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$110.00",-110,"-$110.00",-110,"n",NA,1
+"02/19/2026","d0e1f2a3b4c54d0e7f8a9b0c1d2e3f4a",NA,"Fee-for-Service Visit - Feb 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$145.00",-145,"-$145.00",-145,"n",NA,1
+"03/01/2026","e1f2a3b4c5d64e1f8a9b0c1d2e3f4a5b",NA,"Monthly Membership Fees - March 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$2210.00",-2210,"-$2210.00",-2210,"n",NA,1
+"03/11/2026","f2a3b4c5d6e74f2a9b0c1d2e3f4a5b6c",NA,"Fee-for-Service Visit - Mar 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$175.00",-175,"-$175.00",-175,"n",NA,1
+"03/19/2026","a3b4c5d6e7f84a3b0c1d2e3f4a5b6c7d",NA,"Fee-for-Service Visit - Mar 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$130.00",-130,"-$130.00",-130,"n",NA,1
+"03/25/2026","b4c5d6e7f8a94b4c1d2e3f4a5b6c7d8e",NA,"Fee-for-Service Visit - Mar 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$200.00",-200,"-$200.00",-200,"n",NA,1
+"04/01/2026","c5d6e7f8a9b04c5d2e3f4a5b6c7d8e9f",NA,"Monthly Membership Fees - April 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$2975.00",-2975,"-$2975.00",-2975,"n",NA,1
+"04/09/2026","d6e7f8a9b0c14d6e3f4a5b6c7d8e9f0a",NA,"Fee-for-Service Visit - Apr 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$165.00",-165,"-$165.00",-165,"n",NA,1
+"04/16/2026","e7f8a9b0c1d24e7f4a5b6c7d8e9f0a1b",NA,"Fee-for-Service Visit - Apr 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$215.00",-215,"-$215.00",-215,"n",NA,1
+"04/24/2026","f8a9b0c1d2e34f8a5b6c7d8e9f0a1b2c",NA,"Fee-for-Service Visit - Apr 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$190.00",-190,"-$190.00",-190,"n",NA,1
+"05/01/2026","a9b0c1d2e3f44a9b6c7d8e9f0a1b2c3d",NA,"Monthly Membership Fees - May 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$3740.00",-3740,"-$3740.00",-3740,"n",NA,1
+"05/08/2026","b0c1d2e3f4a54b0c7d8e9f0a1b2c3d4e",NA,"Fee-for-Service Visit - May 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$195.00",-195,"-$195.00",-195,"n",NA,1
+"05/15/2026","c1d2e3f4a5b64c1d8e9f0a1b2c3d4e5f",NA,"Fee-for-Service Visit - May 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$230.00",-230,"-$230.00",-230,"n",NA,1
+"05/22/2026","d2e3f4a5b6c74d2e9f0a1b2c3d4e5f6a",NA,"Fee-for-Service Visit - May 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$180.00",-180,"-$180.00",-180,"n",NA,1
+"06/01/2026","e3f4a5b6c7d84e3f0a1b2c3d4e5f6a7b",NA,"Monthly Membership Fees - June 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$4420.00",-4420,"-$4420.00",-4420,"n",NA,1
+"06/05/2026","f4a5b6c7d8e94f4a1b2c3d4e5f6a7b8c",NA,"Fee-for-Service Visit - Jun 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$210.00",-210,"-$210.00",-210,"n",NA,1
+"06/12/2026","a5b6c7d8e9f04a5b2c3d4e5f6a7b8c9d",NA,"Fee-for-Service Visit - Jun 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$260.00",-260,"-$260.00",-260,"n",NA,1
+"06/19/2026","b6c7d8e9f0a14b6c3d4e5f6a7b8c9d0e",NA,"Fee-for-Service Visit - Jun 2026",NA,"CURRENCY::USD",NA,"","","Imbalance-USD","Imbalance-USD","-$240.00",-240,"-$240.00",-240,"n",NA,1
