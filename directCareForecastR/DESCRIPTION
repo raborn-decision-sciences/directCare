@@ -9,17 +9,16 @@ Description: This is the backend that performs data loading, cleaning, manipulat
     income. This backend can import various bookkeeping files to calculate monthly overhead and uses
     statistical models to project income based on user-provided assumptions.
 License: Apache License (>= 2) | file LICENSE
-Suggests: 
-    testthat (>= 3.0.0),
-    forecast
+Suggests:
+    testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
-Imports: 
+Imports:
     dplyr,
+    forecast,
     lubridate,
-    purrr,
     readr,
     rlang,
     tibble,
