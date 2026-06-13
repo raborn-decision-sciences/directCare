@@ -111,7 +111,7 @@ ingest_gnucash_xml <- function(
     )
   }
 
-  doc <- xml2::read_xml(path)
+  doc <- .gnucash_read_xml(path)
   ns <- .gnucash_ns()
 
   accounts <- .gnucash_accounts(doc, ns)
@@ -208,6 +208,22 @@ ingest_gnucash_xml <- function(
 
 
 # Internal helpers ------------------------------------------------------------
+
+# Open a GnuCash file as an xml_document, decompressing gzip on the fly.
+# GnuCash saves files as gzip-compressed XML by default; xml2::read_xml() does
+# not auto-detect gzip when given a file path, so we check the magic bytes and
+# decompress via a gzcon() connection when needed.
+.gnucash_read_xml <- function(path) {
+  magic <- readBin(path, what = "raw", n = 2L)
+  if (identical(magic, as.raw(c(0x1f, 0x8b)))) {
+    con <- gzcon(file(path, open = "rb"))
+    on.exit(close(con))
+    xml2::read_xml(con)
+  } else {
+    xml2::read_xml(path)
+  }
+}
+
 
 # GnuCash XML namespace map used in all XPath queries.
 .gnucash_ns <- function() {
