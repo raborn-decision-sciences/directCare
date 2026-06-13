@@ -35,6 +35,20 @@
 #' }
 summarize_overhead_monthly <- function(overhead_tbl,
                                         include_refunds = TRUE) {
+  required_cols <- c("practice_id", "year", "month", "amount")
+  missing_cols  <- setdiff(required_cols, names(overhead_tbl))
+  if (length(missing_cols) > 0) {
+    rlang::abort(
+      paste0(
+        "Overhead tibble is missing required columns: ",
+        paste(missing_cols, collapse = ", "),
+        ". Did the data pass through filter_gnucash_overhead() or ingest_manual()?"
+      ),
+      class           = "dcForecastR_missing_columns",
+      missing_columns = missing_cols
+    )
+  }
+
   # Derive is_refund from amount sign if the column is absent. This mirrors the
   # behaviour of summarize_income_monthly() and guards against calling this
   # function directly on a tibble that hasn't passed through validate_overhead().
