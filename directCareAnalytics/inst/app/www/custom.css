@@ -1,0 +1,164 @@
+/* ── RDS Brand Variables ────────────────────────────────────────────────── */
+:root {
+  --rds-navy:       #172033;
+  --rds-slate:      #2F3A4A;
+  --rds-gray:       #64748B;
+  --rds-light-gray: #E2E8F0;
+  --rds-off-white:  #F8FAFC;
+  --rds-white:      #FFFFFF;
+
+  --rds-teal:       #14B8A6;
+  --rds-teal-dark:  #0d9488;
+  --rds-blue:       #2563EB;
+  --rds-amber:      #F59E0B;
+  --rds-red:        #DC2626;
+  --rds-green:      #16A34A;
+  --rds-border:     #E2E8F0;
+}
+
+/* ── Global typography ──────────────────────────────────────────────────── */
+body {
+  letter-spacing: -0.005em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.025em;
+}
+
+/* ── Navbar ─────────────────────────────────────────────────────────────── */
+.navbar {
+  box-shadow: 0 2px 12px rgba(23, 32, 51, 0.18);
+  min-height: 56px;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+}
+
+.navbar-brand {
+  font-weight: 600;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.navbar-brand img {
+  max-height: 32px;
+  width: auto;
+}
+
+/* Active nav tab accent in teal */
+.nav-underline .nav-link.active {
+  border-bottom-color: var(--rds-teal);
+  font-weight: 600;
+  color: var(--rds-teal) !important;
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+  border-color: var(--rds-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 16px rgba(23, 32, 51, 0.06);
+}
+
+.card:hover {
+  box-shadow: 0 6px 20px rgba(23, 32, 51, 0.10);
+  transition: box-shadow 0.2s ease;
+}
+
+.card-header {
+  font-weight: 600;
+  background-color: var(--rds-off-white);
+  border-bottom-color: var(--rds-border);
+}
+
+/* Card header icon vertical alignment */
+.card-header .bi {
+  vertical-align: -0.1em;
+}
+
+/* Interpretation card prose */
+.card-body p {
+  line-height: 1.65;
+  margin-bottom: 0.6rem;
+}
+.card-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Value boxes ────────────────────────────────────────────────────────── */
+.bslib-value-box {
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 16px rgba(23, 32, 51, 0.06);
+}
+
+.bslib-value-box .value-box-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background-color: var(--rds-teal);
+  border-color: var(--rds-teal);
+  color: var(--rds-navy);
+  font-weight: 600;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--rds-teal-dark);
+  border-color: var(--rds-teal-dark);
+  color: var(--rds-navy);
+}
+
+.btn-outline-primary {
+  color: var(--rds-teal-dark);
+  border-color: var(--rds-teal);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--rds-teal);
+  border-color: var(--rds-teal);
+  color: var(--rds-navy);
+}
+
+/* ── Form controls ──────────────────────────────────────────────────────── */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--rds-teal);
+  box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.2);
+}
+
+/* ── Decision-point callout (amber accent) ──────────────────────────────── */
+.decision-point {
+  border-left: 4px solid var(--rds-amber);
+  background: #FEF3C7;
+  color: var(--rds-navy);
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+/* ── Inline code ────────────────────────────────────────────────────────── */
+code {
+  background-color: #EEF2F7;
+  color: var(--rds-slate);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+}
+
+/* ── Muted placeholder panels ───────────────────────────────────────────── */
+.text-center.text-muted.py-5 {
+  padding: 4rem 2rem;
+}
+.text-center.text-muted.py-5 .bi {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+  opacity: 0.4;
+}
+
+/* ── DT table focus ─────────────────────────────────────────────────────── */
+.dataTables_wrapper .dataTables_filter input:focus {
+  border-color: var(--rds-teal);
+  box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.2);
+}
