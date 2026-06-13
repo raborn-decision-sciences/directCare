@@ -30,7 +30,8 @@ test_that("forecast_breakeven works with monthly data", {
                          "current_surplus_deficit", "current_revenue",
                          "current_overhead", "current_overhead_avg",
                          "overhead_avg_n", "confidence_interval",
-                         "forecast_data", "method", "frequency"))
+                         "forecast_data", "method", "frequency",
+                         "data_warnings"))
   
   # Check frequency detection
   expect_equal(result$frequency, "monthly")
@@ -249,4 +250,59 @@ test_that("forecast_breakeven errors on multi-practice overhead", {
     total_overhead = rep(1500, 12), gross_overhead = rep(1500, 12), total_refunds = rep(0, 12)
   )
   expect_snapshot(forecast_breakeven(income, overhead, method = "linear"), error = TRUE)
+})
+
+# --- Weekly income + monthly overhead -----------------------------------------
+
+test_that("current_surplus_deficit uses rolling overhead avg for weekly income + monthly overhead", {
+  # Practice with weekly income trending up and flat monthly overhead.
+  # Overhead is $2 000/month ~ $462/week. Income starts at $200/week (deficit).
+  # The old bug: full_join zeros out overhead for most weeks, making
+  # current_surplus_deficit = latest weekly revenue > 0 → false "already at
+  # breakeven". The fix uses the pre-join overhead rolling average instead.
+  income_weekly <- tibble::tibble(
+    practice_id = rep(1, 20),
+    week_start  = seq(as.Date("2025-01-06"), by = "week", length.out = 20),
+    revenue     = seq(200, 400, length.out = 20)
+  )
+  overhead_monthly <- tibble::tibble(
+    practice_id    = rep(1, 5),
+    year           = rep(2025, 5),
+    month          = 1:5,
+    total_overhead = rep(2000, 5),
+    gross_overhead = rep(2000, 5),
+    total_refunds  = rep(0, 5)
+  )
+
+  result <- suppressWarnings(
+    forecast_breakeven(income_weekly, overhead_monthly, method = "linear")
+  )
+
+  # current_surplus_deficit must be negative: ~$400/week revenue vs ~$462/week overhead
+  expect_lt(result$current_surplus_deficit, 0)
+  # And therefore break-even should NOT be reported as already achieved
+  expect_false(identical(result$periods_to_breakeven, 0L))
+})
+
+test_that("current_overhead_avg is non-zero for weekly income + monthly overhead", {
+  income_weekly <- tibble::tibble(
+    practice_id = rep(1, 12),
+    week_start  = seq(as.Date("2025-01-06"), by = "week", length.out = 12),
+    revenue     = rep(300, 12)
+  )
+  overhead_monthly <- tibble::tibble(
+    practice_id    = rep(1, 3),
+    year           = rep(2025, 3),
+    month          = 1:3,
+    total_overhead = rep(1500, 3),
+    gross_overhead = rep(1500, 3),
+    total_refunds  = rep(0, 3)
+  )
+
+  result <- suppressWarnings(
+    forecast_breakeven(income_weekly, overhead_monthly, method = "linear")
+  )
+
+  # Rolling average should be close to 1500 / 4.33 ≈ 346/week, not 0
+  expect_gt(result$current_overhead_avg, 300)
 })

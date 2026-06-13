@@ -72,14 +72,16 @@ forecast_revenue <- function(income_summary,
     dplyr::slice_tail(n = 1) |>
     dplyr::pull(revenue)
 
-  # Forecast the revenue series
-  rev_fc <- .forecast_series(
+  # Forecast the revenue series; capture any data-volume warnings.
+  rev_tracked <- .forecast_series_tracked(
     income_prep$data$revenue,
     method = method,
     horizon = horizon,
     frequency = periods_per_year,
     level = confidence_level
   )
+  rev_fc        <- rev_tracked$fc
+  data_warnings <- rev_tracked$warnings
 
   # Generate forecast dates
   last_date   <- max(income_prep$data$period_start, na.rm = TRUE)
@@ -101,6 +103,7 @@ forecast_revenue <- function(income_summary,
     current_revenue = current_revenue,
     forecast_data   = forecast_data,
     method          = method,
-    frequency       = frequency_str
+    frequency       = frequency_str,
+    data_warnings   = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }

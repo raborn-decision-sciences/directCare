@@ -29,7 +29,8 @@ test_that("forecast_target returns the correct list structure", {
   expect_named(result, c(
     "target_date", "periods_to_target", "current_gap",
     "required_revenue_now", "confidence_interval",
-    "forecast_data", "target_income", "method", "frequency"
+    "forecast_data", "target_income", "method", "frequency",
+    "data_warnings"
   ))
 })
 
@@ -262,4 +263,33 @@ test_that("forecast_target errors on multi-practice overhead", {
     forecast_target(make_monthly_income(), overhead, target_income = 1000, method = "linear"),
     error = TRUE
   )
+})
+
+# --- Weekly income + monthly overhead -----------------------------------------
+
+test_that("required_revenue_now includes overhead for weekly income + monthly overhead", {
+  # $2 000/month overhead ~ $462/week. target_income = $200/week.
+  # required_revenue_now must be ~$662/week, not just $200 (the old bug).
+  income_weekly <- tibble::tibble(
+    practice_id = rep(1, 12),
+    week_start  = seq(as.Date("2025-01-06"), by = "week", length.out = 12),
+    revenue     = rep(300, 12)
+  )
+  overhead_monthly <- tibble::tibble(
+    practice_id    = rep(1, 3),
+    year           = rep(2025, 3),
+    month          = 1:3,
+    total_overhead = rep(2000, 3),
+    gross_overhead = rep(2000, 3),
+    total_refunds  = rep(0, 3)
+  )
+
+  result <- suppressWarnings(
+    forecast_target(income_weekly, overhead_monthly, target_income = 200)
+  )
+
+  # required_revenue_now must exceed target_income by at least the overhead
+  expect_gt(result$required_revenue_now, 200 + 400)  # 400 ≈ 2000 / 4.33 * 0.9 (conservative)
+  # And current_gap must be negative: $300/week revenue < ~$662 required
+  expect_lt(result$current_gap, 0)
 })

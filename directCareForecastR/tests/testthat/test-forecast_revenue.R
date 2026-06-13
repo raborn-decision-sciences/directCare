@@ -21,7 +21,7 @@ test_that("forecast_revenue returns correct list structure", {
   result <- forecast_revenue(make_monthly_income())
 
   expect_type(result, "list")
-  expect_named(result, c("current_revenue", "forecast_data", "method", "frequency"))
+  expect_named(result, c("current_revenue", "forecast_data", "method", "frequency", "data_warnings"))
 })
 
 test_that("forecast_revenue forecast_data has correct columns", {

@@ -60,6 +60,9 @@
       $frequency
       [1] "monthly"
       
+      $data_warnings
+      NULL
+      
 
 # forecast_breakeven errors on multi-practice income
 

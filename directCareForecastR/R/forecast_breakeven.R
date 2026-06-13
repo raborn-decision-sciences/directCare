@@ -93,27 +93,36 @@ forecast_breakeven <- function(income_summary,
     horizon <- if (frequency_str == "weekly") 52 else 12
   }
   
-  # Merge income and overhead by period
-  combined <- dplyr::full_join(
+  # Merge income and overhead by period.
+  # Derive latest_period *before* replace_na so the NA filter is meaningful:
+  # after replace_na both columns are always non-NA, making the filter a no-op
+  # and potentially picking a period where one side was a synthetic zero.
+  combined_raw <- dplyr::full_join(
     income_prep$data,
     overhead_prep$data,
     by = c("practice_id", "period_start")
   ) |>
-    dplyr::arrange(period_start) |>
-    dplyr::mutate(
-      revenue = tidyr::replace_na(revenue, 0),
-      overhead = tidyr::replace_na(overhead, 0),
-      net = revenue - overhead
-    )
-  
-  # Calculate current status
-  latest_period <- combined |>
+    dplyr::arrange(period_start)
+
+  latest_period <- combined_raw |>
     dplyr::filter(!is.na(revenue) & !is.na(overhead)) |>
     dplyr::slice_tail(n = 1)
 
-  current_surplus_deficit <- latest_period$net
+  combined <- combined_raw |>
+    dplyr::mutate(
+      revenue  = tidyr::replace_na(revenue, 0),
+      overhead = tidyr::replace_na(overhead, 0),
+      net      = revenue - overhead
+    )
 
-  # Stable per-period overhead estimate for member-count calculations.
+  # Most-recent income period — use the pre-join income series so we always
+  # get the latest week/month regardless of when overhead was posted.
+  current_revenue <- income_prep$data |>
+    dplyr::slice_tail(n = 1) |>
+    dplyr::pull(revenue)
+
+  # Stable per-period overhead estimate for member-count calculations and for
+  # the current surplus/deficit check.
   #
   # When income is weekly but overhead is monthly (the common DPC case), almost
   # every week in `combined` gets overhead = 0 after the full_join -- monthly
@@ -132,30 +141,41 @@ forecast_breakeven <- function(income_summary,
     dplyr::slice_tail(n = n_avg)
   avg_overhead_native <- mean(recent_ovhd$overhead, na.rm = TRUE)
 
-  # Convert to the same time unit as current_revenue when frequencies differ.
+  # Convert to the same time unit as income when frequencies differ.
   current_overhead_avg <- if (overhead_prep$frequency != frequency_str) {
     # Overhead is monthly, income is weekly: divide to get $/week
     avg_overhead_native / 4.33
   } else {
     avg_overhead_native
   }
-  
-  # Forecast revenue and overhead separately
-  rev_fc  <- .forecast_series(
+
+  # Use the most-recent income period's revenue and the frequency-adjusted
+  # overhead average so the already-at-breakeven check is correct when income
+  # is weekly and overhead is monthly (the common DPC case).
+  current_surplus_deficit <- current_revenue - current_overhead_avg
+
+  # Forecast revenue and overhead separately; capture any data-volume warnings
+  # so they can flow through to interpretation text and reports.
+  data_warnings <- character(0)
+  rev_tracked  <- .forecast_series_tracked(
     combined$revenue,
     method = method,
     horizon = horizon,
     frequency = periods_per_year,
     level = confidence_level
   )
+  data_warnings <- c(data_warnings, rev_tracked$warnings)
+  rev_fc <- rev_tracked$fc
 
-  ovhd_fc <- .forecast_series(
+  ovhd_tracked <- .forecast_series_tracked(
     combined$overhead,
     method = method,
     horizon = horizon,
     frequency = periods_per_year,
     level = confidence_level
   )
+  data_warnings <- c(data_warnings, ovhd_tracked$warnings)
+  ovhd_fc <- ovhd_tracked$fc
 
   # Generate forecast dates
   last_date <- max(combined$period_start, na.rm = TRUE)
@@ -178,16 +198,18 @@ forecast_breakeven <- function(income_summary,
     net_forecast      = rev_fc$point - ovhd_fc$point
   )
   
-  # Find break-even point (first period where revenue > overhead).
-  # If the practice is already profitable in the most recent observed period,
-  # report that immediately rather than looking into forecast periods.
+  # Find break-even point (first period where revenue >= overhead).
+  # If the practice is already at or above break-even in the most recent
+  # observed period, report that immediately rather than looking into forecast
+  # periods. The crossing check uses >= 0 to match: a net of exactly $0 means
+  # revenue covers overhead and is treated as achieved.
   if (current_surplus_deficit >= 0) {
     breakeven_date       <- last_date
     periods_to_breakeven <- 0L
     ci_lower             <- last_date
     ci_upper             <- last_date
   } else {
-    breakeven_idx <- which(forecast_data$net_forecast > 0)[1]
+    breakeven_idx <- which(forecast_data$net_forecast >= 0)[1]
 
     if (is.na(breakeven_idx)) {
       breakeven_date       <- NA
@@ -207,8 +229,8 @@ forecast_breakeven <- function(income_summary,
 
       # Confidence interval: pessimistic (lower rev - upper overhead)
       #                      and optimistic (upper rev - lower overhead)
-      ci_lower_idx <- which((forecast_data$revenue_lower - forecast_data$overhead_upper) > 0)[1]
-      ci_upper_idx <- which((forecast_data$revenue_upper - forecast_data$overhead_lower) > 0)[1]
+      ci_lower_idx <- which((forecast_data$revenue_lower - forecast_data$overhead_upper) >= 0)[1]
+      ci_upper_idx <- which((forecast_data$revenue_upper - forecast_data$overhead_lower) >= 0)[1]
 
       ci_lower <- if (!is.na(ci_lower_idx)) forecast_data$period_start[ci_lower_idx] else NA
       ci_upper <- if (!is.na(ci_upper_idx)) forecast_data$period_start[ci_upper_idx] else NA
@@ -220,9 +242,10 @@ forecast_breakeven <- function(income_summary,
     breakeven_date          = breakeven_date,
     periods_to_breakeven    = periods_to_breakeven,
     current_surplus_deficit = current_surplus_deficit,
-    current_revenue         = as.numeric(latest_period$revenue),
-    # current_overhead: raw single-period value (may be 0 for most weeks in
-    #   weekly data because monthly overhead is posted only on month-start rows).
+    current_revenue         = current_revenue,
+    # current_overhead: raw single-period value from the most recent period
+    #   where both income and overhead were observed. May be 0 for weekly
+    #   data if no such period exists in the horizon; use current_overhead_avg.
     current_overhead        = as.numeric(latest_period$overhead),
     # current_overhead_avg: rolling mean over the last n_avg overhead periods,
     #   converted to per-income-period units.  Use this for member-count
@@ -233,6 +256,7 @@ forecast_breakeven <- function(income_summary,
     confidence_interval     = c(lower = ci_lower, upper = ci_upper),
     forecast_data           = forecast_data,
     method                  = method,
-    frequency               = frequency_str
+    frequency               = frequency_str,
+    data_warnings           = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }

@@ -114,41 +114,69 @@ forecast_target <- function(income_summary,
     horizon <- if (frequency_str == "weekly") 52L else 12L
   }
 
-  # Merge historical income and overhead to establish current status
-  combined <- dplyr::full_join(
+  # Merge historical income and overhead to establish current status.
+  # Derive latest_period *before* replace_na so the NA filter is meaningful.
+  combined_raw <- dplyr::full_join(
     income_prep$data,
     overhead_prep$data,
     by = c("practice_id", "period_start")
   ) |>
-    dplyr::arrange(period_start) |>
+    dplyr::arrange(period_start)
+
+  latest_period <- combined_raw |>
+    dplyr::filter(!is.na(revenue) & !is.na(overhead)) |>
+    dplyr::slice_tail(n = 1)
+
+  combined <- combined_raw |>
     dplyr::mutate(
       revenue  = tidyr::replace_na(revenue, 0),
       overhead = tidyr::replace_na(overhead, 0)
     )
 
-  latest_period <- combined |>
-    dplyr::filter(!is.na(revenue) & !is.na(overhead)) |>
-    dplyr::slice_tail(n = 1)
+  # Most-recent income period revenue — from the pre-join series so we always
+  # get the latest week/month regardless of when overhead was posted.
+  current_revenue <- income_prep$data |>
+    dplyr::slice_tail(n = 1) |>
+    dplyr::pull(revenue)
 
-  required_revenue_now <- latest_period$overhead + target_income
-  current_gap          <- latest_period$revenue - required_revenue_now
+  # When income is weekly and overhead is monthly, latest_period$overhead is 0
+  # for almost every week. Average the last few pre-join overhead periods and
+  # convert to the income frequency instead.
+  n_avg_t <- min(nrow(overhead_prep$data), 4L)
+  recent_ovhd_t <- overhead_prep$data |>
+    dplyr::arrange(period_start) |>
+    dplyr::slice_tail(n = n_avg_t)
+  avg_overhead_native_t <- mean(recent_ovhd_t$overhead, na.rm = TRUE)
+  current_overhead_avg_t <- if (overhead_prep$frequency != frequency_str) {
+    avg_overhead_native_t / 4.33
+  } else {
+    avg_overhead_native_t
+  }
 
-  # Forecast revenue and overhead independently
-  rev_fc  <- .forecast_series(
+  required_revenue_now <- current_overhead_avg_t + target_income
+  current_gap          <- current_revenue - required_revenue_now
+
+  # Forecast revenue and overhead independently; capture any data-volume warnings.
+  data_warnings <- character(0)
+  rev_tracked  <- .forecast_series_tracked(
     combined$revenue,
     method = method,
     horizon = horizon,
     frequency = periods_per_year,
     level = confidence_level
   )
+  data_warnings <- c(data_warnings, rev_tracked$warnings)
+  rev_fc <- rev_tracked$fc
 
-  ovhd_fc <- .forecast_series(
+  ovhd_tracked <- .forecast_series_tracked(
     combined$overhead,
     method = method,
     horizon = horizon,
     frequency = periods_per_year,
     level = confidence_level
   )
+  data_warnings <- c(data_warnings, ovhd_tracked$warnings)
+  ovhd_fc <- ovhd_tracked$fc
 
   # Generate forecast dates
   last_date      <- max(combined$period_start, na.rm = TRUE)
@@ -212,6 +240,7 @@ forecast_target <- function(income_summary,
     forecast_data        = forecast_data,
     target_income        = target_income,
     method               = method,
-    frequency            = frequency_str
+    frequency            = frequency_str,
+    data_warnings        = if (length(data_warnings) > 0L) data_warnings else NULL
   )
 }
