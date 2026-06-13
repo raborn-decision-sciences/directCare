@@ -32,7 +32,7 @@ mod_upload_ui <- function(id) {
                 bs_icon("info-circle", title = "About Practice ID"),
                 paste0(
                   "A unique identifier for this practice. ",
-                  "Use any short string for now — this will be ",
+                  "Use any short string for now \u2014 this will be ",
                   "linked to your login in a future release."
                 )
               )
@@ -491,10 +491,18 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
         withCallingHandlers(
           {
             if (sw == "gnucash") {
-              transactions <- directCareForecastR::ingest_gnucash_csv(
-                path = input$csv_file$datapath,
-                practice_id = r$practice_id
-              )
+              ext <- tolower(tools::file_ext(input$csv_file$name))
+              if (ext == "gnucash") {
+                transactions <- directCareForecastR::ingest_gnucash_xml(
+                  path = input$csv_file$datapath,
+                  practice_id = r$practice_id
+                )
+              } else {
+                transactions <- directCareForecastR::ingest_gnucash_csv(
+                  path = input$csv_file$datapath,
+                  practice_id = r$practice_id
+                )
+              }
               overhead <- directCareForecastR::filter_gnucash_overhead(
                 transactions
               )
@@ -868,30 +876,30 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
           bs_icon("info-circle", title = "Expected file format"),
           placement = "right",
           tagList(
-            tags$strong("GnuCash CSV export format"),
+            tags$strong("GnuCash file formats"),
             tags$br(),
-            "Use ",
-            tags$em("File → Export → Export Transactions to CSV"),
-            " in GnuCash. The file must include these columns:",
-            tags$ul(
-              class = "mb-0 mt-1 ps-3",
-              tags$li(
-                tags$code("Date"),
-                " — transaction date (MM/DD/YYYY)"
-              ),
-              tags$li(
-                tags$code("Account Name"),
-                " — account (e.g. Expenses:Rent)"
-              ),
-              tags$li(
-                tags$code("Amount Num."),
-                " — signed numeric amount"
+            tags$p(
+              class = "mb-1",
+              tags$strong(".gnucash"),
+              " \u2014 upload your GnuCash ledger file directly (recommended)."
+            ),
+            tags$p(
+              class = "mb-1",
+              tags$strong(".csv"),
+              " \u2014 use ",
+              tags$em("File \u2192 Export \u2192 Export Transactions to CSV"),
+              " in GnuCash. The file must include these columns:",
+              tags$ul(
+                class = "mb-0 mt-1 ps-3",
+                tags$li(tags$code("Date"), " \u2014 transaction date (MM/DD/YYYY)"),
+                tags$li(tags$code("Account Name"), " \u2014 account (e.g. Expenses:Rent)"),
+                tags$li(tags$code("Amount Num."), " \u2014 signed numeric amount")
               )
             )
           )
         )
       ),
-      accept = ".csv",
+      accept = c(".csv", ".gnucash"),
       buttonLabel = "Browse...",
       placeholder = "No file selected"
     ),
@@ -938,7 +946,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
         tags$p(
           class = "small text-muted mt-2 mb-0",
           bs_icon("lightbulb"),
-          " Both income and expense amounts are positive — the account ",
+          " Both income and expense amounts are positive \u2014 the account ",
           "name (e.g. ",
           tags$code("Expenses:..."),
           " vs ",
@@ -954,7 +962,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       icon = icon("upload"),
       class = "btn-primary w-100"
     ),
-    div(class = "my-2 text-center text-muted small", "— or —"),
+    div(class = "my-2 text-center text-muted small", "\u2014 or \u2014"),
     actionButton(
       ns("btn_manual_entry"),
       "Enter Data Manually",
@@ -974,14 +982,14 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
           "Combined ",
           tags$span(
             class = "text-muted small",
-            "— one file with both income and overhead"
+            "\u2014 one file with both income and overhead"
           )
         ),
         tagList(
           "Separate ",
           tags$span(
             class = "text-muted small",
-            "— one file per data type"
+            "\u2014 one file per data type"
           )
         )
       ),
@@ -1021,7 +1029,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     tags$p(
       class = "text-success small mb-0",
       bs_icon("check-circle-fill"),
-      paste0(" Loaded — ", n_rows, " period", if (n_rows != 1L) "s" else "")
+      paste0(" Loaded \u2014 ", n_rows, " period", if (n_rows != 1L) "s" else "")
     )
   } else {
     tags$p(
