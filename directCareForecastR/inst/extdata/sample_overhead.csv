@@ -1,0 +1,11 @@
+date,description,amount,category
+01/05/2025,Office rent,1200,rent
+01/12/2025,Medical supplies order,340,supplies
+01/18/2025,EHR subscription,150,software
+01/20/2025,Malpractice insurance premium,210,insurance
+02/05/2025,Office rent,1200,rent
+02/14/2025,Lab reagents,95,labs
+02/18/2025,EHR subscription,150,software
+03/05/2025,Office rent,1200,rent
+03/10/2025,Staff payroll,3500,staff
+03/18/2025,EHR subscription,150,software

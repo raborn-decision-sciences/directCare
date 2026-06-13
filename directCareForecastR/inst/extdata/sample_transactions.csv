@@ -1,0 +1,19 @@
+date,description,amount,type,category
+01/05/2025,Office rent,1200,expense,rent
+01/10/2025,Membership fee - Patient A,150,income,
+01/10/2025,Membership fee - Patient B,150,income,
+01/10/2025,Membership fee - Patient C,150,income,
+01/18/2025,EHR subscription,150,expense,software
+01/20/2025,Malpractice insurance premium,210,expense,insurance
+02/05/2025,Office rent,1200,expense,rent
+02/10/2025,Membership fee - Patient A,150,income,
+02/10/2025,Membership fee - Patient B,150,income,
+02/10/2025,Membership fee - Patient C,150,income,
+02/14/2025,Lab reagents,95,expense,labs
+02/18/2025,EHR subscription,150,expense,software
+02/20/2025,Fee-for-service visit,75,income,
+03/05/2025,Office rent,1200,expense,rent
+03/10/2025,Membership fee - Patient A,150,income,
+03/10/2025,Membership fee - Patient B,150,income,
+03/10/2025,Membership fee - Patient C,150,income,
+03/18/2025,EHR subscription,150,expense,software

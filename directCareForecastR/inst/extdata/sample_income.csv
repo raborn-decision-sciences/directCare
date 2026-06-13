@@ -1,0 +1,11 @@
+date,description,amount
+01/03/2025,Membership fee - Patient A,150
+01/03/2025,Membership fee - Patient B,150
+01/03/2025,Membership fee - Patient C,150
+02/03/2025,Membership fee - Patient A,150
+02/03/2025,Membership fee - Patient B,150
+02/03/2025,Membership fee - Patient C,150
+02/15/2025,Fee-for-service visit,75
+03/03/2025,Membership fee - Patient A,150
+03/03/2025,Membership fee - Patient B,150
+03/03/2025,Membership fee - Patient C,150
