@@ -40,12 +40,13 @@ normalize_gnucash_csv <- function(data, practice_id, source) {
       account_name      = "account",
       description       = "Description",
       amount,
-      category
+      category,
+      date
     ) |>
     dplyr::mutate(
       practice_id = practice_id,
       source      = source,
-      date        = lubridate::mdy(data$date),
+      date        = lubridate::mdy(date),
       week_start  = lubridate::floor_date(date, "week", week_start = 1),
       month       = lubridate::month(date),
       year        = lubridate::year(date)

@@ -44,24 +44,24 @@
   freq <- .detect_frequency(income_summary)
   
   if (freq == "weekly") {
-    # Weekly data
     prepared <- income_summary |>
-      dplyr::select(practice_id, period_start = week_start, revenue = dplyr::all_of(revenue_col))
-    
+      dplyr::select(practice_id, period_start = week_start, revenue = dplyr::all_of(revenue_col)) |>
+      dplyr::arrange(period_start)
+
     list(
       data = prepared,
       frequency = "weekly",
       periods_per_year = 52
     )
   } else {
-    # Monthly data
     prepared <- income_summary |>
       dplyr::mutate(
         period_start = lubridate::make_date(year, month, 1),
         revenue = .data[[revenue_col]]
       ) |>
-      dplyr::select(practice_id, period_start, revenue)
-    
+      dplyr::select(practice_id, period_start, revenue) |>
+      dplyr::arrange(period_start)
+
     list(
       data = prepared,
       frequency = "monthly",
