@@ -29,11 +29,12 @@ or ARIMA.
 Bookkeeping file / manual data frame
           │
           ▼
-   ingest_gnucash_csv()          ingest_manual()
-   ingest_manual()
+   ingest_gnucash_csv()     ← GnuCash CSV export
+   ingest_csv_generic()     ← any CSV (combined or separate overhead/income files)
+   ingest_manual()          ← hand-built data frame
           │
           ▼
-   [normalized transaction tibble]   ← validate_overhead() / validate_income()
+   [normalized tibble]   ← validate_overhead() / validate_income()
      practice_id | date | week_start | month | year
      full_account_name | account_name | description
      amount / revenue | category | source | is_refund
@@ -44,7 +45,7 @@ filter_gnucash_overhead()    normalize_gnucash_income()
      │                                │
      ▼                                ▼
 summarize_overhead_monthly()   summarize_income_monthly()
-                                summarize_income_weekly()
+summarize_overhead_weekly()    summarize_income_weekly()
      │                                │
      └──────────────┬─────────────────┘
                     ▼
@@ -123,13 +124,13 @@ negated during summarization).
 
 | Function | Description |
 |---|---|
-| `ingest_gnucash_csv(path, practice_id, account_map)` | Read a GnuCash CSV export. Returns full transaction tibble (income + expenses). Calls `map_accounts()` then `validate_overhead()` internally. |
-| `ingest_manual(df, practice_id, type)` | Normalize a hand-built data frame. `type = "overhead"` or `"income"`. Income path calls `validate_income()` automatically. |
+| `ingest_gnucash_csv(path, practice_id, account_map)` | Read a GnuCash CSV export. Returns full transaction tibble (income + expenses). Calls `map_accounts()` internally. |
+| `ingest_csv_generic(path, practice_id, col_date, col_amount, type, ...)` | Read any CSV. `type = "both"` (default) splits a mixed file into overhead and income using pattern matching on a `col_type` column and returns `list(overhead, income)`. `type = "overhead"` or `"income"` returns a single validated tibble. |
+| `ingest_manual(df, practice_id, type)` | Normalize a hand-built data frame. `type = "overhead"` or `"income"`. |
 
 **Stubs (not yet implemented):**
 - `ingest_gnucash_xml()` — GnuCash XML format
 - `ingest_quickbooks()` — QuickBooks export
-- `ingest_csv_generic()` — generic CSV with caller-specified column names
 
 ### Account mapping
 
@@ -170,12 +171,13 @@ Both functions use structured error/warning classes (see [Error classes](#error-
 | Function | Description |
 |---|---|
 | `summarize_overhead_monthly(overhead_tbl, include_refunds)` | Aggregate to practice/year/month. `include_refunds = FALSE` excludes refund rows before summing. |
+| `summarize_overhead_weekly(overhead_tbl, include_refunds)` | Aggregate to practice/week_start. |
 | `summarize_income_monthly(income_tbl, include_refunds)` | Aggregate to practice/year/month. |
 | `summarize_income_weekly(income_tbl, include_refunds)` | Aggregate to practice/week_start. |
 
-Both income summarize functions derive `is_refund` from the sign of `revenue`
+All summarize functions derive `is_refund` from the sign of the amount column
 if the column is absent (e.g. data from a custom pipeline that skipped
-`validate_income()`).
+validation).
 
 ### Forecast
 
@@ -184,9 +186,13 @@ and set a default horizon accordingly (52 weeks / 12 months).
 
 | Function | Key parameters | Returns |
 |---|---|---|
-| `forecast_revenue(income_summary, method, horizon, confidence_level)` | — | `current_revenue`, `forecast_data`, `method`, `frequency` |
-| `forecast_breakeven(income_summary, overhead_summary, method, horizon, confidence_level)` | — | `breakeven_date`, `periods_to_breakeven`, `current_surplus_deficit`, `confidence_interval`, `forecast_data`, `method`, `frequency` |
-| `forecast_target(income_summary, overhead_summary, target_income, method, horizon, confidence_level)` | `target_income`: desired net income per period | `target_date`, `periods_to_target`, `current_gap`, `required_revenue_now`, `confidence_interval`, `forecast_data`, `target_income`, `method`, `frequency` |
+| `forecast_revenue(income_summary, method, horizon, confidence_level)` | — | `current_revenue`, `forecast_data`, `method`, `frequency`, `data_warnings` |
+| `forecast_breakeven(income_summary, overhead_summary, method, horizon, confidence_level)` | — | `breakeven_date`, `periods_to_breakeven`, `current_surplus_deficit`, `confidence_interval`, `forecast_data`, `method`, `frequency`, `data_warnings` |
+| `forecast_target(income_summary, overhead_summary, target_income, method, horizon, confidence_level)` | `target_income`: desired net income per period | `target_date`, `periods_to_target`, `current_gap`, `required_revenue_now`, `confidence_interval`, `forecast_data`, `target_income`, `method`, `frequency`, `data_warnings` |
+
+All three functions return a `data_warnings` field: a character vector of
+data-volume warning messages emitted during forecasting, or `NULL` if none.
+Callers can surface these in a UI without re-running the forecast.
 
 All `forecast_data` tibbles share these columns (plus function-specific ones):
 
@@ -243,6 +249,11 @@ the class as the first element so callers can catch them specifically with
 | `dcForecastR_zero_amounts` | warning | Zero-value rows found |
 | `dcForecastR_future_dates` | warning | Dates after `Sys.Date()`; attached as `$future_rows` |
 | `dcForecastR_unmapped_accounts` | warning | Account names with no matching rule; attached as `$unmatched` |
+| `dcForecastR_unclassified_rows` | warning | `ingest_csv_generic()` rows matching neither overhead nor income pattern; attached as `$n_unmatched` and `$unmatched_values` |
+| `dcForecastR_missing_optional_columns` | warning | Optional column argument points to a column not present in the CSV |
+| `dcForecastR_insufficient_data` | warning | Fewer than 2 observations; flat forecast returned |
+| `dcForecastR_method_fallback` | warning | Requested method (ETS/ARIMA) fell back to linear due to insufficient data |
+| `dcForecastR_low_data_advisory` | warning | Data below recommended threshold; projection flagged as rough estimate |
 | `dcForecastR_target_not_reached` | warning | `forecast_target()` horizon exhausted before target |
 | `dcForecastR_not_implemented` | error | Called a stub function |
 
@@ -286,6 +297,44 @@ target$current_gap
 rev <- forecast_revenue(income_monthly, method = "linear", horizon = 24)
 rev$current_revenue
 rev$forecast_data
+```
+
+### Generic CSV (single mixed file)
+
+```r
+# File has columns: date, amount, type ("expense" or "income"), category
+result <- ingest_csv_generic(
+  path        = "data/transactions.csv",
+  practice_id = 1,
+  col_date    = "date",
+  col_amount  = "amount",
+  col_type    = "type"           # column that identifies row type
+)
+result$overhead   # validated overhead tibble
+result$income     # validated income tibble
+
+overhead_monthly <- summarize_overhead_monthly(result$overhead)
+income_monthly   <- summarize_income_monthly(result$income)
+```
+
+### Generic CSV (separate files)
+
+```r
+overhead <- ingest_csv_generic(
+  path        = "data/expenses.csv",
+  practice_id = 1,
+  col_date    = "date",
+  col_amount  = "amount",
+  type        = "overhead"
+)
+
+income <- ingest_csv_generic(
+  path        = "data/revenue.csv",
+  practice_id = 1,
+  col_date    = "date",
+  col_amount  = "amount",
+  type        = "income"
+)
 ```
 
 ### Manual data entry
@@ -336,26 +385,28 @@ from `R CMD check`, add the name to `R/utils-globals.R`.
 
 | File | Tests |
 |---|---|
-| test-forecast_breakeven.R | 6 |
-| test-forecast_helpers.R | 7 |
+| test-forecast_breakeven.R | 11 |
+| test-forecast_helpers.R | 22 |
 | test-forecast_revenue.R | 15 |
-| test-forecast_target.R | 22 |
-| test-income_summarize.R | 22 |
-| test-income_validate.R | 24 |
+| test-forecast_target.R | 21 |
+| test-income_summarize.R | 20 |
+| test-income_validate.R | 19 |
+| test-ingest_csv_generic.R | 44 |
 | test-ingest_gnucash.R | 3 |
+| test-integration.R | 14 |
 | test-normalize_gnucash.R | 3 |
-| test-normalize_manual.R | 7 |
-| test-overhead_filter.R | 2 |
-| test-overhead_summarize.R | 3 |
-| **Total** | **234** |
+| test-normalize_manual.R | 6 |
+| test-overhead_filter.R | 5 |
+| test-overhead_summarize.R | 20 |
+| test-overhead_validate.R | 23 |
+| test-utils_accounts.R | 26 |
+| **Total** | **252** |
 
 ---
 
 ## Known gaps / future work
 
-- **`ingest_gnucash_xml()`** — GnuCash XML format not yet implemented
-- **`ingest_quickbooks()`** — QuickBooks CSV/export not yet implemented  
-- **`ingest_csv_generic()`** — Generic CSV with caller-specified column mapping not yet implemented
+- **`ingest_gnucash_xml()`** — GnuCash XML format not yet implemented; calling it aborts with `dcForecastR_not_implemented`
+- **`ingest_quickbooks()`** — QuickBooks CSV/export not yet implemented
 - **`validate_overhead()` not called for manual overhead** — `ingest_manual(type = "overhead")` normalizes but does not call `validate_overhead()`. Callers can invoke it manually if needed.
-- **`directCareAnalytics` not yet built** — the Shiny app scaffold exists but no UI modules or server logic have been wired to this package yet
 - **Income category breakdown** — membership vs. visit revenue are not distinguished in summarization; would require an income-specific account map

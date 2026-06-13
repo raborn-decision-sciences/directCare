@@ -1,0 +1,48 @@
+url: https://raborndecisionsciences.github.io/directCareForecastR/
+
+template:
+  bootstrap: 5
+
+reference:
+  - title: Data ingestion
+    desc: Read bookkeeping exports or hand-built data frames into the canonical schema.
+    contents:
+      - ingest_gnucash_csv
+      - ingest_gnucash_xml
+      - ingest_csv_generic
+      - ingest_manual
+
+  - title: Account mapping
+    desc: Map GnuCash account names to overhead categories.
+    contents:
+      - default_account_map
+      - map_accounts
+
+  - title: Filter and normalize
+    desc: Split a combined transaction tibble into overhead and income streams.
+    contents:
+      - filter_gnucash_overhead
+      - normalize_gnucash_income
+
+  - title: Validation
+    desc: Check normalized tibbles for data quality issues before summarization.
+    contents:
+      - validate_overhead
+      - validate_income
+
+  - title: Summarization
+    desc: Aggregate validated tibbles to monthly or weekly period totals.
+    contents:
+      - summarize_overhead_monthly
+      - summarize_overhead_weekly
+      - summarize_income_monthly
+      - summarize_income_weekly
+
+  - title: Forecasting
+    desc: >
+      Project revenue, break-even, and income targets forward using linear
+      regression, ETS, or ARIMA.
+    contents:
+      - forecast_revenue
+      - forecast_breakeven
+      - forecast_target
