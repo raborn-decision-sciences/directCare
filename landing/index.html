@@ -158,17 +158,44 @@
 
   /* SIGNUP FORM */
   .signup-form {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex-wrap: wrap;
     max-width: 480px;
     margin: 0 auto;
   }
 
+  .signup-form .name-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    .signup-form .name-row { grid-template-columns: 1fr; }
+  }
+
+  .signup-form .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .signup-form label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94A3B8;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .signup-form label em {
+    color: var(--teal);
+    font-style: normal;
+    margin-left: 2px;
+  }
+
+  .signup-form input[type="text"],
   .signup-form input[type="email"] {
-    flex: 1;
-    min-width: 220px;
     padding: 0.75rem 1rem;
     border-radius: 6px;
     border: 1.5px solid #334155;
@@ -178,9 +205,14 @@
     font-size: 0.95rem;
     outline: none;
     transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
   }
 
+  .signup-form input[type="text"]::placeholder,
   .signup-form input[type="email"]::placeholder { color: #64748B; }
+
+  .signup-form input[type="text"]:focus,
   .signup-form input[type="email"]:focus { border-color: var(--teal); }
 
   .btn-primary {
@@ -195,16 +227,11 @@
     cursor: pointer;
     transition: background 0.15s;
     white-space: nowrap;
+    width: 100%;
+    margin-top: 0.25rem;
   }
 
   .btn-primary:hover { background: var(--teal-dark); color: var(--white); }
-
-  .form-note {
-    font-size: 0.78rem;
-    color: #64748B;
-    margin-top: 0.75rem;
-    font-family: var(--mono);
-  }
 
   /* PROBLEM STRIP */
   .problem-strip {
@@ -608,11 +635,28 @@
   </div>
 
   <div id="beta">
-    <form class="signup-form" action="https://buttondown.com/api/emails/embed-subscribe/directcareanalytics" method="post" target="_blank">
-      <input type="email" name="email" placeholder="your@email.com" required autocomplete="email">
+    <form class="signup-form"
+      action='https://forms.zohopublic.com/anthonyraborndecis1/form/SimpleSignupForm/formperma/LBVHcVBRo9WkAm4YEU5YoDU0CNtMk11durRuym4c0rw/htmlRecords/submit'
+      name='form' method='POST' accept-charset='UTF-8' enctype='multipart/form-data'>
+      <input type="hidden" name="zf_referrer_name" value="">
+      <input type="hidden" name="zf_redirect_url" value="">
+      <input type="hidden" name="zc_gad" value="">
+      <div class="name-row">
+        <div class="field">
+          <label for="zf_first">First name <em>*</em></label>
+          <input type="text" id="zf_first" name="Name_First" maxlength="255" required placeholder="Jane">
+        </div>
+        <div class="field">
+          <label for="zf_last">Last name <em>*</em></label>
+          <input type="text" id="zf_last" name="Name_Last" maxlength="255" required placeholder="Smith">
+        </div>
+      </div>
+      <div class="field">
+        <label for="zf_email">Email <em>*</em></label>
+        <input type="email" id="zf_email" name="Email" maxlength="255" required placeholder="jane@example.com">
+      </div>
       <button type="submit" class="btn-primary">Request beta access</button>
     </form>
-    <p class="form-note">No spam. Unsubscribe anytime. Beta is free.</p>
   </div>
 
   <div class="screenshot-wrap">
@@ -790,11 +834,10 @@
 <section class="bottom-cta">
   <h2>Five beta spots. No cost. Real feedback wanted.</h2>
   <p>We're looking for physicians willing to use the tool and tell us honestly what's missing.</p>
-  <form class="signup-form" action="https://buttondown.com/api/emails/embed-subscribe/directcareanalytics" method="post" target="_blank" style="justify-content:center;">
-    <input type="email" name="email" placeholder="your@email.com" required autocomplete="email" style="background:#1E3044; border-color:#334155;">
-    <button type="submit" class="btn-primary">Request beta access</button>
-  </form>
-  <p class="form-note" style="color:#475569; margin-top:0.75rem;">No spam. Unsubscribe anytime. Beta is free.</p>
+  <iframe aria-label='Direct Care Analytics Beta Sign-Up Form' frameborder="0"
+    style="height:500px;width:99%;max-width:680px;border:none;display:block;margin:0 auto;"
+    src='https://forms.zohopublic.com/anthonyraborndecis1/form/SimpleSignupForm/formperma/10CTClk4oGjM2c3o2svca1l0YCLo2e0GloHgBsudn6M'>
+  </iframe>
 </section>
 
 <footer>
