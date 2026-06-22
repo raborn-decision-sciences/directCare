@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<svg width="575" height="302" viewBox="1 14 575 302" xmlns="http://www.w3.org/2000/svg">
+
+  <g transform="translate(8,20) scale(0.84)">
+  <rect x="47" y="135" width="20" height="53" rx="4" fill="#466C90"></rect>
+  <path d="M30,150 A99,99 0 0 1 212,78" fill="none" stroke="#149AAD" stroke-width="6" stroke-linecap="round"></path>
+  <path d="M30,150 A99,99 0 0 0 200,194" fill="none" stroke="#0F2547" stroke-width="9" stroke-linecap="round"></path>
+  <circle cx="30" cy="150" r="7" fill="#0F2547"></circle>
+  <text x="126" y="188" text-anchor="middle" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="700" font-size="172" fill="#0F2547">R</text>
+  <rect x="72" y="118" width="20" height="70" rx="4" fill="#365677"></rect>
+  <rect x="97" y="100" width="20" height="88" rx="4" fill="#23B7CC"></rect>
+  <path d="M56,176 C 116,166 152,148 172,120 C 187,101 196,93 203,87" fill="none" stroke="#F5A623" stroke-width="5.5" stroke-linecap="round"></path>
+  <polygon points="212,78 207,95 195,83" fill="#F5A623"></polygon>
+  </g>
+  <text x="165.8" y="177.9" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="700" font-size="144" fill="#0F2547">aborn</text>
+  <text x="280.6" y="249.92" text-anchor="middle" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="700" font-size="23" letter-spacing="5.5" fill="#0F2547">DECISION SCIENCES</text>
+  <g transform="translate(0,16)"><text x="142.2" y="267.91999999999996" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="400" font-size="20" fill="#149AAD">data</text><path d="M189.50625000000002,261.91999999999996 L205.50625000000002,261.91999999999996 M199.50625000000002,256.91999999999996 L205.50625000000002,261.91999999999996 L199.50625000000002,266.91999999999996" fill="none" stroke="#149AAD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><text x="219.5" y="267.91999999999996" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="400" font-size="20" fill="#149AAD">decisions</text><path d="M307.93984375,261.91999999999996 L323.93984375,261.91999999999996 M317.93984375,256.91999999999996 L323.93984375,261.91999999999996 L317.93984375,266.91999999999996" fill="none" stroke="#149AAD" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path><text x="337.9" y="267.91999999999996" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="400" font-size="20" fill="#149AAD">advantage</text></g>
+</svg>

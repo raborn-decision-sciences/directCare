@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+
+  <rect x="47" y="135" width="20" height="53" rx="4" fill="#466C90"></rect>
+  <path d="M30,150 A99,99 0 0 1 212,78" fill="none" stroke="#149AAD" stroke-width="6" stroke-linecap="round"></path>
+  <path d="M30,150 A99,99 0 0 0 200,194" fill="none" stroke="#0F2547" stroke-width="9" stroke-linecap="round"></path>
+  <circle cx="30" cy="150" r="7" fill="#0F2547"></circle>
+  <text x="126" y="188" text-anchor="middle" font-family="&#39;Atkinson Hyperlegible&#39;,sans-serif" font-weight="700" font-size="172" fill="#0F2547">R</text>
+  <rect x="72" y="118" width="20" height="70" rx="4" fill="#365677"></rect>
+  <rect x="97" y="100" width="20" height="88" rx="4" fill="#23B7CC"></rect>
+  <path d="M56,176 C 116,166 152,148 172,120 C 187,101 196,93 203,87" fill="none" stroke="#F5A623" stroke-width="5.5" stroke-linecap="round"></path>
+  <polygon points="212,78 207,95 195,83" fill="#F5A623"></polygon>
+</svg>
