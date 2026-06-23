@@ -215,6 +215,31 @@
   .signup-form input[type="text"]:focus,
   .signup-form input[type="email"]:focus { border-color: var(--teal); }
 
+  .signup-form select {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1.5px solid #334155;
+    background: #1E3044;
+    color: var(--white);
+    font-family: var(--font);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+  }
+
+  .signup-form select:focus { border-color: var(--teal); }
+  .signup-form select option { color: var(--text); }
+
+  .signup-form .field-note {
+    font-size: 0.75rem;
+    color: #64748B;
+    margin-top: -0.2rem;
+    line-height: 1.4;
+  }
+
   .btn-primary {
     background: var(--teal);
     color: var(--navy);
@@ -635,10 +660,61 @@
   </div>
 
   <div id="beta">
-    <p class="form-note" style="font-size:0.95rem; color:#94A3B8; max-width:480px; margin:0 auto;">
-      We've filled our initial beta cohort and aren't accepting new signups right now.
-      Check back soon for waitlist signups.
-    </p>
+    <form class="signup-form"
+      action='https://forms.zohopublic.com/anthonyraborndecis1/form/DirectCareAnalyticsWaitlist/formperma/2kXUtKMUil3d5j4KvHZ5ywzuJS0PwGDYsFUVeUI9YYg/htmlRecords/submit'
+      name='form' method='POST' accept-charset='UTF-8' enctype='multipart/form-data'>
+      <input type="hidden" name="zf_referrer_name" value="">
+      <input type="hidden" name="zf_redirect_url" value="">
+      <input type="hidden" name="zc_gad" value="">
+      <div class="name-row">
+        <div class="field">
+          <label for="wl_first">First name <em>*</em></label>
+          <input type="text" id="wl_first" name="Name_First" maxlength="255" required placeholder="Jane">
+        </div>
+        <div class="field">
+          <label for="wl_last">Last name <em>*</em></label>
+          <input type="text" id="wl_last" name="Name_Last" maxlength="255" required placeholder="Smith">
+        </div>
+      </div>
+      <div class="field">
+        <label for="wl_email">Email <em>*</em></label>
+        <input type="email" id="wl_email" name="Email" maxlength="255" required placeholder="jane@example.com">
+      </div>
+      <div class="field">
+        <label for="wl_practice_type">Practice type <em>*</em></label>
+        <select id="wl_practice_type" name="Dropdown" required>
+          <option value="" disabled selected>Select one</option>
+          <option value="Physician">Physician</option>
+          <option value="Nurse Practitioner">Nurse Practitioner</option>
+          <option value="Mental Health Therapist">Mental Health Therapist</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field practice-other-wrap" style="display:none;">
+        <label for="wl_practice_type_other">Please specify <em>*</em></label>
+        <input type="text" id="wl_practice_type_other" maxlength="255" placeholder="Your role">
+      </div>
+      <div class="field">
+        <label for="wl_practice_status">Practice status <em>*</em></label>
+        <select id="wl_practice_status" name="Dropdown1" required>
+          <option value="" disabled selected>Select one</option>
+          <option value="Just exploring">Just exploring</option>
+          <option value="Planning to launch a direct care practice">Planning to launch a direct care practice</option>
+          <option value="Direct care practice launched within the last year">Direct care practice launched within the last year</option>
+          <option value="Direct care practice launched more than a year ago">Direct care practice launched more than a year ago</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="wl_specialty">Practice specialty <em>*</em></label>
+        <input type="text" id="wl_specialty" name="SingleLine1" maxlength="255" required placeholder="Primary Care, Pediatrics, Gynecology, etc.">
+        <p class="field-note">Provide your practice specialty.</p>
+      </div>
+      <div class="field">
+        <label for="wl_referral">How did you hear about us?</label>
+        <input type="text" id="wl_referral" name="SingleLine" maxlength="255" placeholder="A specific Facebook group, word-of-mouth, etc.">
+      </div>
+      <button type="submit" class="btn-primary">Join the waitlist</button>
+    </form>
   </div>
 
   <div class="screenshot-wrap">
@@ -815,7 +891,62 @@
 
 <section class="bottom-cta">
   <h2>Beta signups are currently paused.</h2>
-  <p>We've filled our initial cohort of beta testers. Check back soon for waitlist signups.</p>
+  <p>We've filled our initial cohort of beta testers. Join the waitlist to stay informed as the app develops.</p>
+  <form class="signup-form"
+    action='https://forms.zohopublic.com/anthonyraborndecis1/form/DirectCareAnalyticsWaitlist/formperma/2kXUtKMUil3d5j4KvHZ5ywzuJS0PwGDYsFUVeUI9YYg/htmlRecords/submit'
+    name='form' method='POST' accept-charset='UTF-8' enctype='multipart/form-data'>
+    <input type="hidden" name="zf_referrer_name" value="">
+    <input type="hidden" name="zf_redirect_url" value="">
+    <input type="hidden" name="zc_gad" value="">
+    <div class="name-row">
+      <div class="field">
+        <label for="wl_first_b">First name <em>*</em></label>
+        <input type="text" id="wl_first_b" name="Name_First" maxlength="255" required placeholder="Jane">
+      </div>
+      <div class="field">
+        <label for="wl_last_b">Last name <em>*</em></label>
+        <input type="text" id="wl_last_b" name="Name_Last" maxlength="255" required placeholder="Smith">
+      </div>
+    </div>
+    <div class="field">
+      <label for="wl_email_b">Email <em>*</em></label>
+      <input type="email" id="wl_email_b" name="Email" maxlength="255" required placeholder="jane@example.com">
+    </div>
+    <div class="field">
+      <label for="wl_practice_type_b">Practice type <em>*</em></label>
+      <select id="wl_practice_type_b" name="Dropdown" required>
+        <option value="" disabled selected>Select one</option>
+        <option value="Physician">Physician</option>
+        <option value="Nurse Practitioner">Nurse Practitioner</option>
+        <option value="Mental Health Therapist">Mental Health Therapist</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field practice-other-wrap" style="display:none;">
+      <label for="wl_practice_type_other_b">Please specify <em>*</em></label>
+      <input type="text" id="wl_practice_type_other_b" maxlength="255" placeholder="Your role">
+    </div>
+    <div class="field">
+      <label for="wl_practice_status_b">Practice status <em>*</em></label>
+      <select id="wl_practice_status_b" name="Dropdown1" required>
+        <option value="" disabled selected>Select one</option>
+        <option value="Just exploring">Just exploring</option>
+        <option value="Planning to launch a direct care practice">Planning to launch a direct care practice</option>
+        <option value="Direct care practice launched within the last year">Direct care practice launched within the last year</option>
+        <option value="Direct care practice launched more than a year ago">Direct care practice launched more than a year ago</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="wl_specialty_b">Practice specialty <em>*</em></label>
+      <input type="text" id="wl_specialty_b" name="SingleLine1" maxlength="255" required placeholder="Primary Care, Pediatrics, Gynecology, etc.">
+      <p class="field-note">Provide your practice specialty.</p>
+    </div>
+    <div class="field">
+      <label for="wl_referral_b">How did you hear about us?</label>
+      <input type="text" id="wl_referral_b" name="SingleLine" maxlength="255" placeholder="A specific Facebook group, word-of-mouth, etc.">
+    </div>
+    <button type="submit" class="btn-primary">Join the waitlist</button>
+  </form>
 </section>
 
 <footer>
@@ -824,6 +955,37 @@
     &mdash; Direct Care Analytics is a product of Raborn Decision Sciences LLC.
   </p>
 </footer>
+
+<script>
+  document.querySelectorAll('.signup-form').forEach(function (form) {
+    var select = form.querySelector('select[name="Dropdown"]');
+    if (!select) return;
+
+    var otherWrap = select.closest('.field').nextElementSibling;
+    var otherInput = otherWrap ? otherWrap.querySelector('input') : null;
+    if (!otherWrap || !otherInput) return;
+
+    select.addEventListener('change', function () {
+      if (select.value === 'Other') {
+        otherWrap.style.display = '';
+        otherInput.setAttribute('required', 'required');
+      } else {
+        otherWrap.style.display = 'none';
+        otherInput.removeAttribute('required');
+        otherInput.value = '';
+      }
+    });
+
+    form.addEventListener('submit', function () {
+      if (select.value === 'Other' && otherInput.value.trim()) {
+        var customOption = document.createElement('option');
+        customOption.value = otherInput.value.trim();
+        customOption.selected = true;
+        select.appendChild(customOption);
+      }
+    });
+  });
+</script>
 
 </body>
 </html>
