@@ -4,18 +4,32 @@
 \alias{resolve_geography}
 \title{Resolve a Geography to FIPS and Metro Identifiers}
 \usage{
-resolve_geography(location, state = NULL)
+resolve_geography(
+  location,
+  state = NULL,
+  crosswalk = directCareData::zip_county_crosswalk,
+  geo = directCareData::county_cbsa_crosswalk
+)
 }
 \arguments{
-\item{location}{Character string: a 5-digit ZIP code or a county name.}
+\item{location}{Character string: a 5-digit ZIP code or a county name
+(with or without a trailing "County").}
 
 \item{state}{Optional two-letter state abbreviation, used to disambiguate
 county names that are not unique nationally. Ignored when \code{location}
 is a ZIP code.}
+
+\item{crosswalk}{ZIP-to-county crosswalk to resolve against. Defaults to
+\link[directCareData:zip_county_crosswalk]{directCareData::zip_county_crosswalk}; overridable for testing.}
+
+\item{geo}{County-to-metro crosswalk (also used for county-name lookup)
+to resolve against. Defaults to \link[directCareData:county_cbsa_crosswalk]{directCareData::county_cbsa_crosswalk};
+overridable for testing.}
 }
 \value{
-A list with \code{county_fips}, \code{state_fips}, and \code{metro_fips}
-(\code{NA} if the geography is not part of a metro area).
+A \code{dcPlanR_geography}-classed list with \code{county_fips},
+\code{state_fips}, \code{metro_fips} (\code{NA} if the geography is not part of a
+metro area), \code{county_name}, and \code{state_abb}.
 }
 \description{
 Takes a county or ZIP code input and resolves it to the FIPS codes and

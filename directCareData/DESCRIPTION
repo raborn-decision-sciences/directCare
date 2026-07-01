@@ -1,0 +1,30 @@
+Package: directCareData
+Title: Reference Market Data for Direct Care Practice Planning
+Version: 0.0.0.9000
+Authors@R:
+    person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
+Description: Bundled reference data describing the market a direct care
+    practice would launch into: county-level population and household
+    income (Census ACS), uninsured population estimates (SAHIE),
+    physician density (NPPES), geography crosswalks (ZIP to county,
+    county to metro area), and a curated directory of existing direct
+    care practices. Data is refreshed and versioned independently of the
+    packages that consume it (directCarePlanR, and potentially others).
+    This package exports data only; it contains no business logic.
+License: Apache License (>= 2) | file LICENSE
+Suggests:
+    httr2,
+    jsonlite,
+    readr,
+    readxl,
+    testthat (>= 3.0.0),
+    tidycensus,
+    usethis
+Config/testthat/edition: 3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+URL: https://raborn-decision-sciences.github.io/directCareData/
+Depends: 
+    R (>= 3.5)

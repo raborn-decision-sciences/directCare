@@ -4,14 +4,17 @@
 \alias{get_population_income}
 \title{Summarize Population and Income for a Geography}
 \usage{
-get_population_income(fips)
+get_population_income(fips, data = directCareData::county_market_data)
 }
 \arguments{
 \item{fips}{Character FIPS code, as returned by \code{\link[=resolve_geography]{resolve_geography()}}.}
+
+\item{data}{County-level market data to look up against. Defaults to
+\link[directCareData:county_market_data]{directCareData::county_market_data}; overridable for testing.}
 }
 \value{
-A list with population and median household income figures for
-the geography.
+A \code{dcPlanR_population_income}-classed list with \code{county_fips},
+\code{population}, and \code{median_household_income}.
 }
 \description{
 Pulls population and household income summary statistics from the Census

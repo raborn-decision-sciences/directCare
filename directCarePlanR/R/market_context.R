@@ -4,20 +4,123 @@
 #' metro area identifiers used to look up Census, SAHIE, NPPES, and direct
 #' care landscape data.
 #'
-#' @param location Character string: a 5-digit ZIP code or a county name.
+#' @param location Character string: a 5-digit ZIP code or a county name
+#'   (with or without a trailing "County").
 #' @param state Optional two-letter state abbreviation, used to disambiguate
 #'   county names that are not unique nationally. Ignored when `location`
 #'   is a ZIP code.
+#' @param crosswalk ZIP-to-county crosswalk to resolve against. Defaults to
+#'   [directCareData::zip_county_crosswalk]; overridable for testing.
+#' @param geo County-to-metro crosswalk (also used for county-name lookup)
+#'   to resolve against. Defaults to [directCareData::county_cbsa_crosswalk];
+#'   overridable for testing.
 #'
-#' @return A list with `county_fips`, `state_fips`, and `metro_fips`
-#'   (`NA` if the geography is not part of a metro area).
+#' @return A `dcPlanR_geography`-classed list with `county_fips`,
+#'   `state_fips`, `metro_fips` (`NA` if the geography is not part of a
+#'   metro area), `county_name`, and `state_abb`.
 #'
 #' @export
-resolve_geography <- function(location, state = NULL) {
-  rlang::abort(
-    "resolve_geography() is not yet implemented.",
-    class = "dcPlanR_not_implemented"
+resolve_geography <- function(
+  location,
+  state = NULL,
+  crosswalk = directCareData::zip_county_crosswalk,
+  geo = directCareData::county_cbsa_crosswalk
+) {
+  if (!rlang::is_scalar_character(location) || is.na(location)) {
+    rlang::abort(
+      "`location` must be a single, non-missing character string.",
+      class = "dcPlanR_invalid_fips"
+    )
+  }
+
+  if (grepl("^[0-9]{5}$", location)) {
+    matches <- crosswalk[crosswalk$zip == location, ]
+    if (nrow(matches) == 0L) {
+      rlang::abort(
+        paste0("No county found for ZIP code '", location, "'."),
+        class = "dcPlanR_zip_not_found"
+      )
+    }
+    if (nrow(matches) > 1L) {
+      rlang::inform(
+        paste0(
+          "ZIP code '", location, "' spans multiple counties; using the ",
+          "primary (largest-overlap) county."
+        ),
+        class = "dcPlanR_zip_multi_county"
+      )
+    }
+    county_fips <- matches$county_fips[matches$is_primary][1]
+  } else {
+    normalized <- tolower(trimws(sub("\\s+county$", "", location, ignore.case = TRUE)))
+    geo_normalized <- tolower(trimws(sub("\\s+county$", "", geo$county_name, ignore.case = TRUE)))
+    candidates <- geo[geo_normalized == normalized, ]
+    if (!is.null(state)) {
+      candidates <- candidates[toupper(candidates$state_abb) == toupper(state), ]
+    }
+    if (nrow(candidates) == 0L) {
+      rlang::abort(
+        paste0("No county found matching '", location, "'."),
+        class = "dcPlanR_county_not_found"
+      )
+    }
+    if (nrow(candidates) > 1L) {
+      rlang::abort(
+        paste0(
+          "'", location, "' matches counties in multiple states (",
+          paste(unique(candidates$state_abb), collapse = ", "),
+          "). Pass `state` to disambiguate."
+        ),
+        class = "dcPlanR_county_ambiguous"
+      )
+    }
+    county_fips <- candidates$county_fips[1]
+  }
+
+  geo_row <- geo[geo$county_fips == county_fips, ]
+
+  structure(
+    list(
+      county_fips = county_fips,
+      state_fips = substr(county_fips, 1, 2),
+      metro_fips = geo_row$cbsa_fips[1],
+      county_name = geo_row$county_name[1],
+      state_abb = geo_row$state_abb[1]
+    ),
+    class = "dcPlanR_geography"
   )
+}
+
+#' Validate a FIPS Code Argument
+#'
+#' @param fips Value to validate.
+#'
+#' @noRd
+.validate_fips <- function(fips) {
+  if (!rlang::is_scalar_character(fips) || is.na(fips) || !grepl("^[0-9]{5}$", fips)) {
+    rlang::abort(
+      "`fips` must be a single 5-digit character string.",
+      class = "dcPlanR_invalid_fips"
+    )
+  }
+  invisible(fips)
+}
+
+#' Look Up a County's Market Data Row
+#'
+#' @param fips Validated 5-digit county FIPS code.
+#' @param data County-level market data to look up against.
+#'
+#' @noRd
+.lookup_county <- function(fips, data) {
+  row <- data[data$county_fips == fips, ]
+  if (nrow(row) == 0L) {
+    rlang::abort(
+      paste0("No market data found for county FIPS '", fips, "'."),
+      class = "dcPlanR_fips_not_found"
+    )
+  }
+  row
 }
 
 #' Summarize Population and Income for a Geography
@@ -26,15 +129,24 @@ resolve_geography <- function(location, state = NULL) {
 #' American Community Survey (ACS) for the given geography.
 #'
 #' @param fips Character FIPS code, as returned by [resolve_geography()].
+#' @param data County-level market data to look up against. Defaults to
+#'   [directCareData::county_market_data]; overridable for testing.
 #'
-#' @return A list with population and median household income figures for
-#'   the geography.
+#' @return A `dcPlanR_population_income`-classed list with `county_fips`,
+#'   `population`, and `median_household_income`.
 #'
 #' @export
-get_population_income <- function(fips) {
-  rlang::abort(
-    "get_population_income() is not yet implemented.",
-    class = "dcPlanR_not_implemented"
+get_population_income <- function(fips, data = directCareData::county_market_data) {
+  .validate_fips(fips)
+  row <- .lookup_county(fips, data)
+
+  structure(
+    list(
+      county_fips = fips,
+      population = row$population[1],
+      median_household_income = row$median_household_income[1]
+    ),
+    class = "dcPlanR_population_income"
   )
 }
 
@@ -44,14 +156,24 @@ get_population_income <- function(fips) {
 #' Estimates (SAHIE) program for the given geography.
 #'
 #' @param fips Character FIPS code, as returned by [resolve_geography()].
+#' @param data County-level market data to look up against. Defaults to
+#'   [directCareData::county_market_data]; overridable for testing.
 #'
-#' @return A list with uninsured population count and rate for the geography.
+#' @return A `dcPlanR_uninsured_estimate`-classed list with `county_fips`,
+#'   `uninsured_count`, and `uninsured_rate`.
 #'
 #' @export
-get_uninsured_estimate <- function(fips) {
-  rlang::abort(
-    "get_uninsured_estimate() is not yet implemented.",
-    class = "dcPlanR_not_implemented"
+get_uninsured_estimate <- function(fips, data = directCareData::county_market_data) {
+  .validate_fips(fips)
+  row <- .lookup_county(fips, data)
+
+  structure(
+    list(
+      county_fips = fips,
+      uninsured_count = row$uninsured_count[1],
+      uninsured_rate = row$uninsured_rate[1]
+    ),
+    class = "dcPlanR_uninsured_estimate"
   )
 }
 
@@ -61,34 +183,44 @@ get_uninsured_estimate <- function(fips) {
 #' NPPES bulk data.
 #'
 #' @param fips Character FIPS code, as returned by [resolve_geography()].
+#' @param data County-level market data to look up against. Defaults to
+#'   [directCareData::county_market_data]; overridable for testing.
 #'
-#' @return A list with physician count and density per capita for the
-#'   geography.
+#' @return A `dcPlanR_physician_density`-classed list with `county_fips`,
+#'   `physician_count`, and `physician_density_per_10k`.
 #'
 #' @export
-get_physician_density <- function(fips) {
-  rlang::abort(
-    "get_physician_density() is not yet implemented.",
-    class = "dcPlanR_not_implemented"
+get_physician_density <- function(fips, data = directCareData::county_market_data) {
+  .validate_fips(fips)
+  row <- .lookup_county(fips, data)
+
+  structure(
+    list(
+      county_fips = fips,
+      physician_count = row$physician_count[1],
+      physician_density_per_10k = row$physician_density_per_10k[1]
+    ),
+    class = "dcPlanR_physician_density"
   )
 }
 
 #' Summarize the Direct Care Practice Landscape for a Geography
 #'
 #' Pulls existing direct care practices from an internally curated directory
-#' for the given geography, to give a sense of local competition.
+#' for the given geography, to give a sense of local competition. A county
+#' with zero known practices is a valid result, not an error.
 #'
 #' @param fips Character FIPS code, as returned by [resolve_geography()].
+#' @param data Practice landscape data to filter. Defaults to
+#'   [directCareData::direct_care_landscape]; overridable for testing.
 #'
-#' @return A data frame of nearby direct care practices, one row per
-#'   practice.
+#' @return A tibble of nearby direct care practices, one row per practice
+#'   (zero rows if none are known for this county).
 #'
 #' @export
-get_direct_care_landscape <- function(fips) {
-  rlang::abort(
-    "get_direct_care_landscape() is not yet implemented.",
-    class = "dcPlanR_not_implemented"
-  )
+get_direct_care_landscape <- function(fips, data = directCareData::direct_care_landscape) {
+  .validate_fips(fips)
+  data[data$county_fips == fips, ]
 }
 
 #' Assemble a Complete Market Context for a Geography
@@ -102,18 +234,23 @@ get_direct_care_landscape <- function(fips) {
 #'   county names that are not unique nationally. Ignored when `location`
 #'   is a ZIP code.
 #'
-#' @return A list with `geography`, `population_income`, `uninsured`,
-#'   `physician_density`, and `landscape` elements.
+#' @return A `dcPlanR_market_context`-classed list with `geography`,
+#'   `population_income`, `uninsured`, `physician_density`, `landscape`,
+#'   and `provenance` elements.
 #'
 #' @export
 build_market_context <- function(location, state = NULL) {
   geography <- resolve_geography(location, state = state)
 
-  list(
-    geography = geography,
-    population_income = get_population_income(geography$county_fips),
-    uninsured = get_uninsured_estimate(geography$county_fips),
-    physician_density = get_physician_density(geography$county_fips),
-    landscape = get_direct_care_landscape(geography$county_fips)
+  structure(
+    list(
+      geography = geography,
+      population_income = get_population_income(geography$county_fips),
+      uninsured = get_uninsured_estimate(geography$county_fips),
+      physician_density = get_physician_density(geography$county_fips),
+      landscape = get_direct_care_landscape(geography$county_fips),
+      provenance = directCareData::data_provenance
+    ),
+    class = "dcPlanR_market_context"
   )
 }

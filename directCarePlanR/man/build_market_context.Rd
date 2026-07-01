@@ -14,8 +14,9 @@ county names that are not unique nationally. Ignored when \code{location}
 is a ZIP code.}
 }
 \value{
-A list with \code{geography}, \code{population_income}, \code{uninsured},
-\code{physician_density}, and \code{landscape} elements.
+A \code{dcPlanR_market_context}-classed list with \code{geography},
+\code{population_income}, \code{uninsured}, \code{physician_density}, \code{landscape},
+and \code{provenance} elements.
 }
 \description{
 Resolves the geography and calls each of the market context data

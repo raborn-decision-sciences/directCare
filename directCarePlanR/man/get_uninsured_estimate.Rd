@@ -4,13 +4,17 @@
 \alias{get_uninsured_estimate}
 \title{Estimate the Uninsured Population for a Geography}
 \usage{
-get_uninsured_estimate(fips)
+get_uninsured_estimate(fips, data = directCareData::county_market_data)
 }
 \arguments{
 \item{fips}{Character FIPS code, as returned by \code{\link[=resolve_geography]{resolve_geography()}}.}
+
+\item{data}{County-level market data to look up against. Defaults to
+\link[directCareData:county_market_data]{directCareData::county_market_data}; overridable for testing.}
 }
 \value{
-A list with uninsured population count and rate for the geography.
+A \code{dcPlanR_uninsured_estimate}-classed list with \code{county_fips},
+\code{uninsured_count}, and \code{uninsured_rate}.
 }
 \description{
 Pulls uninsured population estimates from the Small Area Health Insurance

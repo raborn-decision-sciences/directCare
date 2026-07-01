@@ -4,16 +4,20 @@
 \alias{get_direct_care_landscape}
 \title{Summarize the Direct Care Practice Landscape for a Geography}
 \usage{
-get_direct_care_landscape(fips)
+get_direct_care_landscape(fips, data = directCareData::direct_care_landscape)
 }
 \arguments{
 \item{fips}{Character FIPS code, as returned by \code{\link[=resolve_geography]{resolve_geography()}}.}
+
+\item{data}{Practice landscape data to filter. Defaults to
+\link[directCareData:direct_care_landscape]{directCareData::direct_care_landscape}; overridable for testing.}
 }
 \value{
-A data frame of nearby direct care practices, one row per
-practice.
+A tibble of nearby direct care practices, one row per practice
+(zero rows if none are known for this county).
 }
 \description{
 Pulls existing direct care practices from an internally curated directory
-for the given geography, to give a sense of local competition.
+for the given geography, to give a sense of local competition. A county
+with zero known practices is a valid result, not an error.
 }

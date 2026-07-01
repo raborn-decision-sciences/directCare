@@ -4,14 +4,17 @@
 \alias{get_physician_density}
 \title{Estimate Physician Density for a Geography}
 \usage{
-get_physician_density(fips)
+get_physician_density(fips, data = directCareData::county_market_data)
 }
 \arguments{
 \item{fips}{Character FIPS code, as returned by \code{\link[=resolve_geography]{resolve_geography()}}.}
+
+\item{data}{County-level market data to look up against. Defaults to
+\link[directCareData:county_market_data]{directCareData::county_market_data}; overridable for testing.}
 }
 \value{
-A list with physician count and density per capita for the
-geography.
+A \code{dcPlanR_physician_density}-classed list with \code{county_fips},
+\code{physician_count}, and \code{physician_density_per_10k}.
 }
 \description{
 Derives a physician-per-population density figure from pre-processed

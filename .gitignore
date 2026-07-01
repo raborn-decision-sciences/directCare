@@ -12,3 +12,4 @@
 test-gnucash.csv
 *.tar.gz
 skills-lock.json
+.Renviron

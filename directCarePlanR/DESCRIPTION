@@ -19,7 +19,10 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
 Imports:
+    directCareData,
     dplyr,
     rlang,
     tibble
+Remotes:
+    raborn-decision-sciences/directCare/directCareData
 URL: https://raborn-decision-sciences.github.io/directCarePlanR/
