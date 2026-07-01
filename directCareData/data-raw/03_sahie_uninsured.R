@@ -3,12 +3,14 @@
 # wrap SAHIE, so this hits the API directly with httr2, reusing
 # CENSUS_API_KEY.
 #
-# SAHIE demographic filters: AGECAT/RACECAT/SEXCAT/IPRCAT codes select
-# which population slice a row describes. "0" in each of these categories
-# means "all ages" / "all races" / "both sexes" / "all income levels" —
-# the broadest, most comparable slice for a practice-planning market
-# summary. Verify these codes against the current SAHIE variable
-# documentation (https://www.census.gov/data/developers/data-sets/sahie-health-insurance.html)
+# SAHIE demographic filters (AGECAT/RACECAT/SEXCAT/IPRCAT, all uppercase
+# in the API) select which population slice a row describes. Using 0 for
+# each selects the broadest available slice: AGECAT=0 is "Under 65 years"
+# (SAHIE's broadest age category -- it does not estimate uninsured rates
+# for 65+, who are overwhelmingly covered by Medicare), RACECAT=0 is "All
+# Races", SEXCAT=0 is "Both Sexes", IPRCAT=0 is "All Incomes". Verify
+# these codes against the current SAHIE variable documentation
+# (https://api.census.gov/data/timeseries/healthins/sahie/variables.html)
 # before re-running, as SAHIE's category coding has changed across vintages.
 
 library(dplyr)
@@ -21,10 +23,10 @@ sahie_resp <- httr2::request("https://api.census.gov/data/timeseries/healthins/s
     `for` = "county:*",
     `in` = "state:*",
     time = sahie_year,
-    agecat = 0,
-    racecat = 0,
-    sexcat = 0,
-    iprcat = 0,
+    AGECAT = 0,
+    RACECAT = 0,
+    SEXCAT = 0,
+    IPRCAT = 0,
     key = Sys.getenv("CENSUS_API_KEY")
   ) |>
   httr2::req_perform()
@@ -42,7 +44,7 @@ sahie_county <- sahie_body |>
   )
 
 sahie_provenance <- list(
-  vintage = as.character(sahie_year),
+  vintage = paste0(sahie_year, " (under 65 years)"),
   retrieved_on = Sys.Date(),
   source_url = "https://www.census.gov/data/developers/data-sets/sahie-health-insurance.html"
 )

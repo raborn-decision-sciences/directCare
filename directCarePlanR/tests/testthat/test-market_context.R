@@ -170,7 +170,7 @@ test_that("build_market_context() assembles all expected elements", {
   )
 
   # Fulton County, GA (FIPS 13121) is a stable reference county.
-  ctx <- build_market_context("30301")
+  ctx <- build_market_context("30309")
   expect_s3_class(ctx, "dcPlanR_market_context")
   expect_named(
     ctx,
@@ -185,7 +185,7 @@ test_that("resolve_geography() agrees between ZIP and county-name lookup", {
     "directCareData geography crosswalks are still the empty placeholder"
   )
 
-  by_zip <- resolve_geography("30301")
+  by_zip <- resolve_geography("30309")
   by_name <- resolve_geography("Fulton", state = "GA")
   expect_equal(by_zip$county_fips, by_name$county_fips)
   expect_equal(by_zip$county_fips, "13121")

@@ -24,8 +24,17 @@ source("data-raw/03_sahie_uninsured.R")
 source("data-raw/04_nppes_physicians.R")
 source("data-raw/05_direct_care_landscape.R")
 
-county_market_data <- county_cbsa_crosswalk |>
-  dplyr::left_join(acs_county, by = "county_fips") |>
+# acs_county enumerates every US county/equivalent; cbsa_delineation only
+# covers the subset that participate in a CBSA. Join CBSA info onto the
+# full ACS spine (not the other way around) so non-metro counties are
+# retained with cbsa_fips/cbsa_title/metro_micro correctly NA, rather than
+# silently dropped.
+county_cbsa_crosswalk <- acs_county |>
+  dplyr::select(county_fips, county_name, state_abb) |>
+  dplyr::left_join(cbsa_delineation, by = "county_fips")
+
+county_market_data <- acs_county |>
+  dplyr::left_join(cbsa_delineation, by = "county_fips") |>
   dplyr::left_join(sahie_county, by = "county_fips") |>
   dplyr::left_join(nppes_county, by = "county_fips") |>
   dplyr::mutate(

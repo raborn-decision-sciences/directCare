@@ -2,6 +2,11 @@
 # Census American Community Survey (ACS) 5-year estimates via tidycensus.
 # Requires CENSUS_API_KEY to be set and tidycensus::census_api_key() to
 # have been called (done by the 00_market_data.R orchestrator).
+#
+# tidycensus::get_acs(geography = "county") enumerates every US county and
+# county-equivalent (including DC and Puerto Rico municipios), so this
+# script's output (acs_county) doubles as the authoritative full-county
+# spine that 00_market_data.R joins everything else onto.
 
 library(dplyr)
 
@@ -18,11 +23,23 @@ acs_raw <- tidycensus::get_acs(
   survey = "acs5"
 )
 
+# base R's state.name/state.abb omits DC and territories; extend explicitly.
+state_name_to_abb <- c(
+  setNames(state.abb, state.name),
+  "District of Columbia" = "DC",
+  "Puerto Rico" = "PR"
+)
+
 acs_county <- acs_raw |>
-  select(GEOID, variable, estimate) |>
+  select(GEOID, NAME, variable, estimate) |>
   tidyr::pivot_wider(names_from = variable, values_from = estimate) |>
   rename(county_fips = GEOID) |>
-  mutate(population = as.integer(population))
+  tidyr::separate(NAME, into = c("county_name", "state_name"), sep = ", ", extra = "merge") |>
+  mutate(
+    state_abb = unname(state_name_to_abb[state_name]),
+    population = as.integer(population)
+  ) |>
+  select(-state_name)
 
 acs_provenance <- list(
   vintage = paste0(acs_year - 4, "-", acs_year, " ACS 5-year"),
