@@ -355,7 +355,7 @@ build_report_data <- function(
 #' Render the Typst PDF report to `out_file`.
 #'
 #' Requires the `typst` binary to be on PATH (install via `brew install typst`
-#' or `cargo install typst-cli`) or the `typst` R package.
+#' or `cargo install typst-cli`) or the `typr` R package.
 #'
 #' @param data_list      List produced by `build_report_data()`.
 #' @param out_file       Destination file path (from `downloadHandler`).
@@ -435,7 +435,7 @@ render_report_pdf <- function(
   invisible(out_file)
 }
 
-# Internal: invoke the typst CLI (PATH) or the typst R package.
+# Internal: invoke the typst CLI (PATH) or the typr R package.
 .compile_typst <- function(typ_file) {
   bin <- Sys.which("typst")
   if (nzchar(bin)) {
@@ -454,16 +454,16 @@ render_report_pdf <- function(
   }
 
   # R package fallback
-  if (requireNamespace("typst", quietly = TRUE)) {
-    typst::typst_compile(typ_file)
+  if (requireNamespace("typr", quietly = TRUE)) {
+    typr::typr_compile(typ_file, output_format = "pdf")
     return(invisible())
   }
 
   stop(
-    "Typst binary not found and the 'typst' R package is not installed.\n",
+    "Typst binary not found and the 'typr' R package is not installed.\n",
     "Install options:\n",
     "  macOS:  brew install typst\n",
     "  Cargo:  cargo install typst-cli\n",
-    "  R pkg:  install.packages('typst')\n"
+    "  R pkg:  install.packages('typr')\n"
   )
 }

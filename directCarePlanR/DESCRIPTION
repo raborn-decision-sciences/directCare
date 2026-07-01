@@ -1,0 +1,25 @@
+Package: directCarePlanR
+Title: Financial Planning for Direct Care Practice Launches
+Version: 0.0.0.9000
+Authors@R:
+    person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
+Description: Business logic for planning a direct care practice launch.
+    Unlike directCareForecastR, which projects forward from a practice's
+    actual financial history, this package projects forward from a
+    physician's assumptions about a practice that does not yet exist. It
+    provides market context lookups, membership and fee revenue
+    modeling, multi-scenario financial projections, startup capital and
+    runway calculations, and narrative interpretation of the results.
+License: Apache License (>= 2) | file LICENSE
+Suggests:
+    testthat (>= 3.0.0),
+    typr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Imports:
+    dplyr,
+    rlang,
+    tibble
+URL: https://raborn-decision-sciences.github.io/directCarePlanR/
