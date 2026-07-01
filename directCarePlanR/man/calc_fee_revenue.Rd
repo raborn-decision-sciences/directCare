@@ -8,7 +8,8 @@ calc_fee_revenue(
   visit_volume,
   new_visit_fee,
   follow_up_fee,
-  new_visit_pct = 0.2
+  new_visit_pct = 0.2,
+  horizon_months = 24L
 )
 }
 \arguments{
@@ -20,13 +21,17 @@ calc_fee_revenue(
 
 \item{new_visit_pct}{Numeric between 0 and 1: the share of visits that
 are new-patient visits. Defaults to 0.2.}
+
+\item{horizon_months}{Integer number of months to project. Defaults to
+24.}
 }
 \value{
-A \code{dcPlanR_revenue} list with \code{fee_for_service} and \code{total}
-components; see \code{\link[=calc_mixed_revenue]{calc_mixed_revenue()}} for the full structure.
+A \code{dcPlanR_fee_revenue}-classed tibble with one row per month
+and columns \code{month}, \code{visit_volume}, and \code{revenue}.
 }
 \description{
 Projects fee-based revenue as visit volume times visit fee, using an
 explicit new-patient vs. follow-up visit mix since the two are typically
-billed at different rates.
+billed at different rates. Unlike membership revenue, visit volume is
+not ramped; it is held flat across the horizon.
 }

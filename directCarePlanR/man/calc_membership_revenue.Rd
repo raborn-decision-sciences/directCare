@@ -7,6 +7,7 @@
 calc_membership_revenue(
   panel_size,
   fee,
+  horizon_months = 24L,
   ramp_months = 12L,
   ramp_shape = c("linear", "s_curve")
 )
@@ -17,18 +18,23 @@ ramp-up is complete.}
 
 \item{fee}{Numeric monthly membership fee per member.}
 
+\item{horizon_months}{Integer number of months to project. Defaults to
+24.}
+
 \item{ramp_months}{Integer number of months to reach \code{panel_size}.
-Defaults to 12.}
+Defaults to 12. If greater than \code{horizon_months}, the ramp will not be
+complete by the end of the projection.}
 
 \item{ramp_shape}{Character string specifying the ramp shape: \code{"linear"}
-(default) or \code{"s_curve"}.}
+(default) or \code{"s_curve"} (a smoothstep curve: slow to start,
+accelerating through the middle, easing into \code{panel_size}).}
 }
 \value{
-A \code{dcPlanR_revenue} list with \code{membership} and \code{total}
-components; see \code{\link[=calc_mixed_revenue]{calc_mixed_revenue()}} for the full structure.
+A \code{dcPlanR_membership_revenue}-classed tibble with one row per
+month and columns \code{month}, \code{panel_size}, and \code{revenue}.
 }
 \description{
 Projects membership revenue as panel size times membership fee, applying
-a ramp function so panel size builds up over time rather than starting
-full on day one.
+a ramp function so panel size builds up over \code{ramp_months} rather than
+starting full on day one.
 }

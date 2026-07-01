@@ -4,7 +4,11 @@
 \alias{calc_mixed_revenue}
 \title{Calculate Combined Membership and Fee-for-Service Revenue}
 \usage{
-calc_mixed_revenue(membership_args = NULL, fee_args = NULL)
+calc_mixed_revenue(
+  membership_args = NULL,
+  fee_args = NULL,
+  horizon_months = 24L
+)
 }
 \arguments{
 \item{membership_args}{A named list of arguments passed to
@@ -12,12 +16,17 @@ calc_mixed_revenue(membership_args = NULL, fee_args = NULL)
 
 \item{fee_args}{A named list of arguments passed to \code{\link[=calc_fee_revenue]{calc_fee_revenue()}},
 or \code{NULL} to omit fee-for-service revenue.}
+
+\item{horizon_months}{Integer number of months to project. Defaults to
+24. Overrides any \code{horizon_months} supplied inside \code{membership_args}
+or \code{fee_args}, so both components always align on the same months.}
 }
 \value{
 A \code{dcPlanR_revenue} list with:
-\item{membership}{Membership revenue detail, or \code{NULL}}
-\item{fee_for_service}{Fee-for-service revenue detail, or \code{NULL}}
-\item{total}{Combined revenue}
+\item{membership}{Tibble from \code{\link[=calc_membership_revenue]{calc_membership_revenue()}}, or \code{NULL}}
+\item{fee_for_service}{Tibble from \code{\link[=calc_fee_revenue]{calc_fee_revenue()}}, or \code{NULL}}
+\item{total}{Tibble with \code{month}, \code{membership_revenue}, \code{fee_revenue},
+and \code{total_revenue} (0, not \code{NA}, for an omitted component)}
 }
 \description{
 Combines membership and fee-for-service revenue into a single structured
