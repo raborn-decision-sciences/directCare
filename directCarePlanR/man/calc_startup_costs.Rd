@@ -8,11 +8,11 @@ calc_startup_costs(cost_items)
 }
 \arguments{
 \item{cost_items}{A named numeric vector or list of startup cost line
-items.}
+items. Every element must be named and non-negative.}
 }
 \value{
-A list with \code{total} and \code{line_items} (the input, preserved for
-display).
+A \code{dcPlanR_startup_costs} list with \code{total} and \code{line_items}
+(the input, preserved for display).
 }
 \description{
 Totals a list of one-time startup cost line items (e.g. EHR setup,

@@ -10,13 +10,15 @@ calc_loan_amortization(principal, annual_rate, term_months)
 \item{principal}{Numeric loan principal.}
 
 \item{annual_rate}{Numeric annual interest rate, expressed as a decimal
-(e.g. 0.08 for 8\%).}
+(e.g. 0.08 for 8\%). \code{0} is allowed (interest-free financing).}
 
 \item{term_months}{Integer loan term in months.}
 }
 \value{
-A tibble with one row per month and columns for payment,
-principal paid, interest paid, and remaining balance.
+A \code{dcPlanR_loan_amortization}-classed tibble with one row per
+month and columns \code{month}, \code{payment}, \code{principal_paid},
+\code{interest_paid}, and \code{remaining_balance} (\code{0} in the final month,
+after rounding).
 }
 \description{
 Produces a month-by-month amortization schedule for a fixed-rate loan,

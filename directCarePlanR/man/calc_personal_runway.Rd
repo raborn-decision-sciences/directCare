@@ -12,7 +12,8 @@ calc_personal_runway(monthly_expenses, months_coverage)
 \item{months_coverage}{Integer number of months of coverage needed.}
 }
 \value{
-A list with \code{total} and the input parameters.
+A \code{dcPlanR_personal_runway} list with \code{total},
+\code{monthly_expenses}, and \code{months_coverage}.
 }
 \description{
 Multiplies monthly personal living expenses by the number of months of
