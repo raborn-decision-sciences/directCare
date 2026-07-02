@@ -7,15 +7,30 @@
 project_practice(assumptions, horizon_months = 24L)
 }
 \arguments{
-\item{assumptions}{A \code{dcPlanR_assumptions} list describing panel growth,
-fees, overhead, and startup costs.}
+\item{assumptions}{A plain list describing the practice's launch
+assumptions:
+\describe{
+\item{membership_args}{List or \code{NULL}, passed to
+\code{\link[=calc_membership_revenue]{calc_membership_revenue()}} (excluding \code{horizon_months}, which
+this function controls).}
+\item{fee_args}{List or \code{NULL}, passed to \code{\link[=calc_fee_revenue]{calc_fee_revenue()}}
+(excluding \code{horizon_months}).}
+\item{overhead_monthly}{Required. Non-negative numeric starting
+monthly overhead.}
+\item{overhead_growth_rate}{Optional numeric monthly compounding
+growth rate applied to overhead (e.g. \code{0.005} for 0.5\%/month).
+Defaults to \code{0} (flat overhead) if omitted.}
+}
+At least one of \code{membership_args}/\code{fee_args} must be supplied (see
+\code{\link[=calc_mixed_revenue]{calc_mixed_revenue()}}).}
 
 \item{horizon_months}{Integer number of months to project. Defaults to
 24.}
 }
 \value{
-A tibble with one row per month and columns for revenue,
-overhead, and net income components.
+A \code{dcPlanR_projection}-classed tibble with one row per month and
+columns \code{month}, \code{membership_revenue}, \code{fee_revenue}, \code{total_revenue},
+\code{overhead}, \code{net_income}, and \code{cumulative_net_income}.
 }
 \description{
 Layer 1 of the projections module. Takes a complete set of practice

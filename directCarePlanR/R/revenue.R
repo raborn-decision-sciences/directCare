@@ -63,6 +63,31 @@
   invisible(x)
 }
 
+#' Validate a Finite Numeric Scalar Argument
+#'
+#' Unlike `.validate_nonneg_scalar()`, negative values are allowed (e.g. a
+#' shrinking overhead growth rate).
+#'
+#' @param x Value to validate.
+#' @param name Argument name, used in the error message.
+#'
+#' @noRd
+.validate_numeric_scalar <- function(x, name) {
+  if (!rlang::is_scalar_double(x) && !rlang::is_scalar_integer(x)) {
+    rlang::abort(
+      paste0("`", name, "` must be a single number."),
+      class = "dcPlanR_invalid_argument"
+    )
+  }
+  if (is.na(x) || is.infinite(x)) {
+    rlang::abort(
+      paste0("`", name, "` must be finite."),
+      class = "dcPlanR_invalid_argument"
+    )
+  }
+  invisible(x)
+}
+
 #' Calculate Membership Revenue
 #'
 #' Projects membership revenue as panel size times membership fee, applying

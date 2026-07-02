@@ -7,23 +7,30 @@
 project_scenarios(assumptions, horizon_months = 24L, scenario_params = NULL)
 }
 \arguments{
-\item{assumptions}{A \code{dcPlanR_assumptions} list describing panel growth,
-fees, overhead, and startup costs, used as the base scenario.}
+\item{assumptions}{A list as described in \code{\link[=project_practice]{project_practice()}}, used as
+the base scenario.}
 
 \item{horizon_months}{Integer number of months to project. Defaults to
 24.}
 
-\item{scenario_params}{Optional named list with \code{conservative} and
-\code{optimistic} elements, each a list of assumption overrides relative to
-\code{assumptions}. Defaults to \code{NULL}, which applies built-in defaults.}
+\item{scenario_params}{Optional named list with \code{conservative} and/or
+\code{optimistic} elements, each a list with \code{ramp_months_multiplier} and
+\code{overhead_multiplier}. Any field omitted falls back to the built-in
+default for that scenario. Defaults to \code{NULL}, which applies the
+built-in defaults entirely:
+\code{list(conservative = list(ramp_months_multiplier = 1.5, overhead_multiplier = 1.1), optimistic = list(ramp_months_multiplier = 0.75, overhead_multiplier = 0.9))}.
+The \code{ramp_months_multiplier} only affects scenarios with a
+\code{membership_args$ramp_months} to scale.}
 }
 \value{
-A tibble with one row per month per scenario, with a \code{scenario}
-column taking values \code{"conservative"}, \code{"base"}, and \code{"optimistic"}.
+A \code{dcPlanR_scenario_projection}-classed tibble with one row per
+month per scenario, with a \code{scenario} column taking values
+\code{"conservative"}, \code{"base"}, and \code{"optimistic"}.
 }
 \description{
 Layer 2 of the projections module. Calls \code{\link[=project_practice]{project_practice()}} three
 times using either explicit variation parameters or sensible defaults
-(e.g. conservative = slower panel growth and higher overhead), returning
-scenario as a first-class dimension of the result.
+(conservative = slower panel growth and higher overhead; optimistic =
+faster panel growth and lower overhead), returning scenario as a
+first-class dimension of the result.
 }
