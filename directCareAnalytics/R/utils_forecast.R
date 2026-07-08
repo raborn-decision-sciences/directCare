@@ -177,6 +177,88 @@ apply_growth_assumptions <- function(
 }
 
 
+# -- Planned future overhead events -------------------------------------------
+
+#' Apply user-defined future overhead step changes to a forecast result.
+#'
+#' Each event adds a permanent monthly cost increase from its start period
+#' forward. The function adds the cumulative event overhead to the fitted
+#' overhead forecast columns, then re-derives crossing dates.
+#'
+#' @param result  List returned by `apply_growth_assumptions()`.
+#' @param events  Data frame with columns `start_date` (Date), `monthly_cost`
+#'   (numeric). May be NULL or 0-row, in which case `result` is returned unchanged.
+#'
+#' @return Updated result list with overhead columns and crossing dates adjusted.
+#' @noRd
+apply_overhead_events <- function(result, events = NULL) {
+  if (is.null(result)) {
+    return(result)
+  }
+  if (is.null(events) || nrow(events) == 0L) {
+    return(result)
+  }
+
+  fd <- result$forecast_data
+  ovhd_cols <- intersect(
+    c("overhead_forecast", "overhead_lower", "overhead_upper"),
+    names(fd)
+  )
+  if (length(ovhd_cols) == 0L || !"period_start" %in% names(fd)) {
+    return(result)
+  }
+
+  for (i in seq_len(nrow(events))) {
+    ev_start <- events$start_date[i]
+    ev_cost <- as.numeric(events$monthly_cost[i])
+    if (!is.finite(ev_cost) || ev_cost == 0) {
+      next
+    }
+    mask <- fd$period_start >= ev_start
+    for (col in ovhd_cols) {
+      fd[[col]][mask] <- fd[[col]][mask] + ev_cost
+    }
+  }
+
+  result$forecast_data <- fd
+
+  # Re-derive break-even crossing
+  if ("overhead_forecast" %in% names(fd)) {
+    already <- identical(result$periods_to_breakeven, 0L)
+    if (!already) {
+      cross <- which(fd$revenue_forecast >= fd$overhead_forecast)
+      if (length(cross) > 0L) {
+        result$periods_to_breakeven <- cross[1L]
+        result$breakeven_date <- fd$period_start[cross[1L]]
+      } else {
+        result$periods_to_breakeven <- NA_integer_
+        result$breakeven_date <- as.Date(NA)
+      }
+    }
+  }
+
+  # Re-derive target crossing (required_revenue already includes event overhead
+  # if apply_growth_assumptions set it; if not, adjust required_revenue too)
+  if ("required_revenue" %in% names(fd) && "overhead_forecast" %in% names(fd)) {
+    # Re-align required_revenue with event-adjusted overhead
+    if (!is.null(result$target_income)) {
+      fd$required_revenue <- fd$overhead_forecast + result$target_income
+      result$forecast_data <- fd
+    }
+    cross <- which(fd$revenue_forecast >= fd$required_revenue)
+    if (length(cross) > 0L) {
+      result$periods_to_target <- cross[1L]
+      result$target_date <- fd$period_start[cross[1L]]
+    } else {
+      result$periods_to_target <- NA_integer_
+      result$target_date <- as.Date(NA)
+    }
+  }
+
+  result
+}
+
+
 # -- Break-even sustainability check ------------------------------------------
 
 #' Is an already-achieved break-even sustained through the forecast horizon?

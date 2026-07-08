@@ -157,6 +157,27 @@ mod_projections_server <- function(id, r) {
             step = 5
           ),
           hr(),
+          # -- Planned future overhead events ---------------------------
+          tags$p(
+            class = "small fw-semibold mb-0",
+            bs_icon("calendar-plus"),
+            " Planned Overhead Events",
+            tooltip(
+              bs_icon("info-circle", title = "About overhead events"),
+              paste0(
+                "Add a planned cost increase (e.g. hiring staff, new office) ",
+                "that starts at a specific point in the forecast horizon. ",
+                "Each event adds a permanent monthly cost from that period forward."
+              )
+            )
+          ),
+          uiOutput(ns("overhead_events_ui")),
+          actionButton(
+            ns("btn_add_overhead_event"),
+            tagList(bs_icon("plus-circle"), " Add Event"),
+            class = "btn-outline-secondary btn-sm w-100 mb-2"
+          ),
+          hr(),
           # -- Target-specific control -----------------------------------
           uiOutput(ns("target_input_ui")),
           # -- Run button ------------------------------------------------
@@ -589,15 +610,127 @@ mod_projections_server <- function(id, r) {
       )
     })
 
+    # -- Planned overhead events UI and state ----------------------------------
+    n_overhead_events <- reactiveVal(0L)
+
+    observeEvent(input$btn_add_overhead_event, {
+      n_overhead_events(n_overhead_events() + 1L)
+    })
+
+    output$overhead_events_ui <- renderUI({
+      n <- n_overhead_events()
+      if (n == 0L) {
+        return(tags$p(
+          class = "small text-muted mb-1",
+          "No events added."
+        ))
+      }
+
+      # Build date choices: forecast horizon from next month
+      horizon <- input$horizon %||% 12L
+      today <- Sys.Date()
+      first_mo <- as.Date(format(today, "%Y-%m-01")) + 31L
+      first_mo <- as.Date(paste(
+        format(first_mo, "%Y"),
+        format(first_mo, "%m"),
+        "01",
+        sep = "-"
+      ))
+      mo_seq <- seq(first_mo, by = "month", length.out = as.integer(horizon))
+      mo_choices <- stats::setNames(
+        as.character(mo_seq),
+        format(mo_seq, "%b %Y")
+      )
+
+      lapply(seq_len(n), function(i) {
+        div(
+          class = "border rounded p-2 mb-2",
+          tags$div(
+            class = "d-flex justify-content-between align-items-center mb-1",
+            tags$span(
+              class = "small fw-semibold text-muted",
+              paste("Event", i)
+            ),
+            actionButton(
+              ns(paste0("btn_rm_ov_event_", i)),
+              bs_icon("x", title = paste("Remove event", i)),
+              class = "btn-outline-danger btn-sm py-0 px-1"
+            )
+          ),
+          textInput(
+            ns(paste0("ov_event_label_", i)),
+            NULL,
+            value = input[[paste0("ov_event_label_", i)]] %||% "",
+            placeholder = "e.g. Hire MA"
+          ),
+          selectInput(
+            ns(paste0("ov_event_start_", i)),
+            NULL,
+            choices = mo_choices,
+            selected = input[[paste0("ov_event_start_", i)]] %||%
+              as.character(mo_seq[1L])
+          ),
+          numericInput(
+            ns(paste0("ov_event_cost_", i)),
+            "Monthly cost increase ($)",
+            value = input[[paste0("ov_event_cost_", i)]] %||% 0,
+            min = 0,
+            step = 100
+          )
+        )
+      })
+    })
+
+    observe({
+      n <- n_overhead_events()
+      lapply(seq_len(n), function(i) {
+        btn_id <- paste0("btn_rm_ov_event_", i)
+        observeEvent(
+          input[[btn_id]],
+          {
+            n_overhead_events(max(0L, n_overhead_events() - 1L))
+          },
+          ignoreInit = TRUE,
+          once = TRUE
+        )
+      })
+    })
+
+    overhead_events_df <- reactive({
+      n <- n_overhead_events()
+      if (n == 0L) {
+        return(NULL)
+      }
+      rows <- lapply(seq_len(n), function(i) {
+        cost <- as.numeric(input[[paste0("ov_event_cost_", i)]] %||% 0)
+        start_str <- input[[paste0("ov_event_start_", i)]]
+        if (is.null(start_str) || !nzchar(start_str)) {
+          return(NULL)
+        }
+        data.frame(
+          label = input[[paste0("ov_event_label_", i)]] %||% paste("Event", i),
+          start_date = as.Date(start_str),
+          monthly_cost = cost,
+          stringsAsFactors = FALSE
+        )
+      })
+      valid <- Filter(Negate(is.null), rows)
+      if (length(valid) == 0L) {
+        return(NULL)
+      }
+      do.call(rbind, valid)
+    })
+
     adj_breakeven <- reactive({
       req(breakeven_result())
       oa <- overhead_assumptions()
-      apply_growth_assumptions(
+      res <- apply_growth_assumptions(
         breakeven_result(),
         income_growth_pct = input$income_growth %||% 0,
         overhead_growth_pct = oa$growth_pct,
         overhead_flat = oa$flat
       )
+      apply_overhead_events(res, overhead_events_df())
     })
 
     adj_revenue <- reactive({
@@ -611,7 +744,7 @@ mod_projections_server <- function(id, r) {
     adj_target <- reactive({
       req(target_result())
       oa <- overhead_assumptions()
-      apply_growth_assumptions(
+      res <- apply_growth_assumptions(
         target_result(),
         income_growth_pct = input$income_growth %||% 0,
         overhead_growth_pct = oa$growth_pct,
@@ -622,6 +755,10 @@ mod_projections_server <- function(id, r) {
         # trend with a non-zero overhead growth rate.
         target_income_override = input$target_income
       )
+      # Store target_income on result so apply_overhead_events can re-derive
+      # required_revenue = overhead_forecast + target_income after event steps.
+      res$target_income <- as.numeric(input$target_income %||% 0)
+      apply_overhead_events(res, overhead_events_df())
     })
 
     # -- Break-even UI --------------------------------------------------------
