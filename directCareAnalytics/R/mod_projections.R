@@ -44,16 +44,31 @@ mod_projections_server <- function(id, r) {
         sidebar = sidebar(
           title = "Forecast Options",
           # -- Shared controls --------------------------------------------
-          selectInput(
-            ns("method"),
-            "Method",
-            choices = c(
-              "Linear regression" = "linear",
-              "ETS (exponential smoothing)" = "ets",
-              "ARIMA" = "arima"
+          tags$div(
+            class = "d-flex align-items-center gap-1 mb-1",
+            tags$span(class = "fw-semibold small", "Forecast Method"),
+            tooltip(
+              bs_icon("circle-fill", title = "Color legend", size = "0.7em"),
+              HTML(paste0(
+                "<strong>Data sufficiency colors:</strong><br>",
+                "<span style='color:#16A34A;'>&#9679;</span> Green &mdash; sufficient data for accurate use<br>",
+                "<span style='color:#F59E0B;'>&#9679;</span> Yellow &mdash; usable but accuracy may be lower<br>",
+                "<span style='color:#DC2626;'>&#9679;</span> Red &mdash; insufficient data; consider another method"
+              ))
             ),
-            selected = "linear"
+            tooltip(
+              bs_icon("info-circle", title = "Model descriptions"),
+              HTML(paste0(
+                "<strong>Linear regression</strong> &mdash; fits a straight-line trend. ",
+                "Works with any amount of data. Best for stable, predictable growth.<br><br>",
+                "<strong>ETS (exponential smoothing)</strong> &mdash; weights recent periods more ",
+                "heavily so the model adapts as your practice evolves. Good with 12+ periods.<br><br>",
+                "<strong>ARIMA</strong> &mdash; captures patterns in how periods relate to prior ones. ",
+                "Needs 30+ periods for reliable results. Can over-fit with sparse data."
+              ))
+            )
           ),
+          uiOutput(ns("method_selector")),
           uiOutput(ns("method_hint")),
           sliderInput(
             ns("horizon"),
@@ -173,6 +188,52 @@ mod_projections_server <- function(id, r) {
             uiOutput(ns("target_ui"))
           )
         )
+      )
+    })
+
+    # -- Color-coded method selector -------------------------------------------
+    # Renders a radioButtons where each label has a colored dot indicating
+    # data sufficiency, using the same thresholds as the method_hint below.
+    output$method_selector <- renderUI({
+      n <- if (!is.null(r$overhead_monthly)) nrow(r$overhead_monthly) else 0L
+
+      dot <- function(color) {
+        tags$span(
+          style = paste0(
+            "display:inline-block;width:10px;height:10px;border-radius:50%;",
+            "background:",
+            color,
+            ";margin-right:5px;vertical-align:middle;"
+          )
+        )
+      }
+
+      linear_dot <- dot("#16A34A")
+      ets_dot <- if (n >= 12L) {
+        dot("#16A34A")
+      } else if (n >= 6L) {
+        dot("#F59E0B")
+      } else {
+        dot("#DC2626")
+      }
+      arima_dot <- if (n >= 30L) {
+        dot("#16A34A")
+      } else if (n >= 12L) {
+        dot("#F59E0B")
+      } else {
+        dot("#DC2626")
+      }
+
+      radioButtons(
+        ns("method"),
+        label = NULL,
+        choiceNames = list(
+          tagList(linear_dot, "Linear regression"),
+          tagList(ets_dot, "ETS (exponential smoothing)"),
+          tagList(arima_dot, "ARIMA")
+        ),
+        choiceValues = list("linear", "ets", "arima"),
+        selected = isolate(input$method) %||% "linear"
       )
     })
 

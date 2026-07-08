@@ -132,19 +132,17 @@
               " Monthly Revenue"
             ),
 
-            numericInput(
-              ns("est_panel_size"),
-              "Current panel size (members)",
-              value = .v("est_panel_size"),
-              min = 0,
-              step = 1
+            tags$p(
+              class = "small text-muted mb-1",
+              "Define one or more membership tiers below. Click ",
+              tags$strong("Add Tier"),
+              " for age-based or plan-level pricing."
             ),
-            numericInput(
-              ns("est_monthly_fee"),
-              "Monthly fee ($/member)",
-              value = .v("est_monthly_fee"),
-              min = 0,
-              step = 5
+            uiOutput(ns("est_tier_ui")),
+            actionButton(
+              ns("est_btn_add_tier"),
+              tagList(bs_icon("plus-circle"), " Add Tier"),
+              class = "btn-outline-secondary btn-sm mb-2"
             ),
             numericInput(
               ns("est_monthly_growth"),
@@ -665,8 +663,6 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           est_malpractice = isolate(input$est_malpractice),
           est_supplies = isolate(input$est_supplies),
           est_other_overhead = isolate(input$est_other_overhead),
-          est_panel_size = isolate(input$est_panel_size),
-          est_monthly_fee = isolate(input$est_monthly_fee),
           est_monthly_growth = isolate(input$est_monthly_growth),
           est_new_visit_fee = isolate(input$est_new_visit_fee),
           est_new_patients_mo = isolate(input$est_new_patients_mo),
@@ -1030,6 +1026,104 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
 
     # -- Quick Estimator server logic ------------------------------------------
 
+    # -- Membership tier state (Quick Estimator) --------------------------------
+    est_n_tiers <- reactiveVal(1L)
+
+    observeEvent(input$est_btn_add_tier, {
+      est_n_tiers(est_n_tiers() + 1L)
+    })
+
+    output$est_tier_ui <- renderUI({
+      n <- est_n_tiers()
+      lapply(seq_len(n), function(i) {
+        div(
+          class = "border rounded p-2 mb-2",
+          if (n > 1L) {
+            tags$div(
+              class = "d-flex justify-content-between align-items-center mb-1",
+              tags$span(
+                class = "small fw-semibold text-muted",
+                paste("Tier", i)
+              ),
+              if (i > 1L) {
+                actionButton(
+                  ns(paste0("est_rm_tier_", i)),
+                  bs_icon("x", title = paste("Remove tier", i)),
+                  class = "btn-outline-danger btn-sm py-0 px-1"
+                )
+              }
+            )
+          },
+          layout_columns(
+            col_widths = c(4, 4, 4),
+            textInput(
+              ns(paste0("est_tier_label_", i)),
+              if (i == 1L && n == 1L) "Label (optional)" else "Label",
+              value = if (n > 1L) paste("Tier", i) else "",
+              placeholder = "e.g. Adult"
+            ),
+            numericInput(
+              ns(paste0("est_tier_members_", i)),
+              "Members",
+              value = 0L,
+              min = 0L,
+              step = 1L
+            ),
+            numericInput(
+              ns(paste0("est_tier_fee_", i)),
+              "Fee ($/mo)",
+              value = 0,
+              min = 0,
+              step = 5
+            )
+          )
+        )
+      })
+    })
+
+    observe({
+      n <- est_n_tiers()
+      lapply(seq_len(n), function(i) {
+        if (i > 1L) {
+          observeEvent(
+            input[[paste0("est_rm_tier_", i)]],
+            {
+              est_n_tiers(max(1L, est_n_tiers() - 1L))
+            },
+            ignoreInit = TRUE,
+            once = TRUE
+          )
+        }
+      })
+    })
+
+    # Aggregate panel size and weighted-average fee across all tiers
+    est_panel_total <- reactive({
+      n <- est_n_tiers()
+      sum(vapply(
+        seq_len(n),
+        \(i) .nn(input[[paste0("est_tier_members_", i)]]),
+        numeric(1)
+      ))
+    })
+
+    est_membership_revenue <- reactive({
+      n <- est_n_tiers()
+      sum(vapply(
+        seq_len(n),
+        function(i) {
+          .nn(input[[paste0("est_tier_members_", i)]]) *
+            .nn(input[[paste0("est_tier_fee_", i)]])
+        },
+        numeric(1)
+      ))
+    })
+
+    est_avg_fee <- reactive({
+      m <- est_panel_total()
+      if (m > 0) est_membership_revenue() / m else 0
+    })
+
     # Live reactive totals used by the rendered summary rows in the form.
     ovhd_total_r <- reactive({
       sum(
@@ -1054,7 +1148,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     }
 
     membership_income_r <- reactive({
-      .nn(input$est_panel_size) * .nn(input$est_monthly_fee)
+      est_membership_revenue()
     })
 
     ffs_income_r <- reactive({
@@ -1064,19 +1158,48 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         .nn(input$est_other_income)
     })
 
-    # Overhead total display (bottom of the overhead column)
+    # Overhead total display + breakdown (bottom of the overhead column)
     output$ovhd_total_ui <- renderUI({
-      tot <- ovhd_total_r()
-      tags$div(
-        class = "border-top pt-2 mt-1 small",
-        tags$span(class = "fw-semibold", "Monthly overhead total: "),
-        tags$span(
-          class = if (isTRUE(tot > 0)) {
-            "text-secondary fw-semibold"
-          } else {
-            "text-muted"
-          },
-          fmt_dollar(tot)
+      cats <- list(
+        "Rent & Facility" = .nn(input$est_rent),
+        "Staff & Payroll" = .nn(input$est_payroll),
+        "EHR & Software" = .nn(input$est_ehr),
+        "Malpractice Ins." = .nn(input$est_malpractice),
+        "Supplies & Labs" = .nn(input$est_supplies),
+        "Other" = .nn(input$est_other_overhead)
+      )
+      tot <- sum(unlist(cats), na.rm = TRUE)
+      nonzero <- cats[sapply(cats, \(v) v > 0)]
+
+      tagList(
+        if (length(nonzero) > 0L) {
+          tags$div(
+            class = "border rounded p-2 mt-2 mb-1 small",
+            style = "background:#f8fafc;",
+            tags$div(
+              class = "fw-semibold text-muted mb-1 small",
+              "Overhead breakdown"
+            ),
+            lapply(names(nonzero), function(nm) {
+              tags$div(
+                class = "d-flex justify-content-between",
+                tags$span(nm),
+                tags$span(fmt_dollar(nonzero[[nm]]))
+              )
+            })
+          )
+        },
+        tags$div(
+          class = "border-top pt-2 mt-1 small",
+          tags$span(class = "fw-semibold", "Monthly overhead total: "),
+          tags$span(
+            class = if (isTRUE(tot > 0)) {
+              "text-secondary fw-semibold"
+            } else {
+              "text-muted"
+            },
+            fmt_dollar(tot)
+          )
         )
       )
     })
@@ -1171,17 +1294,23 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         total_refunds = 0
       )
 
-      panel_now <- input$est_panel_size %||% 0
-      fee <- input$est_monthly_fee %||% 0
+      panel_now <- est_panel_total()
+      fee <- est_avg_fee()
+      mem_rev_now <- est_membership_revenue()
       growth <- input$est_monthly_growth %||% 0
       ffs_mo <- ffs_income_r()
-      panel_sizes <- pmax(0, panel_now + (seq_len(n_months) - 1L) * growth)
+
+      # Revenue grows by adding `growth` members per month at the average fee
+      growth_revenue <- pmax(
+        0,
+        mem_rev_now + (seq_len(n_months) - 1L) * growth * fee
+      )
 
       r$income_monthly <- tibble::tibble(
         practice_id = r$practice_id,
         year = years,
         month = months,
-        total_revenue = panel_sizes * fee + ffs_mo
+        total_revenue = growth_revenue + ffs_mo
       )
 
       # Pre-populate the Practice Profile so member-count value boxes work
@@ -1193,12 +1322,23 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         r$membership_fee <- fee
       }
 
+      # Collect tier details for scenario_inputs
+      n_t <- est_n_tiers()
+      tier_details <- lapply(seq_len(n_t), function(i) {
+        list(
+          label = input[[paste0("est_tier_label_", i)]] %||% paste("Tier", i),
+          members = .nn(input[[paste0("est_tier_members_", i)]]),
+          fee = .nn(input[[paste0("est_tier_fee_", i)]])
+        )
+      })
+
       # Store estimator inputs so the report module can include them.
       r$scenario_inputs <- list(
         start_period = format(start_date, "%B %Y"),
         n_months = n_months,
         panel_size = panel_now,
         monthly_fee = fee,
+        tiers = tier_details,
         monthly_growth = growth,
         ffs_new_visit_fee = input$est_new_visit_fee %||% 0,
         ffs_new_patients_mo = input$est_new_patients_mo %||% 0,
