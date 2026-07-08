@@ -58,7 +58,7 @@ app_server <- function(input, output, session) {
           "Enter your practice name and ID on the ",
           tags$strong("Upload"),
           " tab,",
-          " then choose one of three workflows:"
+          " then choose one of three tools:"
         ),
         tags$div(
           class = "row g-3 mb-3",
@@ -119,6 +119,26 @@ app_server <- function(input, output, session) {
                   " generate a synthetic financial history. Ideal for practices",
                   " in the planning stage. Forecasts reflect the end of the",
                   " synthetic period, not your starting values."
+                )
+              )
+            )
+          ),
+          tags$div(
+            class = "col-md-4",
+            tags$div(
+              class = "card h-100 border-secondary",
+              tags$div(
+                class = "card-body",
+                tags$h6(
+                  class = "card-title",
+                  bsicons::bs_icon("calculator"),
+                  " Quick Calculator"
+                ),
+                tags$p(
+                  class = "card-text small",
+                  "Instantly see your current net position and what it takes to",
+                  " hit your income goal from overhead and membership inputs.",
+                  " No historical data or forecast model required."
                 )
               )
             )
@@ -195,6 +215,6 @@ app_server <- function(input, output, session) {
   # -- Module wiring ----------------------------------------------------------
   mod_upload_server("upload", r, parent_session = session)
   mod_edit_server("edit", r, parent_session = session)
-  mod_summary_server("summary", r)
+  mod_summary_server("summary", r, parent_session = session)
   mod_projections_server("projections", r)
 }

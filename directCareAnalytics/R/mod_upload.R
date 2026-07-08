@@ -48,7 +48,10 @@ mod_upload_ui <- function(id) {
     uiOutput(ns("start_over_ui")),
 
     # -- Step 2: Path choice or upload flow (dynamic) -----------------------
-    uiOutput(ns("main_content"))
+    uiOutput(ns("main_content")),
+
+    # -- Next button (shown once data is loaded via the upload path) ----------
+    uiOutput(ns("next_btn"))
   )
 }
 
@@ -170,7 +173,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       if (is.null(path)) {
         # -- Path selection cards ------------------------------------------
         layout_columns(
-          col_widths = c(6, 6),
+          col_widths = c(4, 4, 4),
           card(
             class = "h-100",
             card_header(
@@ -220,8 +223,35 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 class = "btn-outline-primary w-100"
               )
             )
+          ),
+          card(
+            class = "h-100",
+            card_header(
+              tagList(bs_icon("calculator"), " Quick Calculator")
+            ),
+            card_body(
+              tags$p(
+                "Instantly see how much revenue your panel generates, where ",
+                "you stand relative to overhead, and what it takes to hit your ",
+                "income goal. No historical data needed."
+              ),
+              tags$ul(
+                class = "text-muted small mb-3",
+                tags$li("Enter overhead and membership details"),
+                tags$li("Set an income target"),
+                tags$li("See break-even and target scenarios instantly")
+              ),
+              actionButton(
+                ns("btn_use_calculator"),
+                "Open Calculator",
+                icon = bs_icon("calculator"),
+                class = "btn-outline-secondary w-100"
+              )
+            )
           )
         )
+      } else if (path == "calculator") {
+        mod_calculator_ui(ns("calculator"))
       } else if (path == "manual") {
         mod_manual_entry_ui(ns("manual"))
       } else if (path == "upload") {
@@ -460,6 +490,11 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       go_to_manual_entry()
     })
 
+    observeEvent(input$btn_use_calculator, {
+      commit_practice_identity()
+      path_chosen("calculator")
+    })
+
     observeEvent(input$btn_manual_entry, {
       path_chosen("manual")
     })
@@ -467,6 +502,45 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     observeEvent(input$btn_back, {
       path_chosen(NULL)
     })
+
+    # -- Next button: shown once the upload path has loaded data ---------------
+    output$next_btn <- renderUI({
+      if (!isTRUE(path_chosen() == "upload")) {
+        return(NULL)
+      }
+      has_data <- !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
+      if (!has_data) {
+        return(NULL)
+      }
+      div(
+        class = "d-flex justify-content-end mt-3",
+        actionButton(
+          ns("btn_next_to_edit"),
+          tagList(bs_icon("pencil-square"), " Next: Review & Edit"),
+          class = "btn-primary"
+        )
+      )
+    })
+
+    observeEvent(input$btn_next_to_edit, {
+      updateNavbarPage(
+        parent_session %||% session,
+        "main_nav",
+        selected = "edit"
+      )
+    })
+
+    # -- Calculator sub-module -----------------------------------------------
+    calculator_result <- mod_calculator_server("calculator", r, parent_session)
+
+    observeEvent(
+      calculator_result$go_back(),
+      {
+        path_chosen(NULL)
+      },
+      ignoreNULL = TRUE,
+      ignoreInit = TRUE
+    )
 
     # -- Manual entry sub-module --------------------------------------------
     manual_result <- mod_manual_entry_server("manual", r, parent_session)
@@ -891,9 +965,18 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
               " in GnuCash. The file must include these columns:",
               tags$ul(
                 class = "mb-0 mt-1 ps-3",
-                tags$li(tags$code("Date"), " \u2014 transaction date (MM/DD/YYYY)"),
-                tags$li(tags$code("Account Name"), " \u2014 account (e.g. Expenses:Rent)"),
-                tags$li(tags$code("Amount Num."), " \u2014 signed numeric amount")
+                tags$li(
+                  tags$code("Date"),
+                  " \u2014 transaction date (MM/DD/YYYY)"
+                ),
+                tags$li(
+                  tags$code("Account Name"),
+                  " \u2014 account (e.g. Expenses:Rent)"
+                ),
+                tags$li(
+                  tags$code("Amount Num."),
+                  " \u2014 signed numeric amount"
+                )
               )
             )
           )
@@ -1029,7 +1112,12 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     tags$p(
       class = "text-success small mb-0",
       bs_icon("check-circle-fill"),
-      paste0(" Loaded \u2014 ", n_rows, " period", if (n_rows != 1L) "s" else "")
+      paste0(
+        " Loaded \u2014 ",
+        n_rows,
+        " period",
+        if (n_rows != 1L) "s" else ""
+      )
     )
   } else {
     tags$p(

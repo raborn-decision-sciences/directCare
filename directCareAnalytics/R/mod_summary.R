@@ -68,8 +68,9 @@ mod_summary_ui <- function(id) {
 #'
 #' @param id Module namespace ID.
 #' @param r Shared `reactiveValues` object from `app_server`.
+#' @param parent_session The top-level Shiny session for cross-tab navigation.
 #' @noRd
-mod_summary_server <- function(id, r) {
+mod_summary_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -90,64 +91,78 @@ mod_summary_server <- function(id, r) {
         )
       }
 
-      layout_columns(
-        col_widths = c(6, 6),
+      tagList(
+        layout_columns(
+          col_widths = c(6, 6),
 
-        #  Overhead card
-        card(
-          full_screen = TRUE,
-          card_header(
-            class = "d-flex justify-content-between align-items-center",
-            tagList(bs_icon("receipt"), " Overhead"),
-            # Only show the toggle when transaction-level data is available
-            if (!is.null(r$overhead) && nrow(r$overhead) > 0L) {
-              bslib::input_switch(
-                ns("ovhd_by_cat"),
-                "By category",
-                value = FALSE
-              )
-            }
+          #  Overhead card
+          card(
+            full_screen = TRUE,
+            card_header(
+              class = "d-flex justify-content-between align-items-center",
+              tagList(bs_icon("receipt"), " Overhead"),
+              # Only show the toggle when transaction-level data is available
+              if (!is.null(r$overhead) && nrow(r$overhead) > 0L) {
+                bslib::input_switch(
+                  ns("ovhd_by_cat"),
+                  "By category",
+                  value = FALSE
+                )
+              }
+            ),
+            card_body(
+              layout_column_wrap(
+                width = "140px",
+                fill = FALSE,
+                uiOutput(ns("ovhd_vboxes"))
+              ),
+              plotOutput(ns("ovhd_plot"), height = "280px"),
+              tags$hr(),
+              tags$p(
+                class = "small fw-semibold text-muted mb-1",
+                "Period detail"
+              ),
+              DT::dataTableOutput(ns("ovhd_table"))
+            )
           ),
-          card_body(
-            layout_column_wrap(
-              width = "140px",
-              fill = FALSE,
-              uiOutput(ns("ovhd_vboxes"))
+
+          #  Income card
+          card(
+            full_screen = TRUE,
+            card_header(
+              class = "d-flex justify-content-between align-items-center",
+              tagList(bs_icon("cash-coin"), " Revenue"),
+              # Only show the toggle when transaction-level data is available
+              if (!is.null(r$income) && nrow(r$income) > 0L) {
+                bslib::input_switch(
+                  ns("inc_by_src"),
+                  "By source",
+                  value = FALSE
+                )
+              }
             ),
-            plotOutput(ns("ovhd_plot"), height = "280px"),
-            tags$hr(),
-            tags$p(
-              class = "small fw-semibold text-muted mb-1",
-              "Period detail"
-            ),
-            DT::dataTableOutput(ns("ovhd_table"))
+            card_body(
+              layout_column_wrap(
+                width = "140px",
+                fill = FALSE,
+                uiOutput(ns("inc_vboxes"))
+              ),
+              plotOutput(ns("inc_plot"), height = "280px"),
+              tags$hr(),
+              tags$p(
+                class = "small fw-semibold text-muted mb-1",
+                "Period detail"
+              ),
+              DT::dataTableOutput(ns("inc_table"))
+            )
           )
         ),
-
-        #  Income card
-        card(
-          full_screen = TRUE,
-          card_header(
-            class = "d-flex justify-content-between align-items-center",
-            tagList(bs_icon("cash-coin"), " Revenue"),
-            # Only show the toggle when transaction-level data is available
-            if (!is.null(r$income) && nrow(r$income) > 0L) {
-              bslib::input_switch(ns("inc_by_src"), "By source", value = FALSE)
-            }
-          ),
-          card_body(
-            layout_column_wrap(
-              width = "140px",
-              fill = FALSE,
-              uiOutput(ns("inc_vboxes"))
-            ),
-            plotOutput(ns("inc_plot"), height = "280px"),
-            tags$hr(),
-            tags$p(
-              class = "small fw-semibold text-muted mb-1",
-              "Period detail"
-            ),
-            DT::dataTableOutput(ns("inc_table"))
+        div(
+          class = "d-flex justify-content-end mt-3",
+          actionButton(
+            ns("btn_next_to_projections"),
+            tagList(bs_icon("graph-up-arrow"), " Next: Projections"),
+            class = "btn-primary"
           )
         )
       )
@@ -524,6 +539,14 @@ mod_summary_server <- function(id, r) {
           )
         .make_dt(d)
       }
+    })
+
+    observeEvent(input$btn_next_to_projections, {
+      updateNavbarPage(
+        parent_session %||% session,
+        "main_nav",
+        selected = "projections"
+      )
     })
   })
 }

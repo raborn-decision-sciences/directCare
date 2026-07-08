@@ -339,6 +339,20 @@ mod_projections_server <- function(id, r) {
     # Each result is computed on demand when the run button is clicked.
     # Using bindEvent to avoid firing before the user explicitly requests it.
 
+    # Tracks warning messages already shown in the current btn_run event.
+    # Reset each time Run Forecast is clicked so deduplication is per-run, not
+    # per-session. Three forecast calls share this set so a message that fires
+    # in breakeven_result doesn't repeat in revenue_result or target_result.
+    shown_warnings <- reactiveVal(character(0))
+
+    observeEvent(
+      input$btn_run,
+      {
+        shown_warnings(character(0))
+      },
+      priority = 10
+    )
+
     # Helper: run a forecast call, surfacing data-volume warnings as UI
     # notifications and silently discarding all other expected warnings
     # (breakeven-not-reached, frequency-mismatch, etc.).
@@ -349,24 +363,22 @@ mod_projections_server <- function(id, r) {
         withCallingHandlers(
           expr,
           warning = function(w) {
+            msg <- conditionMessage(w)
             if (inherits(w, "dcForecastR_insufficient_data")) {
-              showNotification(
-                conditionMessage(w),
-                type = "error",
-                duration = 15
-              )
+              if (!msg %in% shown_warnings()) {
+                shown_warnings(c(shown_warnings(), msg))
+                showNotification(msg, type = "error", duration = 15)
+              }
             } else if (inherits(w, "dcForecastR_method_fallback")) {
-              showNotification(
-                conditionMessage(w),
-                type = "warning",
-                duration = 12
-              )
+              if (!msg %in% shown_warnings()) {
+                shown_warnings(c(shown_warnings(), msg))
+                showNotification(msg, type = "warning", duration = 12)
+              }
             } else if (inherits(w, "dcForecastR_low_data_advisory")) {
-              showNotification(
-                conditionMessage(w),
-                type = "message",
-                duration = 10
-              )
+              if (!msg %in% shown_warnings()) {
+                shown_warnings(c(shown_warnings(), msg))
+                showNotification(msg, type = "message", duration = 10)
+              }
             }
             invokeRestart("muffleWarning")
           }
