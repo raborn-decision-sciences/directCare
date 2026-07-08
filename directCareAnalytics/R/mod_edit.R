@@ -1036,6 +1036,10 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     output$est_tier_ui <- renderUI({
       n <- est_n_tiers()
       lapply(seq_len(n), function(i) {
+        saved_label <- isolate(input[[paste0("est_tier_label_", i)]]) %||% ""
+        saved_members <- isolate(input[[paste0("est_tier_members_", i)]]) %||%
+          0L
+        saved_fee <- isolate(input[[paste0("est_tier_fee_", i)]]) %||% 0
         div(
           class = "border rounded p-2 mb-2",
           if (n > 1L) {
@@ -1059,20 +1063,20 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             textInput(
               ns(paste0("est_tier_label_", i)),
               if (i == 1L && n == 1L) "Label (optional)" else "Label",
-              value = if (n > 1L) paste("Tier", i) else "",
+              value = saved_label,
               placeholder = "e.g. Adult"
             ),
             numericInput(
               ns(paste0("est_tier_members_", i)),
               "Members",
-              value = 0L,
+              value = saved_members,
               min = 0L,
               step = 1L
             ),
             numericInput(
               ns(paste0("est_tier_fee_", i)),
               "Fee ($/mo)",
-              value = 0,
+              value = saved_fee,
               min = 0,
               step = 5
             )

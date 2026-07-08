@@ -124,6 +124,9 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
     output$tier_ui <- renderUI({
       n <- n_tiers()
       lapply(seq_len(n), function(i) {
+        saved_label <- isolate(input[[paste0("tier_label_", i)]]) %||% ""
+        saved_members <- isolate(input[[paste0("tier_members_", i)]]) %||% 0
+        saved_fee <- isolate(input[[paste0("tier_fee_", i)]]) %||% 0
         div(
           class = "border rounded p-2 mb-2",
           if (n > 1L) {
@@ -147,20 +150,20 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
             textInput(
               ns(paste0("tier_label_", i)),
               if (i == 1L && n == 1L) "Label (optional)" else "Label",
-              value = if (n > 1L) paste("Tier", i) else "",
+              value = saved_label,
               placeholder = "e.g. Adult"
             ),
             numericInput(
               ns(paste0("tier_members_", i)),
               "Members",
-              value = 0,
+              value = saved_members,
               min = 0,
               step = 1
             ),
             numericInput(
               ns(paste0("tier_fee_", i)),
               "Monthly fee ($)",
-              value = 0,
+              value = saved_fee,
               min = 0,
               step = 5
             )
