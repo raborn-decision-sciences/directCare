@@ -549,6 +549,23 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             )
           )
         }
+        make_count_row <- function(label, start_val, end_val) {
+          tags$tr(
+            tags$td(label),
+            tags$td(class = "text-end", as.integer(start_val)),
+            tags$td(
+              class = "text-end",
+              style = if (end_val > start_val) {
+                "color:#16A34A;"
+              } else if (end_val < start_val) {
+                "color:#DC2626;"
+              } else {
+                ""
+              },
+              as.integer(end_val)
+            )
+          )
+        }
 
         return(
           card(
@@ -585,6 +602,12 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
                   ),
                   tags$tbody(
                     make_row("Total Overhead", start_overhead, end_overhead),
+                    make_count_row(
+                      "Panel Size (members)",
+                      start_panel,
+                      end_panel
+                    ),
+                    make_row("Avg Monthly Fee / Member", start_fee, start_fee),
                     make_row("Membership Revenue", start_mem_rev, end_mem_rev),
                     if (start_ffs > 0) {
                       make_row("Fee-for-Service Revenue", start_ffs, end_ffs)
