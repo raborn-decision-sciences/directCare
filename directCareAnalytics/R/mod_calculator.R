@@ -257,31 +257,31 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
       tagList(
         # -- KPI row ----------------------------------------------------------
         layout_column_wrap(
-          width = "160px",
+          width = "200px",
           fill = FALSE,
           value_box(
             "Membership revenue",
             fmt_dollar(rev),
             theme = "primary",
-            height = "80px"
+            height = "90px"
           ),
           value_box(
             "Monthly overhead",
             fmt_dollar(ovhd),
             theme = "secondary",
-            height = "80px"
+            height = "90px"
           ),
           value_box(
             "Net surplus / deficit",
             fmt_dollar(net),
             theme = if (net >= 0) "success" else "warning",
-            height = "80px"
+            height = "90px"
           ),
           value_box(
             "Panel size",
             if (members > 0) members else "—",
             theme = "info",
-            height = "80px"
+            height = "90px"
           )
         ),
 
