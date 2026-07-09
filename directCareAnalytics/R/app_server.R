@@ -53,16 +53,17 @@ app_server <- function(input, output, session) {
         easyClose = TRUE,
         footer = modalButton("Close"),
 
-        # Workflow overview
-        tags$h6(class = "fw-bold mt-2", "Getting started"),
+        # Workflow overview cards
+        tags$h6(class = "fw-bold mt-2", "Choose a workflow"),
         tags$p(
-          "Enter your practice name and ID on the ",
-          tags$strong("Upload"),
-          " tab,",
-          " then choose one of three tools:"
+          class = "small text-muted mb-3",
+          "Enter your practice name and ID at the top of the page, then pick",
+          " the workflow that fits your situation."
         ),
         tags$div(
           class = "row g-3 mb-3",
+
+          # -- Workflow 1: Historical data --------------------------------------
           tags$div(
             class = "col-md-4",
             tags$div(
@@ -72,37 +73,37 @@ app_server <- function(input, output, session) {
                 tags$h6(
                   class = "card-title",
                   bsicons::bs_icon("file-earmark-bar-graph"),
-                  " Upload Real Data"
+                  " Historical Data"
                 ),
                 tags$p(
-                  class = "card-text small",
-                  "Export a CSV from GnuCash (File \u2192 Export \u2192 Export",
-                  " Transactions to CSV) and upload it. The app maps your accounts to",
-                  " expense categories and builds monthly summaries automatically."
+                  class = "card-text small mb-2",
+                  "For practices with existing financial records. Load your data",
+                  " one of two ways:"
+                ),
+                tags$ul(
+                  class = "small ps-3 mb-0",
+                  tags$li(
+                    tags$strong("CSV upload \u2014"),
+                    " export transactions from GnuCash",
+                    " (File \u2192 Export \u2192 Export Transactions to CSV).",
+                    " The app maps accounts to expense categories automatically."
+                  ),
+                  tags$li(
+                    tags$strong("Manual entry \u2014"),
+                    " type in aggregate overhead and income totals",
+                    " period by period. Good for spreadsheet-based records."
+                  )
+                ),
+                tags$p(
+                  class = "card-text small mt-2 mb-0 text-muted",
+                  bsicons::bs_icon("arrow-right-short"),
+                  " Review & Edit \u2192 Summary \u2192 Projections"
                 )
               )
             )
           ),
-          tags$div(
-            class = "col-md-4",
-            tags$div(
-              class = "card h-100 border-secondary",
-              tags$div(
-                class = "card-body",
-                tags$h6(
-                  class = "card-title",
-                  bsicons::bs_icon("table"),
-                  " Enter Data Manually"
-                ),
-                tags$p(
-                  class = "card-text small",
-                  "Type in aggregate overhead and income totals period by period",
-                  " (monthly or weekly). Good for practices with records in",
-                  " spreadsheets or other software not yet supported."
-                )
-              )
-            )
-          ),
+
+          # -- Workflow 2: Plan My Practice ------------------------------------
           tags$div(
             class = "col-md-4",
             tags$div(
@@ -116,14 +117,22 @@ app_server <- function(input, output, session) {
                 ),
                 tags$p(
                   class = "card-text small",
-                  "Enter estimated monthly overhead and membership details to",
-                  " generate a synthetic financial history. Ideal for practices",
-                  " in the planning stage. Forecasts reflect the end of the",
-                  " synthetic period, not your starting values."
+                  "For practices in the planning stage or without accounting",
+                  " software. Enter estimated monthly overhead, membership tiers",
+                  " (with optional per-tier growth rates), and optional",
+                  " fee-for-service income. The app builds a synthetic financial",
+                  " history and runs forecasts from the end of that period."
+                ),
+                tags$p(
+                  class = "card-text small mt-2 mb-0 text-muted",
+                  bsicons::bs_icon("arrow-right-short"),
+                  " Review Scenario \u2192 Projections"
                 )
               )
             )
           ),
+
+          # -- Workflow 3: Quick Calculator ------------------------------------
           tags$div(
             class = "col-md-4",
             tags$div(
@@ -137,9 +146,15 @@ app_server <- function(input, output, session) {
                 ),
                 tags$p(
                   class = "card-text small",
-                  "Instantly see your current net position and what it takes to",
-                  " hit your income goal from overhead and membership inputs.",
-                  " No historical data or forecast model required."
+                  "Instant break-even and income-target math from your current",
+                  " overhead and membership panel. Supports multiple membership",
+                  " tiers. No historical data or forecast model \u2014 results",
+                  " update as you type."
+                ),
+                tags$p(
+                  class = "card-text small mt-2 mb-0 text-muted",
+                  bsicons::bs_icon("arrow-right-short"),
+                  " Results shown immediately, no navigation required"
                 )
               )
             )
@@ -148,51 +163,90 @@ app_server <- function(input, output, session) {
 
         tags$hr(),
 
-        # Tab guide
-        tags$h6(class = "fw-bold", "Tab guide"),
-        tags$dl(
-          class = "row small",
-          tags$dt(class = "col-sm-3", bsicons::bs_icon("upload"), " Upload"),
-          tags$dd(
-            class = "col-sm-9",
-            "Enter practice details and load data via any of the three workflows above."
-          ),
+        # Workflow walkthroughs
+        tags$h6(class = "fw-bold", "Step-by-step walkthroughs"),
 
-          tags$dt(
-            class = "col-sm-3",
-            bsicons::bs_icon("pencil-square"),
-            " Review & Edit"
+        # Historical data walkthrough
+        tags$p(
+          class = "small fw-semibold mb-1",
+          bsicons::bs_icon("file-earmark-bar-graph"),
+          " Historical Data"
+        ),
+        tags$ol(
+          class = "small mb-3",
+          tags$li(
+            tags$strong("Upload tab \u2014"),
+            " enter your practice name and ID, then either upload a GnuCash CSV",
+            " or click \u201cEnter Data Manually\u201d to type in period totals."
           ),
-          tags$dd(
-            class = "col-sm-9",
-            "Correct account category mappings and add or remove individual",
-            " transactions. Only applicable after a CSV upload or when using",
-            " the Quick Estimator (Plan My Practice)."
+          tags$li(
+            tags$strong("Review & Edit \u2014"),
+            " for CSV uploads, verify that transactions are mapped to the correct",
+            " expense categories and remove any erroneous rows. For manual entry,",
+            " this step is skipped."
           ),
+          tags$li(
+            tags$strong("Summary \u2014"),
+            " review overhead and revenue trends by period, with a category",
+            " and income-source breakdown for CSV uploads."
+          ),
+          tags$li(
+            tags$strong("Projections \u2014"),
+            " choose a forecast method (Linear, ETS, or ARIMA), set the horizon",
+            " and confidence level, and optionally add planned overhead events.",
+            " Enter your membership tiers to unlock member-count metrics.",
+            " Download the PDF report when ready."
+          )
+        ),
 
-          tags$dt(
-            class = "col-sm-3",
-            bsicons::bs_icon("bar-chart-line"),
-            " Summary"
+        # Plan My Practice walkthrough
+        tags$p(
+          class = "small fw-semibold mb-1",
+          bsicons::bs_icon("sliders"),
+          " Plan My Practice"
+        ),
+        tags$ol(
+          class = "small mb-3",
+          tags$li(
+            tags$strong("Upload tab \u2014"),
+            " enter your practice name and ID, then click \u201cPlan My Practice\u201d."
           ),
-          tags$dd(
-            class = "col-sm-9",
-            "Overview of overhead and revenue trends by period.",
-            " CSV-upload users also see a breakdown by expense category and",
-            " income source."
+          tags$li(
+            tags$strong("Quick Estimator \u2014"),
+            " fill in monthly overhead by category, define one or more membership",
+            " tiers (label, starting members, fee, and growth per month), and",
+            " optionally add fee-for-service income.",
+            " Set the synthetic history length and click \u201cGenerate Practice Scenario\u201d."
           ),
+          tags$li(
+            tags$strong("Review Scenario \u2014"),
+            " inspect the generated summary, then click \u201cGo to Projections\u201d.",
+            " Use \u201cRevise Estimates\u201d to regenerate with different inputs."
+          ),
+          tags$li(
+            tags$strong("Projections \u2014"),
+            " same as the Historical Data workflow. Membership tiers are",
+            " pre-filled from the end of your synthetic period."
+          )
+        ),
 
-          tags$dt(
-            class = "col-sm-3",
-            bsicons::bs_icon("graph-up-arrow"),
-            " Projections"
+        # Quick Calculator walkthrough
+        tags$p(
+          class = "small fw-semibold mb-1",
+          bsicons::bs_icon("calculator"),
+          " Quick Calculator"
+        ),
+        tags$ol(
+          class = "small mb-3",
+          tags$li(
+            tags$strong("Upload tab \u2014"),
+            " enter your practice name and ID, then click \u201cQuick Calculator\u201d."
           ),
-          tags$dd(
-            class = "col-sm-9",
-            "Run break-even, revenue, and income-target forecasts. Adjust",
-            " the method, horizon, confidence level, and growth assumptions",
-            " in the sidebar. Enter your panel size and monthly fee to unlock",
-            " member-count metrics. Download a PDF report when ready."
+          tags$li(
+            tags$strong("Calculator \u2014"),
+            " enter total monthly overhead, add membership tiers, and set an",
+            " income target. Results (break-even and target scenarios) update",
+            " instantly as you type."
           )
         ),
 
