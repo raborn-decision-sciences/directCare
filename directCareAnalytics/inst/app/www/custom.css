@@ -45,10 +45,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Hide workflow tabs from the navbar — navigation is via Next/Back buttons */
-.navbar .nav-item:has(.nav-link[data-value="upload"]),
-.navbar .nav-item:has(.nav-link[data-value="edit"]),
-.navbar .nav-item:has(.nav-link[data-value="summary"]),
-.navbar .nav-item:has(.nav-link[data-value="projections"]),
+.navbar .nav a[data-value="upload"],
+.navbar .nav a[data-value="edit"],
+.navbar .nav a[data-value="summary"],
+.navbar .nav a[data-value="projections"],
 .navbar .bslib-nav-spacer {
   display: none !important;
 }

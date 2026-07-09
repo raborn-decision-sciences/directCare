@@ -172,7 +172,7 @@ plot_forecast_breakeven <- function(
       title = "Break-even Forecast",
       subtitle = paste(
         "Method:",
-        toupper(result$method),
+        toupper(.actual_method(result)),
         "| Solid = observed, dashed = projected"
       ),
       x = NULL,
@@ -263,7 +263,7 @@ plot_forecast_revenue <- function(result, income_monthly = NULL) {
       title = "Revenue Forecast",
       subtitle = paste(
         "Method:",
-        toupper(result$method),
+        toupper(.actual_method(result)),
         "| Horizon:",
         nrow(fd),
         result$frequency,
@@ -348,7 +348,7 @@ plot_forecast_target <- function(result, income_monthly = NULL) {
       title = "Income Target Forecast",
       subtitle = paste(
         "Method:",
-        toupper(result$method),
+        toupper(.actual_method(result)),
         "| Solid = observed, dashed = projected"
       ),
       x = NULL,
@@ -361,6 +361,10 @@ plot_forecast_target <- function(result, income_monthly = NULL) {
     plot_theme()
 
   if (!is.na(result$target_date)) {
+    date_range <- range(fd$period_start, na.rm = TRUE)
+    date_span <- as.numeric(date_range[2] - date_range[1])
+    date_pos <- as.numeric(result$target_date - date_range[1]) / date_span
+    label_hjust <- if (date_pos > 0.6) 1.05 else -0.05
     p <- p +
       ggplot2::geom_vline(
         xintercept = result$target_date,
@@ -372,11 +376,11 @@ plot_forecast_target <- function(result, income_monthly = NULL) {
         "label",
         x = result$target_date,
         y = max(fd$revenue_upper, na.rm = TRUE),
-        label = paste("Target reached\n", format(result$target_date, "%b %Y")),
+        label = paste0("Target reached\n", format(result$target_date, "%b %Y")),
         fill = "#2d6a4f",
         colour = "white",
         size = 3.5,
-        hjust = -0.05
+        hjust = label_hjust
       )
   }
 

@@ -271,9 +271,10 @@
       columns: (1fr, 1fr, 1fr, 1fr),
       column-gutter: 6pt,
       kpi("Break-even Status", bkevn.status,
-          color: if bkevn.status == "Achieved" { green }
-                 else if bkevn.status == "Not in horizon" { red }
-                 else { amber }),
+          color: if bkevn.status in ("Achieved", "Likely") { green }
+                 else if bkevn.status in ("Not Achievable", "Unlikely") { red }
+                 else if bkevn.status == "Achieved (at risk)" { amber }
+                 else { teal-dark }),
       kpi("Current Revenue",          bkevn.current_revenue_fmt),
       kpi("Current Overhead",         bkevn.current_overhead_fmt),
       kpi("Current Surplus / Deficit", bkevn.current_surplus_fmt, color: s-col),
@@ -419,9 +420,10 @@
       column-gutter: 6pt,
       kpi("Net Income Target",    tgt.target_income_fmt),
       kpi("Status",               tgt.status,
-          color: if tgt.status == "Achieved" { green }
-                 else if tgt.status == "Not in horizon" { red }
-                 else { amber }),
+          color: if tgt.status in ("Achieved", "Likely") { green }
+                 else if tgt.status in ("Not Achievable", "Unlikely") { red }
+                 else if tgt.status == "Achieved (at risk)" { amber }
+                 else { teal-dark }),
       kpi("Required Revenue Now", tgt.required_revenue_fmt),
       kpi("Current Gap",          tgt.current_gap_fmt, color: g-col),
     )

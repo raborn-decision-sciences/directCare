@@ -16,7 +16,17 @@ html_to_plain <- function(html) {
   out <- gsub("&gt;", ">", out)
   out <- gsub("&hellip;", "\u2026", out)
   out <- gsub("<br\\s*/?>", "\n\n", out, ignore.case = TRUE, perl = TRUE)
-  # </p> marks the end of a paragraph \u2192 double newline; opening <p> is discarded
+  # List items: convert to bullet lines before stripping tags
+  out <- gsub(
+    "<li[^>]*>\\s*",
+    "\u2022 ",
+    out,
+    ignore.case = TRUE,
+    perl = TRUE
+  )
+  out <- gsub("</li>", "\n", out, ignore.case = TRUE)
+  out <- gsub("<ul[^>]*>|</ul>", "\n", out, ignore.case = TRUE, perl = TRUE)
+  # </p> marks the end of a paragraph -> double newline; opening <p> is discarded
   out <- gsub("</p>", "\n\n", out, ignore.case = TRUE)
   out <- gsub("<p[^>]*>", "", out, ignore.case = TRUE, perl = TRUE)
   out <- gsub("<[^>]+>", "", out, perl = TRUE)
@@ -58,6 +68,35 @@ html_to_paragraphs <- function(html) {
   } else {
     ""
   }
+}
+
+# -- Forecast status label ------------------------------------------------------
+# Maps forecast result + coverage to a plain-English status for the report KPI.
+# coverage_pct: percentage of forecast periods where the goal is met (0-100).
+.forecast_status <- function(already, sustained, coverage_pct, date) {
+  if (already && isTRUE(sustained)) {
+    return("Achieved")
+  }
+  if (already && isFALSE(sustained)) {
+    return("Achieved (at risk)")
+  }
+  if (already) {
+    return("Achieved")
+  }
+  if (is.na(date)) {
+    return("Not Achievable")
+  }
+  pct <- coverage_pct %||% NA_real_
+  if (!is.na(pct) && pct >= 70) {
+    return("Likely")
+  }
+  if (!is.na(pct) && pct >= 30) {
+    return("Possible")
+  }
+  if (!is.na(pct)) {
+    return("Unlikely")
+  }
+  "Projected"
 }
 
 # -- Table builders -------------------------------------------------------------
@@ -220,17 +259,34 @@ build_report_data <- function(
   bkevn_block <- if (!is.null(breakeven_res)) {
     sustained <- breakeven_is_sustained(breakeven_res)
     already <- identical(breakeven_res$periods_to_breakeven, 0L)
-    status <- if (already && isTRUE(sustained)) {
-      "Achieved"
-    } else if (already && isFALSE(sustained)) {
-      "Achieved (at risk)"
-    } else if (already) {
-      "Achieved"
-    } else if (is.na(breakeven_res$breakeven_date)) {
-      "Not in horizon"
+    fd_bk <- breakeven_res$forecast_data
+    bk_cov <- if (
+      all(c("revenue_forecast", "overhead_forecast") %in% names(fd_bk))
+    ) {
+      n_tot <- sum(
+        !is.na(fd_bk$revenue_forecast) & !is.na(fd_bk$overhead_forecast)
+      )
+      if (n_tot > 0L) {
+        round(
+          100 *
+            sum(
+              fd_bk$revenue_forecast >= fd_bk$overhead_forecast,
+              na.rm = TRUE
+            ) /
+            n_tot
+        )
+      } else {
+        NA_real_
+      }
     } else {
-      format(breakeven_res$breakeven_date, "%B %Y")
+      NA_real_
     }
+    status <- .forecast_status(
+      already,
+      sustained,
+      bk_cov,
+      breakeven_res$breakeven_date
+    )
     list(
       status = status,
       has_plot = TRUE,
@@ -288,15 +344,34 @@ build_report_data <- function(
   tgt_block <- if (!is.null(target_res)) {
     tgt_sustained <- target_is_sustained(target_res)
     tgt_already <- isTRUE(target_res$current_gap >= 0)
-    tgt_status <- if (tgt_already && isFALSE(tgt_sustained)) {
-      "Achieved (at risk)"
-    } else if (tgt_already) {
-      "Achieved"
-    } else if (is.na(target_res$target_date)) {
-      "Not in horizon"
+    fd_tg <- target_res$forecast_data
+    tg_cov <- if (
+      all(c("revenue_forecast", "required_revenue") %in% names(fd_tg))
+    ) {
+      n_tot <- sum(
+        !is.na(fd_tg$revenue_forecast) & !is.na(fd_tg$required_revenue)
+      )
+      if (n_tot > 0L) {
+        round(
+          100 *
+            sum(
+              fd_tg$revenue_forecast >= fd_tg$required_revenue,
+              na.rm = TRUE
+            ) /
+            n_tot
+        )
+      } else {
+        NA_real_
+      }
     } else {
-      format(target_res$target_date, "%B %Y")
+      NA_real_
     }
+    tgt_status <- .forecast_status(
+      tgt_already,
+      tgt_sustained,
+      tg_cov,
+      target_res$target_date
+    )
     list(
       has_plot = TRUE,
       target_income_fmt = .fmt_dollar(inputs$target_income),
@@ -335,7 +410,13 @@ build_report_data <- function(
     } else {
       NULL
     },
-    forecast_method = inputs$method %||% NULL,
+    forecast_method = if (!is.null(breakeven_res)) {
+      .actual_method(breakeven_res)
+    } else if (!is.null(revenue_res)) {
+      .actual_method(revenue_res)
+    } else {
+      inputs$method %||% NULL
+    },
     forecast_horizon = inputs$horizon %||% NULL,
     ci_label = paste0(round((inputs$confidence %||% 0.95) * 100), "% CI"),
     overhead_summary = if (!is.null(r$overhead_monthly)) {
