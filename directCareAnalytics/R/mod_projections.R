@@ -632,7 +632,15 @@ mod_projections_server <- function(id, r) {
       last_obs <- if (
         !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
       ) {
-        max(r$overhead_monthly$period_start, na.rm = TRUE)
+        om <- r$overhead_monthly
+        if ("period_start" %in% names(om)) {
+          max(om$period_start, na.rm = TRUE)
+        } else if (all(c("year", "month") %in% names(om))) {
+          idx <- which.max(om$year * 12L + om$month)
+          lubridate::make_date(om$year[idx], om$month[idx], 1L)
+        } else {
+          Sys.Date()
+        }
       } else {
         Sys.Date()
       }
