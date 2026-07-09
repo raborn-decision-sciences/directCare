@@ -272,11 +272,19 @@
           " -- not your starting panel size or initial overhead figures."
         )
       ),
-      input_task_button(
-        ns("btn_generate"),
-        "Generate Practice Scenario",
-        icon = bs_icon("lightning-charge"),
-        class = "btn-primary w-100 mt-1"
+      div(
+        class = "d-flex justify-content-between align-items-center mt-1 gap-2",
+        actionButton(
+          ns("btn_back_to_upload"),
+          tagList(bs_icon("arrow-left"), " Back"),
+          class = "btn-outline-secondary"
+        ),
+        input_task_button(
+          ns("btn_generate"),
+          "Generate Practice Scenario",
+          icon = bs_icon("lightning-charge"),
+          class = "btn-primary flex-grow-1"
+        )
       )
     )
   )
@@ -655,17 +663,25 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
               ),
 
               div(
-                class = "d-flex gap-2 mt-3 flex-wrap",
+                class = "d-flex justify-content-between mt-3 flex-wrap gap-2",
                 actionButton(
-                  ns("btn_restart_estimator"),
-                  "Revise Estimates",
-                  icon = bs_icon("arrow-counterclockwise"),
+                  ns("btn_back_to_upload"),
+                  tagList(bs_icon("arrow-left"), " Back"),
                   class = "btn-outline-secondary"
                 ),
-                actionButton(
-                  ns("btn_go_projections"),
-                  tagList(bs_icon("graph-up-arrow"), " Go to Projections"),
-                  class = "btn-primary"
+                div(
+                  class = "d-flex gap-2",
+                  actionButton(
+                    ns("btn_restart_estimator"),
+                    "Revise Estimates",
+                    icon = bs_icon("arrow-counterclockwise"),
+                    class = "btn-outline-secondary"
+                  ),
+                  actionButton(
+                    ns("btn_go_projections"),
+                    tagList(bs_icon("graph-up-arrow"), " Go to Projections"),
+                    class = "btn-primary"
+                  )
                 )
               )
             )
@@ -955,7 +971,12 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           )
         ),
         div(
-          class = "d-flex justify-content-end mt-3",
+          class = "d-flex justify-content-between mt-3",
+          actionButton(
+            ns("btn_back_to_upload"),
+            tagList(bs_icon("arrow-left"), " Back"),
+            class = "btn-outline-secondary"
+          ),
           actionButton(
             ns("btn_next_to_summary"),
             tagList(bs_icon("bar-chart-line"), " Next: Summary"),
@@ -1396,6 +1417,14 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     })
 
     # Restart: clear generated data and reset the estimator form.
+    observeEvent(input$btn_back_to_upload, {
+      updateNavbarPage(
+        parent_session %||% session,
+        "main_nav",
+        selected = "upload"
+      )
+    })
+
     observeEvent(input$btn_restart_estimator, {
       estimator_done(FALSE)
       r$overhead_monthly <- NULL

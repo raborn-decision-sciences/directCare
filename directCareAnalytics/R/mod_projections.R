@@ -187,7 +187,13 @@ mod_projections_server <- function(id, r) {
             icon = bsicons::bs_icon("play-fill"),
             class = "btn-primary w-100"
           ),
-          uiOutput(ns("download_ui"))
+          uiOutput(ns("download_ui")),
+          hr(),
+          actionButton(
+            ns("btn_back_to_summary"),
+            tagList(bs_icon("arrow-left"), " Back to Summary"),
+            class = "btn-outline-secondary w-100"
+          )
         ),
 
         # -- Main area: forecast sub-tabs -----------------------------------
@@ -1246,5 +1252,9 @@ mod_projections_server <- function(id, r) {
         })
       }
     )
+
+    observeEvent(input$btn_back_to_summary, {
+      updateNavbarPage(session, "main_nav", selected = "summary")
+    })
   })
 }

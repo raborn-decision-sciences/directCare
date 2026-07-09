@@ -158,7 +158,12 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           )
         ),
         div(
-          class = "d-flex justify-content-end mt-3",
+          class = "d-flex justify-content-between mt-3",
+          actionButton(
+            ns("btn_back_to_edit"),
+            tagList(bs_icon("arrow-left"), " Back"),
+            class = "btn-outline-secondary"
+          ),
           actionButton(
             ns("btn_next_to_projections"),
             tagList(bs_icon("graph-up-arrow"), " Next: Projections"),
@@ -539,6 +544,14 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           )
         .make_dt(d)
       }
+    })
+
+    observeEvent(input$btn_back_to_edit, {
+      updateNavbarPage(
+        parent_session %||% session,
+        "main_nav",
+        selected = "edit"
+      )
     })
 
     observeEvent(input$btn_next_to_projections, {
