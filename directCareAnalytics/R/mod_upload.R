@@ -51,7 +51,18 @@ mod_upload_ui <- function(id) {
     uiOutput(ns("main_content")),
 
     # -- Next button (shown once data is loaded via the upload path) ----------
-    uiOutput(ns("next_btn"))
+    uiOutput(ns("next_btn")),
+
+    # -- Branded footer -------------------------------------------------------
+    tags$div(
+      class = "mt-5 pt-3 border-top d-flex align-items-center justify-content-center gap-3",
+      style = "opacity:0.55;",
+      tags$img(
+        src = "www/logo-rds-alt.svg",
+        height = "36px",
+        alt = "Raborn Decision Sciences"
+      )
+    )
   )
 }
 

@@ -10,13 +10,17 @@ app_ui <- function(request) {
       title = tags$a(
         href = "#",
         onclick = "Shiny.setInputValue('brand_click', Math.random(), {priority: 'event'}); return false;",
-        style = "display: flex; align-items: center; gap: 8px; color: inherit; text-decoration: none;",
+        style = "display:inline-flex;align-items:center;gap:8px;color:inherit;text-decoration:none;line-height:1;",
         tags$img(
-          src = "www/rds-logo.png",
+          src = "www/favicon.svg",
           height = "28px",
-          alt = "Raborn Decision Sciences"
+          width = "28px",
+          alt = "RDS"
         ),
-        "Direct Care Analytics"
+        tags$span(
+          style = "font-weight:600;font-size:0.95rem;white-space:nowrap;",
+          "Direct Care Analytics"
+        )
       ),
       id = "main_nav",
       theme = rds_theme(),
@@ -95,13 +99,13 @@ rds_theme <- function() {
 #' Add external Resources to the Application
 #'
 #' @import shiny
-#' @importFrom golem add_resource_path activate_js favicon bundle_resources
+#' @importFrom golem add_resource_path activate_js bundle_resources
 #' @noRd
 golem_add_external_resources <- function() {
   add_resource_path("www", app_sys("app/www"))
 
   tags$head(
-    favicon(),
+    tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "Direct Care Analytics | Raborn Decision Sciences"
