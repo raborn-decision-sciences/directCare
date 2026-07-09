@@ -269,7 +269,7 @@ mod_projections_server <- function(id, r) {
         input$method %||% "linear",
         linear = list(
           icon = "check2-circle",
-          theme = "text-success",
+          theme = "text-body",
           head = paste0(
             "Linear regression \u2014 ",
             n_periods,
@@ -284,7 +284,7 @@ mod_projections_server <- function(id, r) {
         ),
         ets = list(
           icon = "arrow-repeat",
-          theme = "text-info",
+          theme = "text-body",
           head = paste0(
             "Exponential smoothing \u2014 ",
             n_periods,
@@ -300,7 +300,7 @@ mod_projections_server <- function(id, r) {
         ),
         arima = list(
           icon = "activity",
-          theme = if (n_periods < 30L) "text-warning" else "text-secondary",
+          theme = "text-body",
           head = paste0(
             "ARIMA \u2014 ",
             n_periods,
