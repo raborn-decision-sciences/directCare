@@ -626,16 +626,17 @@ mod_projections_server <- function(id, r) {
         ))
       }
 
-      # Build date choices: forecast horizon from next month
+      # Build date choices starting from the first forecast period,
+      # which is the month after the last observed period in the data.
       horizon <- input$horizon %||% 12L
-      today <- Sys.Date()
-      first_mo <- as.Date(format(today, "%Y-%m-01")) + 31L
-      first_mo <- as.Date(paste(
-        format(first_mo, "%Y"),
-        format(first_mo, "%m"),
-        "01",
-        sep = "-"
-      ))
+      last_obs <- if (
+        !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
+      ) {
+        max(r$overhead_monthly$period_start, na.rm = TRUE)
+      } else {
+        Sys.Date()
+      }
+      first_mo <- as.Date(format(last_obs + 31L, "%Y-%m-01"))
       mo_seq <- seq(first_mo, by = "month", length.out = as.integer(horizon))
       mo_choices <- stats::setNames(
         as.character(mo_seq),

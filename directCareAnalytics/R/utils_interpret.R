@@ -20,7 +20,7 @@
 # Internal: build a data-quality note paragraph from result$data_warnings.
 # Returns an empty string when no warnings are present.
 .data_warnings_html <- function(result) {
-  msgs <- result$data_warnings
+  msgs <- unique(result$data_warnings)
   if (is.null(msgs) || length(msgs) == 0L) {
     return("")
   }
@@ -32,6 +32,26 @@
     items,
     "</ul></p>"
   )
+}
+
+# Internal: return the method actually used, accounting for fallback.
+# When the requested method couldn't run (e.g. ARIMA with too few obs),
+# directCareForecastR falls back to linear and records it in data_warnings.
+# result$method still holds the *requested* method, so we detect the fallback
+# by scanning the warning text.
+.actual_method <- function(result) {
+  if (
+    !is.null(result$data_warnings) &&
+      any(grepl(
+        "linear method was used instead",
+        result$data_warnings,
+        fixed = TRUE
+      ))
+  ) {
+    "linear"
+  } else {
+    result$method
+  }
 }
 
 # Internal: derive period-unit strings from result$frequency.
@@ -206,7 +226,7 @@ interpret_breakeven <- function(
 
   method_sentence <- paste0(
     "This projection uses the <em>",
-    result$method,
+    .actual_method(result),
     "</em> forecasting method ",
     "on ",
     result$frequency,
@@ -417,7 +437,7 @@ interpret_revenue <- function(
     pu$singular,
     " in revenue. ",
     "The <em>",
-    result$method,
+    .actual_method(result),
     "</em> model projects revenue to <strong>",
     direction,
     " by ",
@@ -443,7 +463,7 @@ interpret_revenue <- function(
     "changes, fee-for-service volume, and seasonal variation.</p>",
     if (nzchar(warnings_html)) warnings_html else "",
     "<p class='text-muted small'>Method: <em>",
-    result$method,
+    .actual_method(result),
     "</em> on ",
     result$frequency,
     " data.</p>"
@@ -779,7 +799,7 @@ interpret_target <- function(
     disclaimer,
     if (nzchar(warnings_html)) warnings_html else "",
     "<p class='text-muted small'>Method: <em>",
-    result$method,
+    .actual_method(result),
     "</em> on ",
     result$frequency,
     " data.</p>"
