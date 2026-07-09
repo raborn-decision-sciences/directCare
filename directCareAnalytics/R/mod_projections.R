@@ -19,7 +19,7 @@ mod_projections_ui <- function(id) {
 #' @param id Module namespace ID.
 #' @param r Shared `reactiveValues` object from `app_server`.
 #' @noRd
-mod_projections_server <- function(id, r) {
+mod_projections_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -1254,7 +1254,11 @@ mod_projections_server <- function(id, r) {
     )
 
     observeEvent(input$btn_back_to_summary, {
-      updateNavbarPage(session, "main_nav", selected = "summary")
+      updateNavbarPage(
+        parent_session %||% session,
+        "main_nav",
+        selected = "summary"
+      )
     })
   })
 }

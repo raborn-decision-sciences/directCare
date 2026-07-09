@@ -216,5 +216,5 @@ app_server <- function(input, output, session) {
   mod_upload_server("upload", r, parent_session = session)
   mod_edit_server("edit", r, parent_session = session)
   mod_summary_server("summary", r, parent_session = session)
-  mod_projections_server("projections", r)
+  mod_projections_server("projections", r, parent_session = session)
 }
