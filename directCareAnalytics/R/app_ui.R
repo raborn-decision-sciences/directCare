@@ -25,10 +25,26 @@ app_ui <- function(request) {
       id = "main_nav",
       theme = rds_theme(),
       # -- Tabs (hidden from navbar; navigation via Next/Back buttons) ---------
-      nav_panel_hidden(value = "upload",      mod_upload_ui("upload")),
-      nav_panel_hidden(value = "edit",        mod_edit_ui("edit")),
-      nav_panel_hidden(value = "summary",     mod_summary_ui("summary")),
-      nav_panel_hidden(value = "projections", mod_projections_ui("projections")),
+      nav_panel(
+        title = tagList(bs_icon("upload"), " Upload"),
+        value = "upload",
+        mod_upload_ui("upload")
+      ),
+      nav_panel(
+        title = tagList(bs_icon("pencil-square"), " Review & Edit"),
+        value = "edit",
+        mod_edit_ui("edit")
+      ),
+      nav_panel(
+        title = tagList(bs_icon("bar-chart-line"), " Summary"),
+        value = "summary",
+        mod_summary_ui("summary")
+      ),
+      nav_panel(
+        title = tagList(bs_icon("graph-up-arrow"), " Projections"),
+        value = "projections",
+        mod_projections_ui("projections")
+      ),
       # -- Right-side items --------------------------------------------------
       nav_spacer(),
       nav_item(
@@ -94,6 +110,26 @@ golem_add_external_resources <- function() {
       path = app_sys("app/www"),
       app_title = "Direct Care Analytics | Raborn Decision Sciences"
     ),
-    tags$link(rel = "stylesheet", href = "www/custom.css")
+    tags$link(rel = "stylesheet", href = "www/custom.css"),
+    # Hide workflow tabs from the navbar — navigation is via Next/Back buttons.
+    # JS runs after DOM construction and is not subject to :has() browser support.
+    tags$script(HTML(
+      "(function() {
+        var vals = ['upload', 'edit', 'summary', 'projections'];
+        function hideNavTabs() {
+          vals.forEach(function(v) {
+            var a = document.querySelector('.navbar-nav a[data-value=\"' + v + '\"]');
+            if (a && a.parentElement) {
+              a.parentElement.style.setProperty('display', 'none', 'important');
+            }
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', hideNavTabs);
+        } else {
+          hideNavTabs();
+        }
+      })();"
+    ))
   )
 }
