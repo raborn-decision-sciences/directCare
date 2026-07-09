@@ -401,12 +401,25 @@ build_report_data <- function(
     workflow = workflow,
     has_income = has_income,
     panel_size_fmt = if (!is.null(r$panel_size)) {
-      as.character(r$panel_size)
+      as.character(round(r$panel_size))
     } else {
       NULL
     },
     membership_fee_fmt = if (!is.null(r$membership_fee)) {
       .fmt_dollar(r$membership_fee)
+    } else {
+      NULL
+    },
+    membership_tiers = if (
+      !is.null(r$membership_tiers) && length(r$membership_tiers) > 0L
+    ) {
+      lapply(r$membership_tiers, function(t) {
+        list(
+          label = t$label %||% "",
+          members_fmt = as.character(round(t$members %||% 0L)),
+          fee_fmt = .fmt_dollar(t$fee %||% 0)
+        )
+      })
     } else {
       NULL
     },

@@ -54,6 +54,38 @@
   }
 }
 
+# Internal: build a tier-context sentence for multi-tier panels.
+# Returns "" for a single tier (the existing member_sentence is sufficient).
+.tier_context_html <- function(membership_tiers, membership_fee) {
+  if (is.null(membership_tiers) || length(membership_tiers) < 2L) {
+    return("")
+  }
+  tier_parts <- vapply(
+    membership_tiers,
+    function(t) {
+      lbl <- if (nzchar(t$label %||% "")) t$label else "Members"
+      paste0(lbl, ": ", t$members, " @ ", fmt_dollar(t$fee), "/mo")
+    },
+    character(1)
+  )
+  paste0(
+    "Your practice has <strong>",
+    length(membership_tiers),
+    " membership tiers</strong>: ",
+    paste(tier_parts, collapse = "; "),
+    if (!is.null(membership_fee) && membership_fee > 0) {
+      paste0(
+        " (weighted average <strong>",
+        fmt_dollar(membership_fee),
+        "/member/month</strong>)"
+      )
+    } else {
+      ""
+    },
+    "."
+  )
+}
+
 # Internal: derive period-unit strings from result$frequency.
 # Returns a list: $singular ("month"/"week"), $plural ("months"/"weeks"),
 # $per ("/month", "/week"), $adj ("monthly"/"weekly").
@@ -75,6 +107,7 @@ interpret_breakeven <- function(
   sustained = NA,
   panel_size = NULL,
   membership_fee = NULL,
+  membership_tiers = NULL,
   confidence_level = 0.95
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
@@ -311,6 +344,7 @@ interpret_breakeven <- function(
     ""
   }
 
+  tier_sentence <- .tier_context_html(membership_tiers, membership_fee)
   warnings_html <- .data_warnings_html(result)
 
   paste(
@@ -322,6 +356,7 @@ interpret_breakeven <- function(
     } else {
       ""
     },
+    if (nzchar(tier_sentence)) paste0("<p>", tier_sentence, "</p>") else "",
     if (nzchar(member_sentence)) paste0("<p>", member_sentence, "</p>") else "",
     if (nzchar(warnings_html)) warnings_html else "",
     "<p class='text-muted small'>",
@@ -337,6 +372,7 @@ interpret_revenue <- function(
   practice_name = NULL,
   panel_size = NULL,
   membership_fee = NULL,
+  membership_tiers = NULL,
   confidence_level = 0.95
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
@@ -454,6 +490,10 @@ interpret_revenue <- function(
     format(tail(fd$period_start, 1), "%B %Y"),
     ".</p>",
     if (nzchar(pmpm_sentence)) paste0("<p>", pmpm_sentence, "</p>") else "",
+    {
+      ts <- .tier_context_html(membership_tiers, membership_fee)
+      if (nzchar(ts)) paste0("<p>", ts, "</p>") else ""
+    },
     paste0(
       "<p>The shaded region represents the ",
       round(confidence_level * 100),
@@ -478,7 +518,8 @@ interpret_target <- function(
   target_income = NULL,
   sustained = NA,
   panel_size = NULL,
-  membership_fee = NULL
+  membership_fee = NULL,
+  membership_tiers = NULL
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(practice_name, " ")
@@ -786,11 +827,18 @@ interpret_target <- function(
 
   warnings_html <- .data_warnings_html(result)
 
+  tier_sentence_tgt <- .tier_context_html(membership_tiers, membership_fee)
+
   paste0(
     "<p>",
     gap_sentence,
     "</p>",
     if (nzchar(target_sentence)) paste0("<p>", target_sentence, "</p>") else "",
+    if (nzchar(tier_sentence_tgt)) {
+      paste0("<p>", tier_sentence_tgt, "</p>")
+    } else {
+      ""
+    },
     if (nzchar(member_tgt_sentence)) {
       paste0("<p>", member_tgt_sentence, "</p>")
     } else {

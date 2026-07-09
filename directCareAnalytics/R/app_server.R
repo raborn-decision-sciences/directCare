@@ -16,7 +16,8 @@ app_server <- function(input, output, session) {
     practice_id = NULL, # character \u2014 future: sourced from auth session
     practice_name = NULL, # character \u2014 display label for reports
     panel_size = NULL, # numeric \u2014 current DPC panel size (members)
-    membership_fee = NULL, # numeric \u2014 monthly membership fee per member ($)
+    membership_fee = NULL, # numeric \u2014 weighted avg monthly membership fee per member ($)
+    membership_tiers = NULL, # list of {label, members, fee} \u2014 detail behind panel_size/membership_fee
 
     # Data pipeline state
     transactions = NULL, # normalized tibble from ingest_gnucash_csv()

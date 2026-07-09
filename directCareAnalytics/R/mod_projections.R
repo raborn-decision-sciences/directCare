@@ -134,27 +134,19 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           tags$p(
             class = "small fw-semibold mb-0",
             bs_icon("people"),
-            " Practice Profile"
+            " Membership Profile"
           ),
           tags$p(
             class = "small text-muted",
-            "Enter your current panel size and monthly fee to unlock member-count",
-            " projections: members needed to break even, members to hit your income",
-            " target, and per-member per-month (PMPM) revenue. Leave at 0 to skip."
+            "Enter your membership tiers to unlock member-count projections.",
+            " For scenario workflows these are pre-filled from end-of-period counts.",
+            " Leave blank to skip."
           ),
-          numericInput(
-            ns("panel_size"),
-            "Panel size (members)",
-            value = 0,
-            min = 0,
-            step = 1
-          ),
-          numericInput(
-            ns("membership_fee"),
-            "Monthly fee ($/member)",
-            value = 0,
-            min = 0,
-            step = 5
+          uiOutput(ns("proj_tier_ui")),
+          actionButton(
+            ns("proj_btn_add_tier"),
+            tagList(bs_icon("plus-circle"), " Add Tier"),
+            class = "btn-outline-secondary btn-sm w-100 mb-1"
           ),
           hr(),
           # -- Planned future overhead events ---------------------------
@@ -363,42 +355,176 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         "week_start" %in% names(r$overhead_monthly)
     })
 
+    # -- Membership tier UI (Practice Profile sidebar section) ----------------
+    proj_n_tiers <- reactiveVal(1L)
+
+    # When the scenario populates r$membership_tiers, sync the tier count so
+    # the sidebar pre-fills with the end-of-period values.
+    observeEvent(
+      r$membership_tiers,
+      {
+        n <- length(r$membership_tiers)
+        if (n > 0L && n != proj_n_tiers()) {
+          proj_n_tiers(n)
+        }
+      },
+      ignoreNULL = TRUE,
+      ignoreInit = FALSE
+    )
+
+    observeEvent(input$proj_btn_add_tier, {
+      proj_n_tiers(proj_n_tiers() + 1L)
+    })
+
+    .nn_proj <- function(x) {
+      v <- x %||% 0
+      if (length(v) != 1L || !is.finite(v)) 0 else v
+    }
+
+    output$proj_tier_ui <- renderUI({
+      n <- proj_n_tiers()
+      tiers_seed <- r$membership_tiers
+      lapply(seq_len(n), function(i) {
+        seed <- if (!is.null(tiers_seed) && i <= length(tiers_seed)) {
+          tiers_seed[[i]]
+        } else {
+          NULL
+        }
+        saved_label <- isolate(input[[paste0("proj_tier_label_", i)]]) %||%
+          (seed$label %||% "")
+        saved_members <- isolate(input[[paste0("proj_tier_members_", i)]]) %||%
+          (seed$members %||% 0L)
+        saved_fee <- isolate(input[[paste0("proj_tier_fee_", i)]]) %||%
+          (seed$fee %||% 0)
+        div(
+          class = "border rounded p-2 mb-2",
+          if (n > 1L) {
+            tags$div(
+              class = "d-flex justify-content-between align-items-center mb-1",
+              tags$span(
+                class = "small fw-semibold text-muted",
+                paste("Tier", i)
+              ),
+              if (i > 1L) {
+                actionButton(
+                  ns(paste0("proj_rm_tier_", i)),
+                  bs_icon("x", title = paste("Remove tier", i)),
+                  class = "btn-outline-danger btn-sm py-0 px-1"
+                )
+              }
+            )
+          },
+          layout_columns(
+            col_widths = c(4, 4, 4),
+            textInput(
+              ns(paste0("proj_tier_label_", i)),
+              if (i == 1L && n == 1L) "Label (optional)" else "Label",
+              value = saved_label,
+              placeholder = "e.g. Adult"
+            ),
+            numericInput(
+              ns(paste0("proj_tier_members_", i)),
+              "Members",
+              value = saved_members,
+              min = 0L,
+              step = 1L
+            ),
+            numericInput(
+              ns(paste0("proj_tier_fee_", i)),
+              "Fee ($/mo)",
+              value = saved_fee,
+              min = 0,
+              step = 5
+            )
+          )
+        )
+      })
+    })
+
+    observe({
+      n <- proj_n_tiers()
+      lapply(seq_len(n), function(i) {
+        if (i > 1L) {
+          observeEvent(
+            input[[paste0("proj_rm_tier_", i)]],
+            {
+              proj_n_tiers(max(1L, proj_n_tiers() - 1L))
+            },
+            ignoreInit = TRUE,
+            once = TRUE
+          )
+        }
+      })
+    })
+
+    proj_total_members <- reactive({
+      n <- proj_n_tiers()
+      sum(vapply(
+        seq_len(n),
+        \(i) .nn_proj(input[[paste0("proj_tier_members_", i)]]),
+        numeric(1)
+      ))
+    })
+
+    proj_total_revenue <- reactive({
+      n <- proj_n_tiers()
+      sum(vapply(
+        seq_len(n),
+        function(i) {
+          .nn_proj(input[[paste0("proj_tier_members_", i)]]) *
+            .nn_proj(input[[paste0("proj_tier_fee_", i)]])
+        },
+        numeric(1)
+      ))
+    })
+
+    proj_avg_fee <- reactive({
+      m <- proj_total_members()
+      if (m > 0) proj_total_revenue() / m else 0
+    })
+
+    proj_tiers_list <- reactive({
+      n <- proj_n_tiers()
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("proj_tier_label_", i)]] %||% "",
+          members = .nn_proj(input[[paste0("proj_tier_members_", i)]]),
+          fee = .nn_proj(input[[paste0("proj_tier_fee_", i)]])
+        )
+      })
+    })
+
     # -- Practice profile helpers ---------------------------------------------
-    # profile_ok() is TRUE only when both panel_size and membership_fee are
-    # positive numbers -- gates all member-count value boxes and sentences.
+    # profile_ok() is TRUE only when total members and avg fee are positive.
     profile_ok <- reactive({
-      ps <- input$panel_size
-      mf <- input$membership_fee
-      isTRUE(
-        !is.null(ps) &&
-          !is.na(ps) &&
-          ps > 0 &&
-          !is.null(mf) &&
-          !is.na(mf) &&
-          mf > 0
-      )
+      isTRUE(proj_total_members() > 0 && proj_avg_fee() > 0)
     })
 
     # membership_fee is always entered as $/member/month.  When the data are
-    # weekly the forecast quantities (current_revenue, current_overhead,
-    # required_revenue_now) are in $/week, so dividing by the monthly fee
-    # gives a nonsensical member count.  fee_per_period() converts the monthly
-    # fee to the period unit actually used by the current forecast.
+    # weekly the forecast quantities are in $/week, so divide by 4.33.
     fee_per_period <- reactive({
-      mf <- input$membership_fee
+      mf <- proj_avg_fee()
       if (is.null(mf) || is.na(mf) || mf <= 0) {
         return(NA_real_)
       }
       if (is_weekly()) mf / 4.33 else mf
     })
 
-    # Sync practice-profile inputs into shared reactive state so other modules
-    # (summary, interpret) can read them without re-wiring.
+    # Sync tier aggregates into shared reactive state so interpret/report can
+    # read them without re-wiring.
     observe({
-      ps <- input$panel_size
-      mf <- input$membership_fee
-      r$panel_size <- if (!is.null(ps) && !is.na(ps) && ps > 0) ps else NULL
-      r$membership_fee <- if (!is.null(mf) && !is.na(mf) && mf > 0) mf else NULL
+      m <- proj_total_members()
+      f <- proj_avg_fee()
+      r$panel_size <- if (m > 0) m else NULL
+      r$membership_fee <- if (f > 0) f else NULL
+      tiers <- proj_tiers_list()
+      r$membership_tiers <- if (
+        any(vapply(tiers, \(t) t$members > 0, logical(1)))
+      ) {
+        tiers
+      } else {
+        NULL
+      }
     })
 
     # -- Value text auto-shrink -----------------------------------------------
@@ -915,6 +1041,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         sustained = breakeven_is_sustained(adj_breakeven()),
         panel_size = r$panel_size,
         membership_fee = r$membership_fee,
+        membership_tiers = r$membership_tiers,
         confidence_level = input$confidence
       ))
     })
@@ -963,7 +1090,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         } else {
           "Revenue per member / month"
         }
-        pmpm_val <- res$current_revenue / input$panel_size
+        pmpm_val <- res$current_revenue / proj_total_members()
         # Compare per-period PMPM against per-period fee (not monthly fee directly).
         pmpm_theme <- if (pmpm_val >= fee_per_period() * 0.9) {
           "success"
@@ -1031,6 +1158,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         r$practice_name,
         panel_size = r$panel_size,
         membership_fee = r$membership_fee,
+        membership_tiers = r$membership_tiers,
         confidence_level = input$confidence
       ))
     })
@@ -1092,7 +1220,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         # Divide required revenue ($/period) by fee per period (not monthly fee)
         # to get a panel-size figure in consistent units.
         members_needed <- ceiling(res$required_revenue_now / fee_per_period())
-        members_gap <- members_needed - input$panel_size
+        members_gap <- members_needed - proj_total_members()
         tgt_boxes <- c(
           tgt_boxes,
           list(
@@ -1155,7 +1283,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         input$target_income,
         sustained = target_is_sustained(adj_target()),
         panel_size = r$panel_size,
-        membership_fee = r$membership_fee
+        membership_fee = r$membership_fee,
+        membership_tiers = r$membership_tiers
       ))
     })
 
@@ -1192,6 +1321,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             sustained = breakeven_is_sustained(adj_breakeven()),
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
+            membership_tiers = r$membership_tiers,
             confidence_level = input$confidence
           )
         } else {
@@ -1204,6 +1334,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             r$practice_name,
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
+            membership_tiers = r$membership_tiers,
             confidence_level = input$confidence
           )
         } else {
@@ -1217,7 +1348,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             input$target_income,
             sustained = target_is_sustained(adj_target()),
             panel_size = r$panel_size,
-            membership_fee = r$membership_fee
+            membership_fee = r$membership_fee,
+            membership_tiers = r$membership_tiers
           )
         } else {
           NULL

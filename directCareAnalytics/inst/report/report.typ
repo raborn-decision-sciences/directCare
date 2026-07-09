@@ -18,21 +18,22 @@
       #line(length: 100%, stroke: 0.5pt + rgb("#E2E8F0"))
     ]
   },
-  footer: [
-    #line(length: 100%, stroke: 0.5pt + rgb("#E2E8F0"))
-    #v(-4pt)
-    #set text(size: 8pt, fill: rgb("#6B7280"))
-    #text(style: "italic")[Direct Care Analytics — Confidential]
-    #h(1fr)
-    #context counter(page).display("1 of 1", both: true)
-  ]
+  footer: context {
+    if counter(page).get().first() > 1 [
+      #line(length: 100%, stroke: 0.5pt + rgb("#E2E8F0"))
+      #v(-4pt)
+      #set text(size: 8pt, fill: rgb("#6B7280"))
+      #text(style: "italic")[Direct Care Analytics — Confidential]
+      #h(1fr)
+      #context counter(page).display("1 of 1", both: true)
+    ]
+  }
 )
 #set text(
   font: ("Helvetica Neue", "Helvetica", "Arial"),
   size: 10pt,
   fill: rgb("#172033")
 )
-// No first-line indent; add spacing between paragraphs instead.
 #set par(leading: 0.65em, spacing: 0.9em, first-line-indent: 0pt)
 
 // ── Brand colours ─────────────────────────────────────────────────────────────
@@ -48,7 +49,6 @@
 
 // ── Layout helpers ────────────────────────────────────────────────────────────
 
-// Navy section bar — placed inside block(breakable: false) with its content
 #let section-head(title) = {
   v(0.5em)
   rect(
@@ -58,7 +58,6 @@
   v(0.3em)
 }
 
-// Teal subsection label — always kept with whatever follows it
 #let sub-head(title) = {
   v(0.35em)
   text(weight: "semibold", fill: teal-dark, size: 10pt)[#title]
@@ -67,7 +66,6 @@
   v(0.2em)
 }
 
-// Compact KPI box
 #let kpi(label, value, color: navy) = rect(
   fill: light-bg, stroke: 0.75pt + border,
   inset: (x: 7pt, y: 5pt), radius: 3pt, width: 100%
@@ -78,44 +76,94 @@
   #text(weight: "bold", size: 10.5pt, fill: color)[#value]
 ]
 
-// Alternating table row fill
 #let stripe(i) = if calc.odd(i) { light-bg } else { white }
-
-// Sign-dependent colour (green = surplus/gain, red = deficit/loss)
 #let sign-color(sign) = if sign == "pos" { green } else { red }
 
-// Standard table stroke rule
 #let tbl-stroke(x, cols) = (
   bottom: 0.5pt + border,
   right: if x < cols - 1 { 0.5pt + border } else { none }
 )
 
-// ── Title block ───────────────────────────────────────────────────────────────
+// ── Title Page ────────────────────────────────────────────────────────────────
+// Header and footer are suppressed on page 1 via the counter check above.
+
+// Top branding strip
 #rect(
   fill: navy, width: 100%,
-  inset: (x: 14pt, y: 14pt), radius: 4pt
+  inset: (x: 14pt, y: 11pt), radius: 3pt
 )[
-  #set align(center)
-  #text(fill: white, weight: "bold", size: 18pt)[#d.practice_name]
-  #v(3pt)
-  #text(fill: teal, size: 11pt)[Practice Financial Analysis]
-  #v(1pt)
-  #text(fill: rgb("#94A3B8"), size: 9pt)[Direct Care Analytics — #d.report_date]
+  #grid(
+    columns: (1fr, auto),
+    align: (left + horizon, right + horizon),
+    [
+      #text(fill: white, weight: "bold", size: 11pt)[Raborn Decision Sciences]
+      #linebreak()
+      #text(fill: teal, size: 9pt, tracking: 0.04em)[Direct Care Analytics]
+    ],
+    [
+      #text(fill: rgb("#94A3B8"), size: 8.5pt)[#d.report_date]
+    ]
+  )
 ]
-#v(0.5em)
 
-// Practice info strip
+#v(1.4in)
+
+// Practice name and report type
+#align(center)[
+  #text(
+    size: 8.5pt, fill: muted, weight: "semibold", tracking: 0.1em
+  )[PRACTICE FINANCIAL ANALYSIS REPORT]
+  #v(0.5em)
+  #line(length: 2.8in, stroke: 2pt + teal)
+  #v(0.65em)
+  #text(size: 26pt, weight: "bold", fill: navy)[#d.practice_name]
+  #v(0.25em)
+  #text(size: 10.5pt, fill: muted)[Practice ID: #d.practice_id]
+]
+
+#v(1.1in)
+
+// Metadata KPI row
 #grid(
-  columns: (1fr, 1fr, 1fr, 1fr),
-  column-gutter: 6pt,
-  kpi("Practice ID",    d.practice_id),
-  kpi("Data Frequency", if d.frequency == "weekly" { "Weekly" } else { "Monthly" }),
-  kpi("Workflow",       if d.workflow == "scenario" { "Scenario Plan" } else { "Data Upload" }),
-  kpi("Report Date",   d.report_date),
+  columns: (1fr, 1fr, 1fr),
+  column-gutter: 8pt,
+  kpi("Data Frequency",
+    if d.frequency == "weekly" { "Weekly" } else { "Monthly" }),
+  kpi("Workflow",
+    if d.workflow == "scenario" { "Plan My Practice" } else { "Historical Upload" }),
+  kpi("Report Date", d.report_date),
 )
 
-// ── Scenario Inputs ───────────────────────────────────────────────────────────
+#v(0.75em)
+
+// Report contents list
+#rect(
+  fill: light-bg, stroke: 0.75pt + border,
+  inset: (x: 12pt, y: 10pt), radius: 3pt, width: 100%
+)[
+  #text(size: 8pt, weight: "semibold", fill: muted, tracking: 0.06em)[THIS REPORT INCLUDES]
+  #v(0.5em)
+  #let bsec = text(fill: teal-dark, size: 9.5pt)[▸]
+  #let section-items = ([Data Summary],)
+    + if d.scenario  != none { ([Scenario Parameters],)    } else { () }
+    + if d.breakeven != none { ([Break-even Analysis],)    } else { () }
+    + if d.revenue   != none { ([Revenue Forecast],)       } else { () }
+    + if d.target    != none { ([Income Target Analysis],) } else { () }
+  #set list(marker: bsec, body-indent: 7pt, spacing: 5pt)
+  #list(..section-items)
+]
+
+#v(1.2in)
+
+#align(center)[
+  #text(size: 8pt, fill: muted, style: "italic")[
+    Confidential — For internal planning purposes only
+  ]
+]
+
+// ── Scenario Parameters ───────────────────────────────────────────────────────
 #if d.scenario != none [
+  #pagebreak()
   #section-head("Scenario Parameters")
 
   #block(breakable: false)[
@@ -185,6 +233,7 @@
 ]
 
 // ── Data Summary ──────────────────────────────────────────────────────────────
+#pagebreak()
 #section-head("Data Summary")
 
 #block(breakable: false)[
@@ -246,10 +295,47 @@
   ]
 ]
 
-#if d.panel_size_fmt != none or d.membership_fee_fmt != none [
+#if d.membership_tiers != none and d.membership_tiers.len() > 0 [
   #v(0.3em)
   #block(breakable: false)[
-    #sub-head("Practice Profile")
+    #sub-head("Membership Profile")
+    #if d.membership_tiers.len() == 1 [
+      #grid(
+        columns: (1fr, 1fr, 1fr),
+        column-gutter: 6pt,
+        kpi("Panel Size",
+          if d.panel_size_fmt != none { d.panel_size_fmt + " members" } else { "—" }),
+        kpi("Monthly Fee",
+          if d.membership_fee_fmt != none { d.membership_fee_fmt + "/member" } else { "—" }),
+        kpi("Tier",
+          if d.membership_tiers.at(0).label != "" { d.membership_tiers.at(0).label } else { "General" }),
+      )
+    ] else [
+      #table(
+        columns: (1fr, 1fr, 1fr),
+        fill: (_, y) => stripe(y),
+        stroke: (x, y) => tbl-stroke(x, 3),
+        inset: (x: 6pt, y: 4pt),
+        table.header(
+          text(weight: "bold")[Tier],
+          text(weight: "bold")[Members],
+          text(weight: "bold")[Monthly Fee / Member]
+        ),
+        ..d.membership_tiers.map(tier => (
+          if tier.label != "" { tier.label } else { "—" },
+          tier.members_fmt,
+          tier.fee_fmt,
+        )).flatten(),
+        text(weight: "semibold")[Total / Weighted Avg],
+        text(weight: "semibold")[#d.panel_size_fmt members],
+        text(weight: "semibold")[#d.membership_fee_fmt / member],
+      )
+    ]
+  ]
+] else if d.panel_size_fmt != none or d.membership_fee_fmt != none [
+  #v(0.3em)
+  #block(breakable: false)[
+    #sub-head("Membership Profile")
     #grid(
       columns: (1fr, 1fr),
       column-gutter: 6pt,
@@ -264,6 +350,7 @@
   #let bkevn = d.breakeven
   #let s-col = sign-color(bkevn.surplus_sign)
 
+  #pagebreak()
   #section-head("Break-even Analysis")
 
   #block(breakable: false)[
@@ -275,8 +362,8 @@
                  else if bkevn.status in ("Not Achievable", "Unlikely") { red }
                  else if bkevn.status == "Achieved (at risk)" { amber }
                  else { teal-dark }),
-      kpi("Current Revenue",          bkevn.current_revenue_fmt),
-      kpi("Current Overhead",         bkevn.current_overhead_fmt),
+      kpi("Current Revenue",           bkevn.current_revenue_fmt),
+      kpi("Current Overhead",          bkevn.current_overhead_fmt),
       kpi("Current Surplus / Deficit", bkevn.current_surplus_fmt, color: s-col),
     )
 
@@ -286,13 +373,13 @@
         columns: (1fr, 1fr, 2fr),
         column-gutter: 6pt,
         kpi("Projected Break-even",  bkevn.breakeven_date, color: teal-dark),
-        kpi("Periods to Break-even", str(bkevn.periods_to_breakeven) + " " + d.frequency.replace("ly", "s")),
+        kpi("Periods to Break-even",
+            str(bkevn.periods_to_breakeven) + " " + d.frequency.replace("ly", "s")),
         [],
       )
     ]
   ]
 
-  // Chart
   #if bkevn.has_plot [
     #v(0.4em)
     #block(breakable: false)[
@@ -301,7 +388,6 @@
     ]
   ]
 
-  // Interpretation
   #if bkevn.interpretation.len() > 0 [
     #block(breakable: false)[
       #sub-head("Interpretation")
@@ -313,7 +399,6 @@
     ]
   ]
 
-  // Forecast table
   #v(0.4em)
   #block(breakable: false)[
     #sub-head("Forecast Data")
@@ -344,6 +429,7 @@
   #let pct-str = if rev.pct_change >= 0 { "+" } else { "" }
   #let pct-str = pct-str + str(rev.pct_change) + "%"
 
+  #pagebreak()
   #section-head("Revenue Forecast")
 
   #block(breakable: false)[
@@ -357,11 +443,12 @@
           color: if rev.pct_change_sign == "pos" { green } else { red }),
       kpi("Method / Horizon",
           if d.forecast_method != none { upper(d.forecast_method) } else { "—" } + " / " +
-          if d.forecast_horizon != none { str(d.forecast_horizon) + " " + d.frequency.replace("ly", "s") } else { "—" }),
+          if d.forecast_horizon != none {
+            str(d.forecast_horizon) + " " + d.frequency.replace("ly", "s")
+          } else { "—" }),
     )
   ]
 
-  // Chart
   #if rev.has_plot [
     #v(0.4em)
     #block(breakable: false)[
@@ -370,7 +457,6 @@
     ]
   ]
 
-  // Interpretation
   #if rev.interpretation.len() > 0 [
     #block(breakable: false)[
       #sub-head("Interpretation")
@@ -382,7 +468,6 @@
     ]
   ]
 
-  // Forecast table
   #v(0.4em)
   #block(breakable: false)[
     #sub-head("Forecast Data")
@@ -412,6 +497,7 @@
   #let tgt = d.target
   #let g-col = sign-color(tgt.gap_sign)
 
+  #pagebreak()
   #section-head("Income Target Analysis")
 
   #block(breakable: false)[
@@ -439,7 +525,6 @@
     ]
   ]
 
-  // Chart
   #if tgt.has_plot [
     #v(0.4em)
     #block(breakable: false)[
@@ -448,7 +533,6 @@
     ]
   ]
 
-  // Interpretation
   #if tgt.interpretation.len() > 0 [
     #block(breakable: false)[
       #sub-head("Interpretation")
@@ -460,7 +544,6 @@
     ]
   ]
 
-  // Forecast table
   #v(0.4em)
   #block(breakable: false)[
     #sub-head("Forecast Data")

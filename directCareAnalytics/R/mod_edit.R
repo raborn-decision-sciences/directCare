@@ -144,21 +144,11 @@
               tagList(bs_icon("plus-circle"), " Add Tier"),
               class = "btn-outline-secondary btn-sm mb-2"
             ),
-            numericInput(
-              ns("est_monthly_growth"),
-              tagList(
-                "Expected new members / month",
-                tooltip(
-                  bs_icon("info-circle", title = "Panel growth rate"),
-                  paste0(
-                    "Approximate average new members per month. ",
-                    "Leave at 0 to model a flat panel throughout the scenario."
-                  )
-                )
-              ),
-              value = .v("est_monthly_growth"),
-              min = 0,
-              step = 1
+            tags$p(
+              class = "small text-muted mb-1 mt-1",
+              "The ",
+              tags$strong("Growth / mo"),
+              " column sets new members added per month for each tier."
             ),
 
             tags$hr(class = "my-2"),
@@ -702,7 +692,6 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           est_malpractice = isolate(input$est_malpractice),
           est_supplies = isolate(input$est_supplies),
           est_other_overhead = isolate(input$est_other_overhead),
-          est_monthly_growth = isolate(input$est_monthly_growth),
           est_new_visit_fee = isolate(input$est_new_visit_fee),
           est_new_patients_mo = isolate(input$est_new_patients_mo),
           est_followup_fee = isolate(input$est_followup_fee),
@@ -1084,6 +1073,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         saved_members <- isolate(input[[paste0("est_tier_members_", i)]]) %||%
           0L
         saved_fee <- isolate(input[[paste0("est_tier_fee_", i)]]) %||% 0
+        saved_growth <- isolate(input[[paste0("est_tier_growth_", i)]]) %||% 0
         div(
           class = "border rounded p-2 mb-2",
           if (n > 1L) {
@@ -1103,7 +1093,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             )
           },
           layout_columns(
-            col_widths = c(4, 4, 4),
+            col_widths = c(4, 2, 3, 3),
             textInput(
               ns(paste0("est_tier_label_", i)),
               if (i == 1L && n == 1L) "Label (optional)" else "Label",
@@ -1123,6 +1113,22 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
               value = saved_fee,
               min = 0,
               step = 5
+            ),
+            numericInput(
+              ns(paste0("est_tier_growth_", i)),
+              tagList(
+                "Growth / mo",
+                tooltip(
+                  bs_icon(
+                    "info-circle",
+                    title = "Monthly panel growth for this tier"
+                  ),
+                  "New members added per month for this tier. Leave at 0 for a flat panel."
+                )
+              ),
+              value = saved_growth,
+              min = 0,
+              step = 1
             )
           )
         )
@@ -1342,17 +1348,37 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         total_refunds = 0
       )
 
-      panel_now <- est_panel_total()
-      fee <- est_avg_fee()
-      mem_rev_now <- est_membership_revenue()
-      growth <- input$est_monthly_growth %||% 0
-      ffs_mo <- ffs_income_r()
+      # Collect tier details (with per-tier growth)
+      n_t <- est_n_tiers()
+      tier_details <- lapply(seq_len(n_t), function(i) {
+        list(
+          label = input[[paste0("est_tier_label_", i)]] %||% paste("Tier", i),
+          members = .nn(input[[paste0("est_tier_members_", i)]]),
+          fee = .nn(input[[paste0("est_tier_fee_", i)]]),
+          monthly_growth = .nn(input[[paste0("est_tier_growth_", i)]])
+        )
+      })
 
-      # Revenue grows by adding `growth` members per month at the average fee
+      # Build monthly revenue as sum of per-tier (initial + growth * t) * fee
+      t_seq <- seq_len(n_months) - 1L
       growth_revenue <- pmax(
         0,
-        mem_rev_now + (seq_len(n_months) - 1L) * growth * fee
+        vapply(
+          t_seq,
+          function(t) {
+            sum(vapply(
+              tier_details,
+              function(td) {
+                (td$members + td$monthly_growth * t) * td$fee
+              },
+              numeric(1)
+            ))
+          },
+          numeric(1)
+        )
       )
+
+      ffs_mo <- ffs_income_r()
 
       r$income_monthly <- tibble::tibble(
         practice_id = r$practice_id,
@@ -1360,6 +1386,37 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         month = months,
         total_revenue = growth_revenue + ffs_mo
       )
+
+      # End-of-period member counts per tier
+      tier_end <- lapply(tier_details, function(td) {
+        list(
+          label = td$label,
+          members = max(
+            0L,
+            round(td$members + td$monthly_growth * (n_months - 1L))
+          ),
+          fee = td$fee,
+          monthly_growth = td$monthly_growth
+        )
+      })
+
+      # Initial panel totals (for Scenario Ready display)
+      panel_start <- sum(vapply(tier_details, `[[`, numeric(1), "members"))
+      total_revenue_start <- sum(vapply(
+        tier_details,
+        function(td) td$members * td$fee,
+        numeric(1)
+      ))
+      fee_start <- if (panel_start > 0) total_revenue_start / panel_start else 0
+
+      # End-of-period panel totals (used for forecasting)
+      panel_now <- sum(vapply(tier_end, `[[`, numeric(1), "members"))
+      total_revenue_end <- sum(vapply(
+        tier_end,
+        function(td) td$members * td$fee,
+        numeric(1)
+      ))
+      fee <- if (panel_now > 0) total_revenue_end / panel_now else 0
 
       # Pre-populate the Practice Profile so member-count value boxes work
       # immediately when the user runs a forecast.
@@ -1369,25 +1426,23 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       if (fee > 0) {
         r$membership_fee <- fee
       }
-
-      # Collect tier details for scenario_inputs
-      n_t <- est_n_tiers()
-      tier_details <- lapply(seq_len(n_t), function(i) {
-        list(
-          label = input[[paste0("est_tier_label_", i)]] %||% paste("Tier", i),
-          members = .nn(input[[paste0("est_tier_members_", i)]]),
-          fee = .nn(input[[paste0("est_tier_fee_", i)]])
-        )
-      })
+      r$membership_tiers <- tier_end
 
       # Store estimator inputs so the report module can include them.
+      # panel_size / monthly_fee = INITIAL values (for Scenario Ready start column).
+      # tiers = end-of-period counts (carried into Projections).
       r$scenario_inputs <- list(
         start_period = format(start_date, "%B %Y"),
         n_months = n_months,
-        panel_size = panel_now,
-        monthly_fee = fee,
-        tiers = tier_details,
-        monthly_growth = growth,
+        panel_size = panel_start,
+        monthly_fee = fee_start,
+        tiers = tier_end,
+        monthly_growth = sum(vapply(
+          tier_details,
+          `[[`,
+          numeric(1),
+          "monthly_growth"
+        )),
         ffs_new_visit_fee = input$est_new_visit_fee %||% 0,
         ffs_new_patients_mo = input$est_new_patients_mo %||% 0,
         ffs_followup_fee = input$est_followup_fee %||% 0,
@@ -1431,6 +1486,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       r$income_monthly <- NULL
       r$panel_size <- NULL
       r$membership_fee <- NULL
+      r$membership_tiers <- NULL
       r$scenario_inputs <- NULL
     })
 
