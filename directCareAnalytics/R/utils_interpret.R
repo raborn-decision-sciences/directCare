@@ -326,8 +326,9 @@ interpret_breakeven <- function(
       "/member/month</strong>, ",
       "you need approximately <strong>",
       members_bkevn,
-      " members</strong> to cover overhead.",
-      ovhd_note
+      " members</strong> to cover overhead",
+      ovhd_note,
+      "."
     )
   } else if (profile_has_fee) {
     members_bkevn <- ceiling(ovhd_for_members / fee_pp)
@@ -337,8 +338,9 @@ interpret_breakeven <- function(
       "/member/month</strong>, ",
       "you need approximately <strong>",
       members_bkevn,
-      " members</strong> to cover overhead.",
-      ovhd_note
+      " members</strong> to cover overhead",
+      ovhd_note,
+      "."
     )
   } else {
     ""

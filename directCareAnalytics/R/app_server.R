@@ -258,9 +258,8 @@ app_server <- function(input, output, session) {
           " Questions or feedback? Contact ",
           tags$a(
             href = "mailto:anthony@raborndecisionsciences.com",
-            "anthony@raborndecisionsciences.com"
-          ),
-          "."
+            "anthony@raborndecisionsciences.com."
+          )
         )
       ))
     },
