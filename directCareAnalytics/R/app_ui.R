@@ -24,27 +24,11 @@ app_ui <- function(request) {
       ),
       id = "main_nav",
       theme = rds_theme(),
-      # -- Tabs --------------------------------------------------------------
-      nav_panel(
-        title = tagList(bs_icon("upload"), " Upload"),
-        value = "upload",
-        mod_upload_ui("upload")
-      ),
-      nav_panel(
-        title = tagList(bs_icon("pencil-square"), " Review & Edit"),
-        value = "edit",
-        mod_edit_ui("edit")
-      ),
-      nav_panel(
-        title = tagList(bs_icon("bar-chart-line"), " Summary"),
-        value = "summary",
-        mod_summary_ui("summary")
-      ),
-      nav_panel(
-        title = tagList(bs_icon("graph-up-arrow"), " Projections"),
-        value = "projections",
-        mod_projections_ui("projections")
-      ),
+      # -- Tabs (hidden from navbar; navigation via Next/Back buttons) ---------
+      nav_panel_hidden(value = "upload",      mod_upload_ui("upload")),
+      nav_panel_hidden(value = "edit",        mod_edit_ui("edit")),
+      nav_panel_hidden(value = "summary",     mod_summary_ui("summary")),
+      nav_panel_hidden(value = "projections", mod_projections_ui("projections")),
       # -- Right-side items --------------------------------------------------
       nav_spacer(),
       nav_item(

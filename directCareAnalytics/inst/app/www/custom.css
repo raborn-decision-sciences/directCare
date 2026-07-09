@@ -44,15 +44,6 @@ h1, h2, h3, h4, h5, h6 {
   width: auto;
 }
 
-/* Hide workflow tabs from the navbar — navigation is via Next/Back buttons */
-.navbar-nav li:has(a[data-value="upload"]),
-.navbar-nav li:has(a[data-value="edit"]),
-.navbar-nav li:has(a[data-value="summary"]),
-.navbar-nav li:has(a[data-value="projections"]),
-.navbar .bslib-nav-spacer {
-  display: none !important;
-}
-
 /* Active nav tab accent in teal */
 .nav-underline .nav-link.active {
   border-bottom-color: var(--rds-teal);
