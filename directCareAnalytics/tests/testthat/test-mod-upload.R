@@ -2,15 +2,18 @@
 
 # Sample CSV paths from the backend package
 sample_overhead_csv <- system.file(
-  "extdata", "sample_overhead.csv",
+  "extdata",
+  "sample_overhead.csv",
   package = "directCareForecastR"
 )
 sample_income_csv <- system.file(
-  "extdata", "sample_income.csv",
+  "extdata",
+  "sample_income.csv",
   package = "directCareForecastR"
 )
 sample_transactions_csv <- system.file(
-  "extdata", "sample_transactions.csv",
+  "extdata",
+  "sample_transactions.csv",
   package = "directCareForecastR"
 )
 
