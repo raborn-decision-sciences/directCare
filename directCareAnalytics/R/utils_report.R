@@ -459,7 +459,7 @@ render_report_pdf <- function(
   on.exit(unlink(tmp_dir, recursive = TRUE), add = TRUE)
 
   # -- Render forecast plots to PNG ------------------------------------------
-  .save_plot <- function(p, name, w = 7, h = 3.8) {
+  .save_plot <- function(p, name, w = 7, h = 5.5) {
     path <- file.path(tmp_dir, paste0(name, ".png"))
     ggplot2::ggsave(
       path,

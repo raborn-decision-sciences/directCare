@@ -874,7 +874,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             card_header("Break-even Forecast"),
             card_body(plotOutput(
               ns("breakeven_plot"),
-              height = "400px",
+              height = "560px",
               width = "100%"
             ))
           ),
@@ -896,7 +896,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         )
       },
       res = 96,
-      height = 400,
+      height = 560,
       width = function() {
         w <- session$clientData[[paste0(
           "output_",
@@ -995,7 +995,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             card_header("Revenue Forecast"),
             card_body(plotOutput(
               ns("revenue_plot"),
-              height = "400px",
+              height = "560px",
               width = "100%"
             ))
           ),
@@ -1013,7 +1013,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         plot_forecast_revenue(adj_revenue(), income_monthly = r$income_monthly)
       },
       res = 96,
-      height = 400,
+      height = 560,
       width = function() {
         w <- session$clientData[[paste0(
           "output_",
@@ -1118,7 +1118,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             card_header("Income Target Forecast"),
             card_body(plotOutput(
               ns("target_plot"),
-              height = "400px",
+              height = "560px",
               width = "100%"
             ))
           ),
@@ -1136,7 +1136,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         plot_forecast_target(adj_target(), income_monthly = r$income_monthly)
       },
       res = 96,
-      height = 400,
+      height = 560,
       width = function() {
         w <- session$clientData[[paste0(
           "output_",
