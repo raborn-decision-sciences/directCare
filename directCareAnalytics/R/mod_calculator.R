@@ -65,6 +65,21 @@ mod_calculator_ui <- function(id) {
 
           tags$hr(),
 
+          tags$h6(
+            class = "fw-semibold mb-1",
+            bs_icon("cash-coin"),
+            " Additional Income"
+          ),
+          tags$p(
+            class = "small text-muted mb-2",
+            "Optional. Add fee-for-service, grants, or any other revenue ",
+            "sources — break a broad source into multiple rows if you want ",
+            "a finer split."
+          ),
+          uiOutput(ns("income_source_ui")),
+
+          tags$hr(),
+
           numericInput(
             ns("target_income"),
             tagList(
@@ -296,6 +311,103 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
       })
     })
 
+    # -- Dynamic additional-income-source UI -------------------------------------
+    n_income_items <- reactiveVal(2L)
+    .income_defaults <- c("Fee-for-Service", "Other Income")
+
+    observeEvent(input$btn_add_income_item, {
+      n_income_items(n_income_items() + 1L)
+    })
+
+    output$income_source_ui <- renderUI({
+      n <- n_income_items()
+      if (n == 0L) {
+        return(tagList(
+          tags$p(
+            class = "small text-muted mb-1",
+            "No additional income sources."
+          ),
+          actionButton(
+            ns("btn_add_income_item"),
+            tagList(bs_icon("plus-circle"), " Add Source"),
+            class = "btn-outline-secondary btn-sm mt-1"
+          )
+        ))
+      }
+
+      tagList(
+        lapply(seq_len(n), function(i) {
+          saved_label <- isolate(input[[paste0("inc_item_label_", i)]]) %||%
+            (if (i <= length(.income_defaults)) .income_defaults[i] else "")
+          saved_amount <- isolate(input[[paste0("inc_item_amount_", i)]]) %||%
+            0
+          div(
+            class = "border rounded p-2 mb-2",
+            tags$div(
+              class = "d-flex justify-content-between align-items-center mb-1",
+              tags$span(
+                class = "small fw-semibold text-muted",
+                paste("Source", i)
+              ),
+              actionButton(
+                ns(paste0("btn_remove_income_item_", i)),
+                bs_icon("x", title = paste("Remove source", i)),
+                class = "btn-outline-danger btn-sm py-0 px-1"
+              )
+            ),
+            layout_columns(
+              col_widths = c(6, 6),
+              textInput(
+                ns(paste0("inc_item_label_", i)),
+                "Label",
+                value = saved_label,
+                placeholder = "e.g. Lab markup"
+              ),
+              numericInput(
+                ns(paste0("inc_item_amount_", i)),
+                "Amount ($/mo)",
+                value = saved_amount,
+                min = 0,
+                step = 50
+              )
+            )
+          )
+        }),
+        actionButton(
+          ns("btn_add_income_item"),
+          tagList(bs_icon("plus-circle"), " Add Source"),
+          class = "btn-outline-secondary btn-sm mt-1"
+        )
+      )
+    })
+
+    observe({
+      n <- n_income_items()
+      lapply(seq_len(n), function(i) {
+        btn_id <- paste0("btn_remove_income_item_", i)
+        observeEvent(
+          input[[btn_id]],
+          {
+            n_income_items(max(0L, n_income_items() - 1L))
+          },
+          ignoreInit = TRUE,
+          once = TRUE
+        )
+      })
+    })
+
+    other_income_total <- reactive({
+      n <- n_income_items()
+      if (n == 0L) {
+        return(0)
+      }
+      sum(vapply(
+        seq_len(n),
+        \(i) .nn(input[[paste0("inc_item_amount_", i)]]),
+        numeric(1)
+      ))
+    })
+
     # -- Computed totals --------------------------------------------------------
     tier_total_members <- reactive({
       n <- n_tiers()
@@ -326,30 +438,36 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
     # -- Results UI -------------------------------------------------------------
     output$results_ui <- renderUI({
       ovhd <- total_overhead()
-      rev <- tier_total_revenue()
+      other_inc <- other_income_total()
+      rev <- tier_total_revenue() + other_inc
       net <- rev - ovhd
       target <- .nn(input$target_income)
       members <- tier_total_members()
       avg_fee <- avg_fee_per_member()
 
+      # Other income already covers part of overhead/target, so only the
+      # remainder needs to come from membership dues.
+      net_needed_breakeven <- max(0, ovhd - other_inc)
+      net_needed_target <- max(0, ovhd + target - other_inc)
+
       # Scenarios
       members_for_breakeven <- if (avg_fee > 0) {
-        ceiling(ovhd / avg_fee)
+        ceiling(net_needed_breakeven / avg_fee)
       } else {
         NA_integer_
       }
       members_for_target <- if (avg_fee > 0) {
-        ceiling((ovhd + target) / avg_fee)
+        ceiling(net_needed_target / avg_fee)
       } else {
         NA_integer_
       }
       fee_for_breakeven <- if (members > 0) {
-        ovhd / members
+        net_needed_breakeven / members
       } else {
         NA_real_
       }
       fee_for_target <- if (members > 0) {
-        (ovhd + target) / members
+        net_needed_target / members
       } else {
         NA_real_
       }
@@ -360,8 +478,14 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
           width = "200px",
           fill = FALSE,
           value_box(
-            "Membership revenue",
+            "Total revenue",
             fmt_dollar(rev),
+            theme = "primary",
+            height = "90px"
+          ),
+          value_box(
+            "Other income",
+            fmt_dollar(other_inc),
             theme = "primary",
             height = "90px"
           ),
@@ -397,6 +521,18 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
           class = "small text-muted mb-2",
           "Two ways to reach break-even (revenue = overhead):"
         ),
+        if (other_inc > 0) {
+          tags$p(
+            class = "small text-muted mb-2 fst-italic",
+            bs_icon("info-circle"),
+            paste0(
+              " ",
+              fmt_dollar(other_inc),
+              "/mo in other income is already applied to overhead below — ",
+              "the scenarios show what membership dues need to cover the rest."
+            )
+          )
+        },
         layout_columns(
           col_widths = c(6, 6),
           card(
