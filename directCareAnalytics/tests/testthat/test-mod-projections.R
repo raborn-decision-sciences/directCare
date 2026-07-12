@@ -76,7 +76,6 @@ test_that("is_weekly is FALSE when overhead_monthly is NULL", {
 test_that("fee_per_period returns NA when membership_fee is not set", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(membership_fee = NULL)
     expect_true(is.na(fee_per_period()))
   })
 })
@@ -84,7 +83,7 @@ test_that("fee_per_period returns NA when membership_fee is not set", {
 test_that("fee_per_period returns NA when membership_fee is 0", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(membership_fee = 0)
+    session$setInputs(proj_tier_members_1 = 10, proj_tier_fee_1 = 0)
     expect_true(is.na(fee_per_period()))
   })
 })
@@ -92,7 +91,7 @@ test_that("fee_per_period returns NA when membership_fee is 0", {
 test_that("fee_per_period returns fee unchanged for monthly data", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(membership_fee = 100)
+    session$setInputs(proj_tier_members_1 = 10, proj_tier_fee_1 = 100)
     expect_equal(fee_per_period(), 100)
   })
 })
@@ -100,7 +99,7 @@ test_that("fee_per_period returns fee unchanged for monthly data", {
 test_that("fee_per_period divides by 4.33 for weekly data", {
   r <- make_weekly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(membership_fee = 100)
+    session$setInputs(proj_tier_members_1 = 10, proj_tier_fee_1 = 100)
     expect_equal(fee_per_period(), 100 / 4.33)
   })
 })
@@ -117,10 +116,10 @@ test_that("profile_ok is FALSE when inputs are absent", {
 test_that("profile_ok is FALSE when either input is 0 or NA", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(panel_size = 50, membership_fee = 0)
+    session$setInputs(proj_tier_members_1 = 50, proj_tier_fee_1 = 0)
     expect_false(profile_ok())
 
-    session$setInputs(panel_size = 0, membership_fee = 100)
+    session$setInputs(proj_tier_members_1 = 0, proj_tier_fee_1 = 100)
     expect_false(profile_ok())
   })
 })
@@ -128,7 +127,7 @@ test_that("profile_ok is FALSE when either input is 0 or NA", {
 test_that("profile_ok is TRUE when both inputs are positive", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(panel_size = 50, membership_fee = 100)
+    session$setInputs(proj_tier_members_1 = 50, proj_tier_fee_1 = 100)
     expect_true(profile_ok())
   })
 })
@@ -138,7 +137,7 @@ test_that("profile_ok is TRUE when both inputs are positive", {
 test_that("positive panel_size and membership_fee are synced into r", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(panel_size = 60, membership_fee = 89)
+    session$setInputs(proj_tier_members_1 = 60, proj_tier_fee_1 = 89)
     expect_equal(r$panel_size, 60)
     expect_equal(r$membership_fee, 89)
   })
@@ -147,7 +146,7 @@ test_that("positive panel_size and membership_fee are synced into r", {
 test_that("zero or NA inputs clear r$panel_size and r$membership_fee", {
   r <- make_monthly_r()
   testServer(mod_projections_server, args = list(r = r), {
-    session$setInputs(panel_size = 0, membership_fee = NA)
+    session$setInputs(proj_tier_members_1 = 0, proj_tier_fee_1 = NA)
     expect_null(r$panel_size)
     expect_null(r$membership_fee)
   })

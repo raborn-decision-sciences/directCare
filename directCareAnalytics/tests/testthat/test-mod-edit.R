@@ -102,7 +102,7 @@ test_that("membership_income_r is 0 when inputs are absent", {
 test_that("membership_income_r multiplies panel_size by monthly_fee", {
   r <- empty_r()
   testServer(mod_edit_server, args = list(r = r), {
-    session$setInputs(est_panel_size = 80, est_monthly_fee = 99)
+    session$setInputs(est_tier_members_1 = 80, est_tier_fee_1 = 99)
     expect_equal(membership_income_r(), 80 * 99)
   })
 })
@@ -110,7 +110,7 @@ test_that("membership_income_r multiplies panel_size by monthly_fee", {
 test_that("membership_income_r treats NA inputs as 0", {
   r <- empty_r()
   testServer(mod_edit_server, args = list(r = r), {
-    session$setInputs(est_panel_size = NA_real_, est_monthly_fee = 99)
+    session$setInputs(est_tier_members_1 = NA_real_, est_tier_fee_1 = 99)
     expect_equal(membership_income_r(), 0)
   })
 })
@@ -184,8 +184,8 @@ test_that("btn_generate sets estimator_done to TRUE and populates r$overhead_mon
   testServer(mod_edit_server, args = list(r = r), {
     session$setInputs(
       est_rent = 1000,
-      est_panel_size = 50,
-      est_monthly_fee = 89,
+      est_tier_members_1 = 50,
+      est_tier_fee_1 = 89,
       est_n_months = 6,
       est_start_month = 1L,
       est_start_year = 2025L
@@ -204,9 +204,9 @@ test_that("btn_generate populates r$income_monthly with panel growth", {
   testServer(mod_edit_server, args = list(r = r), {
     session$setInputs(
       est_rent = 1000, # overhead required to pass the ovhd > 0 guard
-      est_panel_size = 40,
-      est_monthly_fee = 100,
-      est_monthly_growth = 5,
+      est_tier_members_1 = 40,
+      est_tier_fee_1 = 100,
+      est_tier_growth_1 = 5,
       est_n_months = 3,
       est_start_month = 1L,
       est_start_year = 2025L
@@ -225,8 +225,8 @@ test_that("btn_generate pre-populates r$panel_size and r$membership_fee", {
   testServer(mod_edit_server, args = list(r = r), {
     session$setInputs(
       est_rent = 1000, # overhead required to pass the ovhd > 0 guard
-      est_panel_size = 60,
-      est_monthly_fee = 95,
+      est_tier_members_1 = 60,
+      est_tier_fee_1 = 95,
       est_n_months = 6,
       est_start_month = 1L,
       est_start_year = 2025L
@@ -243,8 +243,8 @@ test_that("btn_restart_estimator resets estimator_done and clears r slots", {
   testServer(mod_edit_server, args = list(r = r), {
     session$setInputs(
       est_rent = 1000,
-      est_panel_size = 50,
-      est_monthly_fee = 89,
+      est_tier_members_1 = 50,
+      est_tier_fee_1 = 89,
       est_n_months = 6,
       est_start_month = 1L,
       est_start_year = 2025L
