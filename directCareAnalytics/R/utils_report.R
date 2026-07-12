@@ -138,6 +138,7 @@ html_to_paragraphs <- function(html) {
 .forecast_table_bkevn <- function(result, max_rows = 24L) {
   fd <- utils::head(result$forecast_data, max_rows)
   has_ci <- all(c("revenue_lower", "revenue_upper") %in% names(fd))
+  has_ovhd_ci <- all(c("overhead_lower", "overhead_upper") %in% names(fd))
   lapply(seq_len(nrow(fd)), function(i) {
     row <- fd[i, ]
     surplus <- if ("overhead_forecast" %in% names(row)) {
@@ -156,7 +157,17 @@ html_to_paragraphs <- function(html) {
       surplus_fmt = .fmt_dollar(surplus),
       surplus_sign = if (!is.na(surplus) && surplus >= 0) "pos" else "neg",
       lo_fmt = if (has_ci) .fmt_dollar(row$revenue_lower) else "\u2014",
-      hi_fmt = if (has_ci) .fmt_dollar(row$revenue_upper) else "\u2014"
+      hi_fmt = if (has_ci) .fmt_dollar(row$revenue_upper) else "\u2014",
+      ovhd_lo_fmt = if (has_ovhd_ci) {
+        .fmt_dollar(row$overhead_lower)
+      } else {
+        "\u2014"
+      },
+      ovhd_hi_fmt = if (has_ovhd_ci) {
+        .fmt_dollar(row$overhead_upper)
+      } else {
+        "\u2014"
+      }
     )
   })
 }
@@ -317,7 +328,10 @@ build_report_data <- function(
         NULL
       },
       interpretation = html_to_paragraphs(interpret_bkevn),
-      table = .forecast_table_bkevn(breakeven_res)
+      table = .forecast_table_bkevn(breakeven_res),
+      has_overhead_ci = all(
+        c("overhead_lower", "overhead_upper") %in% names(fd_bk)
+      )
     )
   } else {
     NULL

@@ -405,26 +405,49 @@
   #v(0.4em)
   #block(breakable: false)[
     #sub-head("Forecast Data")
+    #let bk-n-cols = if bkevn.has_overhead_ci { 8 } else { 6 }
     #table(
-      columns: (1.3fr, 1fr, 1fr, 1fr, 1fr, 1fr),
+      columns: if bkevn.has_overhead_ci {
+        (1.1fr, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr)
+      } else {
+        (1.3fr, 1fr, 1fr, 1fr, 1fr, 1fr)
+      },
       fill: (_, y) => stripe(y),
-      stroke: (x, y) => tbl-stroke(x, 6),
-      inset: (x: 6pt, y: 4pt),
+      stroke: (x, y) => tbl-stroke(x, bk-n-cols),
+      inset: (x: 5pt, y: 4pt),
       table.header(
-        text(weight: "bold")[Period],
-        text(weight: "bold")[Revenue],
-        text(weight: "bold")[Overhead],
-        text(weight: "bold")[Surplus / Deficit],
-        text(weight: "bold")[#d.ci_label — Low],
-        text(weight: "bold")[#d.ci_label — High]
+        ..(
+          (
+            text(weight: "bold")[Period],
+            text(weight: "bold")[Revenue],
+            text(weight: "bold")[Overhead],
+            text(weight: "bold")[Surplus / Deficit],
+            text(weight: "bold", size: 8.5pt)[Revenue #d.ci_label — Low],
+            text(weight: "bold", size: 8.5pt)[Revenue #d.ci_label — High],
+          )
+          + if bkevn.has_overhead_ci {
+            (
+              text(weight: "bold", size: 8.5pt)[Overhead #d.ci_label — Low],
+              text(weight: "bold", size: 8.5pt)[Overhead #d.ci_label — High],
+            )
+          } else { () }
+        )
       ),
       ..bkevn.table.map(row => (
-        row.period,
-        row.revenue_fmt,
-        row.overhead_fmt,
-        text(fill: sign-color(row.surplus_sign), weight: "semibold")[#row.surplus_fmt],
-        text(fill: muted)[#row.lo_fmt],
-        text(fill: muted)[#row.hi_fmt],
+        (
+          row.period,
+          row.revenue_fmt,
+          row.overhead_fmt,
+          text(fill: sign-color(row.surplus_sign), weight: "semibold")[#row.surplus_fmt],
+          text(fill: muted)[#row.lo_fmt],
+          text(fill: muted)[#row.hi_fmt],
+        )
+        + if bkevn.has_overhead_ci {
+          (
+            text(fill: muted)[#row.ovhd_lo_fmt],
+            text(fill: muted)[#row.ovhd_hi_fmt],
+          )
+        } else { () }
       )).flatten()
     )
   ]
@@ -486,8 +509,8 @@
       table.header(
         text(weight: "bold")[Period],
         text(weight: "bold")[Revenue (forecast)],
-        text(weight: "bold")[#d.ci_label — Low],
-        text(weight: "bold")[#d.ci_label — High]
+        text(weight: "bold")[Revenue #d.ci_label — Low],
+        text(weight: "bold")[Revenue #d.ci_label — High]
       ),
       ..rev.table.map(row => (
         row.period,
@@ -564,8 +587,8 @@
         text(weight: "bold")[Revenue (forecast)],
         text(weight: "bold")[Required Revenue],
         text(weight: "bold")[Gap],
-        text(weight: "bold")[#d.ci_label — Low],
-        text(weight: "bold")[#d.ci_label — High]
+        text(weight: "bold")[Revenue #d.ci_label — Low],
+        text(weight: "bold")[Revenue #d.ci_label — High]
       ),
       ..tgt.table.map(row => (
         row.period,
