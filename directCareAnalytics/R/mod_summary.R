@@ -101,12 +101,21 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
             card_header(
               class = "d-flex justify-content-between align-items-center",
               tagList(bs_icon("receipt"), " Overhead"),
-              # Only show the toggle when transaction-level data is available
+              # Only show the toggles when transaction-level data is available
               if (!is.null(r$overhead) && nrow(r$overhead) > 0L) {
-                bslib::input_switch(
-                  ns("ovhd_by_cat"),
-                  "By category",
-                  value = FALSE
+                tagList(
+                  bslib::input_switch(
+                    ns("ovhd_by_cat"),
+                    "By category",
+                    value = FALSE
+                  ),
+                  radioButtons(
+                    ns("ovhd_chart_type"),
+                    label = NULL,
+                    choices = c("Bar" = "bar", "Pie" = "pie"),
+                    selected = "bar",
+                    inline = TRUE
+                  )
                 )
               }
             ),
@@ -132,12 +141,21 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
             card_header(
               class = "d-flex justify-content-between align-items-center",
               tagList(bs_icon("cash-coin"), " Revenue"),
-              # Only show the toggle when transaction-level data is available
+              # Only show the toggles when transaction-level data is available
               if (!is.null(r$income) && nrow(r$income) > 0L) {
-                bslib::input_switch(
-                  ns("inc_by_src"),
-                  "By source",
-                  value = FALSE
+                tagList(
+                  bslib::input_switch(
+                    ns("inc_by_src"),
+                    "By source",
+                    value = FALSE
+                  ),
+                  radioButtons(
+                    ns("inc_chart_type"),
+                    label = NULL,
+                    choices = c("Bar" = "bar", "Pie" = "pie"),
+                    selected = "bar",
+                    inline = TRUE
+                  )
                 )
               }
             ),
@@ -334,12 +352,55 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       )
     })
 
+    #  Pie-chart helper: totals-by-group summed across the full range
+    .pie_plot <- function(d, palette, title) {
+      d <- d |>
+        dplyr::group_by(label) |>
+        dplyr::summarise(total = sum(total, na.rm = TRUE), .groups = "drop") |>
+        dplyr::filter(total > 0) |>
+        dplyr::arrange(dplyr::desc(label))
+      d$pct <- d$total / sum(d$total)
+
+      ggplot2::ggplot(d, ggplot2::aes(x = "", y = total, fill = label)) +
+        ggplot2::geom_col(width = 1, colour = "white") +
+        ggplot2::coord_polar(theta = "y") +
+        ggplot2::scale_fill_manual(
+          values = palette,
+          name = NULL,
+          drop = FALSE
+        ) +
+        ggplot2::geom_text(
+          ggplot2::aes(label = scales::percent(pct, accuracy = 1)),
+          position = ggplot2::position_stack(vjust = 0.5),
+          size = 3.5,
+          colour = "white",
+          fontface = "bold"
+        ) +
+        ggplot2::labs(title = title) +
+        ggplot2::theme_void(base_size = 12) +
+        ggplot2::theme(
+          legend.position = "bottom",
+          plot.title = ggplot2::element_text(
+            size = 12,
+            face = "bold",
+            hjust = 0.5
+          )
+        )
+    }
+
     #  Plots
     output$ovhd_plot <- renderPlot({
       req(ovhd_overall())
       by_cat <- isTRUE(input$ovhd_by_cat)
+      is_pie <- by_cat && identical(input$ovhd_chart_type, "pie")
+      has_cat_data <- !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0
 
-      if (by_cat && !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0) {
+      if (is_pie && has_cat_data) {
+        d <- ovhd_by_cat() |> dplyr::mutate(label = .pretty_cat(category))
+        return(.pie_plot(d, .cat_palette, "Overhead by category"))
+      }
+
+      if (by_cat && has_cat_data) {
         d <- ovhd_by_cat() |>
           dplyr::mutate(label = .pretty_cat(category))
         p <- ggplot2::ggplot(
@@ -394,8 +455,15 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
     output$inc_plot <- renderPlot({
       req(inc_overall())
       by_src <- isTRUE(input$inc_by_src)
+      is_pie <- by_src && identical(input$inc_chart_type, "pie")
+      has_src_data <- !is.null(inc_by_src()) && nrow(inc_by_src()) > 0
 
-      if (by_src && !is.null(inc_by_src()) && nrow(inc_by_src()) > 0) {
+      if (is_pie && has_src_data) {
+        d <- inc_by_src() |> dplyr::mutate(label = .pretty_src(account_name))
+        return(.pie_plot(d, .src_palette, "Revenue by source"))
+      }
+
+      if (by_src && has_src_data) {
         d <- inc_by_src() |>
           dplyr::mutate(label = .pretty_src(account_name))
         p <- ggplot2::ggplot(

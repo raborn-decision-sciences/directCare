@@ -209,30 +209,22 @@ test_that("mod_manual_entry_server populates r on weekly submit", {
 })
 
 # ---------------------------------------------------------------------------
-# btn_confirm_reset (Start Over)
+# r$reset_signal (Start Over, triggered globally from app_server)
 # ---------------------------------------------------------------------------
 
-test_that("btn_confirm_reset clears all r slots and resets path/loaded", {
+test_that("r$reset_signal clears path_chosen and loaded flags", {
   r <- empty_r()
+  r$reset_signal <- 0L
   testServer(mod_upload_server, args = list(r = r), {
     session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
-    r$overhead_monthly <- tibble::tibble(month = 1L)
 
-    session$setInputs(btn_confirm_reset = 1)
+    r$reset_signal <- r$reset_signal + 1L
+    session$flushReact()
 
     expect_null(path_chosen())
     expect_false(loaded$overhead)
     expect_false(loaded$income)
-    expect_null(r$transactions)
-    expect_null(r$overhead)
-    expect_null(r$income)
-    expect_null(r$overhead_monthly)
-    expect_null(r$income_monthly)
-    expect_null(r$scenario_inputs)
-    expect_null(r$panel_size)
-    expect_null(r$membership_fee)
-    expect_equal(r$validation, list())
   })
 })
 
