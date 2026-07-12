@@ -144,11 +144,14 @@
   #text(size: 8pt, weight: "semibold", fill: muted, tracking: 0.06em)[THIS REPORT INCLUDES]
   #v(0.5em)
   #let bsec = text(fill: teal-dark, size: 9.5pt)[▸]
-  #let section-items = ([Data Summary],)
-    + if d.scenario  != none { ([Scenario Parameters],)    } else { () }
-    + if d.breakeven != none { ([Break-even Analysis],)    } else { () }
-    + if d.revenue   != none { ([Revenue Forecast],)       } else { () }
-    + if d.target    != none { ([Income Target Analysis],) } else { () }
+  #let section-items = {
+    let items = ([Data Summary],)
+    if d.scenario  != none { items += ([Scenario Parameters],) }
+    if d.breakeven != none { items += ([Break-even Analysis],) }
+    if d.revenue   != none { items += ([Revenue Forecast],) }
+    if d.target    != none { items += ([Income Target Analysis],) }
+    items
+  }
   #set list(marker: bsec, body-indent: 7pt, spacing: 5pt)
   #list(..section-items)
 ]
@@ -403,21 +406,25 @@
   #block(breakable: false)[
     #sub-head("Forecast Data")
     #table(
-      columns: (1.5fr, 1fr, 1fr, 1fr),
+      columns: (1.3fr, 1fr, 1fr, 1fr, 1fr, 1fr),
       fill: (_, y) => stripe(y),
-      stroke: (x, y) => tbl-stroke(x, 4),
+      stroke: (x, y) => tbl-stroke(x, 6),
       inset: (x: 6pt, y: 4pt),
       table.header(
         text(weight: "bold")[Period],
         text(weight: "bold")[Revenue],
         text(weight: "bold")[Overhead],
-        text(weight: "bold")[Surplus / Deficit]
+        text(weight: "bold")[Surplus / Deficit],
+        text(weight: "bold")[#d.ci_label — Low],
+        text(weight: "bold")[#d.ci_label — High]
       ),
       ..bkevn.table.map(row => (
         row.period,
         row.revenue_fmt,
         row.overhead_fmt,
         text(fill: sign-color(row.surplus_sign), weight: "semibold")[#row.surplus_fmt],
+        text(fill: muted)[#row.lo_fmt],
+        text(fill: muted)[#row.hi_fmt],
       )).flatten()
     )
   ]
@@ -548,21 +555,25 @@
   #block(breakable: false)[
     #sub-head("Forecast Data")
     #table(
-      columns: (1.5fr, 1fr, 1fr, 1fr),
+      columns: (1.3fr, 1fr, 1fr, 1fr, 1fr, 1fr),
       fill: (_, y) => stripe(y),
-      stroke: (x, y) => tbl-stroke(x, 4),
+      stroke: (x, y) => tbl-stroke(x, 6),
       inset: (x: 6pt, y: 4pt),
       table.header(
         text(weight: "bold")[Period],
         text(weight: "bold")[Revenue (forecast)],
         text(weight: "bold")[Required Revenue],
-        text(weight: "bold")[Gap]
+        text(weight: "bold")[Gap],
+        text(weight: "bold")[#d.ci_label — Low],
+        text(weight: "bold")[#d.ci_label — High]
       ),
       ..tgt.table.map(row => (
         row.period,
         text(weight: "semibold")[#row.revenue_fmt],
         row.req_fmt,
         text(fill: sign-color(row.gap_sign), weight: "semibold")[#row.gap_fmt],
+        text(fill: muted)[#row.lo_fmt],
+        text(fill: muted)[#row.hi_fmt],
       )).flatten()
     )
   ]

@@ -137,6 +137,7 @@ html_to_paragraphs <- function(html) {
 
 .forecast_table_bkevn <- function(result, max_rows = 24L) {
   fd <- utils::head(result$forecast_data, max_rows)
+  has_ci <- all(c("revenue_lower", "revenue_upper") %in% names(fd))
   lapply(seq_len(nrow(fd)), function(i) {
     row <- fd[i, ]
     surplus <- if ("overhead_forecast" %in% names(row)) {
@@ -153,7 +154,9 @@ html_to_paragraphs <- function(html) {
         "\u2014"
       },
       surplus_fmt = .fmt_dollar(surplus),
-      surplus_sign = if (!is.na(surplus) && surplus >= 0) "pos" else "neg"
+      surplus_sign = if (!is.na(surplus) && surplus >= 0) "pos" else "neg",
+      lo_fmt = if (has_ci) .fmt_dollar(row$revenue_lower) else "\u2014",
+      hi_fmt = if (has_ci) .fmt_dollar(row$revenue_upper) else "\u2014"
     )
   })
 }
@@ -175,6 +178,7 @@ html_to_paragraphs <- function(html) {
 .forecast_table_tgt <- function(result, max_rows = 24L) {
   fd <- utils::head(result$forecast_data, max_rows)
   has_req <- "required_revenue" %in% names(fd)
+  has_ci <- all(c("revenue_lower", "revenue_upper") %in% names(fd))
   lapply(seq_len(nrow(fd)), function(i) {
     row <- fd[i, ]
     gap <- if (has_req) {
@@ -187,7 +191,9 @@ html_to_paragraphs <- function(html) {
       revenue_fmt = .fmt_dollar(row$revenue_forecast),
       req_fmt = if (has_req) .fmt_dollar(row$required_revenue) else "\u2014",
       gap_fmt = .fmt_dollar(gap),
-      gap_sign = if (!is.na(gap) && gap >= 0) "pos" else "neg"
+      gap_sign = if (!is.na(gap) && gap >= 0) "pos" else "neg",
+      lo_fmt = if (has_ci) .fmt_dollar(row$revenue_lower) else "\u2014",
+      hi_fmt = if (has_ci) .fmt_dollar(row$revenue_upper) else "\u2014"
     )
   })
 }
