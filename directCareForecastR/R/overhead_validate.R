@@ -94,6 +94,21 @@ validate_overhead <- function(data) {
     )
   }
 
+  # A single mistyped year (e.g. "1602" instead of "2026") is easy to miss in
+  # a large export but wrecks any UI that defaults a date range to min(date).
+  old_rows <- data$date < as.Date("2000-01-01")
+  if (any(old_rows)) {
+    rlang::warn(
+      paste0(
+        sum(old_rows),
+        " row(s) have dates before the year 2000. Verify these are not data ",
+        "entry errors (e.g. a mistyped year)."
+      ),
+      class = "dcForecastR_implausible_old_dates",
+      old_rows = data[old_rows, ]
+    )
+  }
+
   # --- Tag refunds and return ------------------------------------------------
 
   data |>

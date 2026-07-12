@@ -735,7 +735,15 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     output$csv_edit_ui <- renderUI({
       req(has_csv_data())
       txns <- isolate(r$transactions)
-      date_lo <- if (nrow(txns) > 0) {
+      # A single mistyped year (e.g. "1602" instead of "2026") is easy to miss
+      # in a large export but, left unfiltered, drags the default date-range
+      # picker back centuries -- flagged separately via
+      # dcForecastR_implausible_old_dates, but the picker default should
+      # still land on the plausible span of the data.
+      plausible_dates <- txns$date[txns$date >= as.Date("2000-01-01")]
+      date_lo <- if (length(plausible_dates) > 0) {
+        min(plausible_dates, na.rm = TRUE)
+      } else if (nrow(txns) > 0) {
         min(txns$date, na.rm = TRUE)
       } else {
         Sys.Date()

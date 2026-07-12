@@ -847,6 +847,14 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
           height = "80px"
         )
       }
+      if (any(classes == "dcForecastR_implausible_old_dates")) {
+        badges[["old_dates"]] <- value_box(
+          title = "Pre-2000 dated rows",
+          value = sum(classes == "dcForecastR_implausible_old_dates"),
+          theme = "danger",
+          height = "80px"
+        )
+      }
       if (any(classes == "dcForecastR_unmapped_accounts")) {
         badges[["unmapped"]] <- value_box(
           title = "Unmapped accounts",

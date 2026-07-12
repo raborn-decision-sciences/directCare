@@ -119,6 +119,26 @@ test_that("validate_income attaches future rows to the warning", {
   expect_equal(nrow(w$future_rows), 1)
 })
 
+test_that("validate_income warns on implausibly old dates", {
+  income <- make_income_tbl()
+  income$date[1] <- as.Date("1602-02-16")
+  expect_snapshot(validate_income(income))
+})
+
+test_that("validate_income old-date warning has dcForecastR_implausible_old_dates class", {
+  income <- make_income_tbl()
+  income$date[1] <- as.Date("1602-02-16")
+  w <- tryCatch(validate_income(income), warning = \(w) w)
+  expect_true(inherits(w, "dcForecastR_implausible_old_dates"))
+})
+
+test_that("validate_income attaches old rows to the warning", {
+  income <- make_income_tbl()
+  income$date[1] <- as.Date("1602-02-16")
+  w <- tryCatch(validate_income(income), warning = \(w) w)
+  expect_equal(nrow(w$old_rows), 1)
+})
+
 # --- Integration: ingest_manual wires in validate_income ---------------------
 
 test_that("ingest_manual type = 'income' returns is_refund column", {

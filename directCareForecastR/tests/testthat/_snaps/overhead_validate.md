@@ -46,3 +46,11 @@
       Warning:
       1 row(s) have future dates. Verify these are not data entry errors.
 
+# validate_overhead warns on implausibly old dates
+
+    Code
+      validate_overhead(overhead)
+    Condition
+      Warning:
+      1 row(s) have dates before the year 2000. Verify these are not data entry errors (e.g. a mistyped year).
+

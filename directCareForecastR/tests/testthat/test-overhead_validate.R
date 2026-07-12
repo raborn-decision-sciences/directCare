@@ -160,6 +160,26 @@ test_that("validate_overhead attaches future rows to the warning", {
   expect_equal(nrow(w$future_rows), 1)
 })
 
+test_that("validate_overhead warns on implausibly old dates", {
+  overhead <- make_overhead_tbl()
+  overhead$date[1] <- as.Date("1602-02-16")
+  expect_snapshot(validate_overhead(overhead))
+})
+
+test_that("validate_overhead old-date warning has dcForecastR_implausible_old_dates class", {
+  overhead <- make_overhead_tbl()
+  overhead$date[1] <- as.Date("1602-02-16")
+  w <- tryCatch(validate_overhead(overhead), warning = \(w) w)
+  expect_true(inherits(w, "dcForecastR_implausible_old_dates"))
+})
+
+test_that("validate_overhead attaches old rows to the warning", {
+  overhead <- make_overhead_tbl()
+  overhead$date[1] <- as.Date("1602-02-16")
+  w <- tryCatch(validate_overhead(overhead), warning = \(w) w)
+  expect_equal(nrow(w$old_rows), 1)
+})
+
 # --- Integration: filter_gnucash_overhead wires in validate_overhead ----------
 
 test_that("filter_gnucash_overhead adds is_refund via validate_overhead", {
