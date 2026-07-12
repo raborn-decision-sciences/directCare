@@ -312,6 +312,19 @@
   )
 }
 
+# Parse a user-edited date-table cell. DT renders Date columns as "YYYY-MM-DD"
+# by default, so that's tried first; MM/DD/YYYY is also accepted since it's
+# the format most bookkeeping software exports use. Returns NA (Date) on an
+# unparseable string rather than erroring, so the caller can show a
+# notification and leave the row unchanged.
+.parse_edited_date <- function(x) {
+  parsed <- suppressWarnings(lubridate::parse_date_time(
+    trimws(as.character(x)),
+    orders = c("ymd", "mdy")
+  ))
+  as.Date(parsed)
+}
+
 # Account-level info used when building ingest_manual() data frames
 .ovhd_acct <- list(
   "Rent" = list(acct = "Rent", full = "Expenses:Rent and Utilities:Rent"),
@@ -1675,7 +1688,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           colnames = c("Date", "Account", "Description", "Amount", "Category"),
           editable = list(
             target = "cell",
-            disable = list(columns = c(0, 1, 2, 3))
+            disable = list(columns = c(1, 2, 3))
           ),
           options = list(pageLength = 15, dom = "ftp", scrollX = TRUE),
           selection = list(mode = "multiple", target = "row")
@@ -1737,8 +1750,46 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     # -- Apply inline cell edits ----------------------------------------------
     observeEvent(input$edit_table_cell_edit, {
       info <- input$edit_table_cell_edit
-      # Column 4 = category (0-indexed in DT)
-      if (info$col == 4) {
+      true_row <- filtered_row_indices()[info$row]
+
+      # Column 0 = date (0-indexed in DT)
+      if (info$col == 0) {
+        new_date <- .parse_edited_date(info$value)
+        if (is.na(new_date)) {
+          showNotification(
+            paste0(
+              "'",
+              info$value,
+              "' isn't a recognized date. Use YYYY-MM-DD (e.g. 2026-02-16)."
+            ),
+            type = "warning"
+          )
+          return()
+        }
+
+        r$transactions$date[true_row] <- new_date
+        r$transactions$week_start[true_row] <- lubridate::floor_date(
+          new_date,
+          "week",
+          week_start = 1
+        )
+        r$transactions$month[true_row] <- lubridate::month(new_date)
+        r$transactions$year[true_row] <- lubridate::year(new_date)
+
+        # Both updates below trigger the central observe -> monthly summaries
+        r$overhead <- directCareForecastR::filter_gnucash_overhead(
+          r$transactions
+        )
+        r$income <- suppressWarnings(
+          directCareForecastR::normalize_gnucash_income(r$transactions)
+        )
+        showNotification(
+          paste0("Date updated to ", format(new_date, "%Y-%m-%d"), "."),
+          type = "message",
+          duration = 2
+        )
+      } else if (info$col == 4) {
+        # Column 4 = category
         new_val <- trimws(as.character(info$value))
         if (!new_val %in% valid_categories) {
           showNotification(
@@ -1754,7 +1805,6 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           return()
         }
 
-        true_row <- filtered_row_indices()[info$row]
         r$transactions$category[true_row] <- new_val
         # r$overhead update triggers the central observe -> monthly summaries
         r$overhead <- directCareForecastR::filter_gnucash_overhead(
