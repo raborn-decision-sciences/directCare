@@ -325,7 +325,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                     "color:#DC2626;"
                   },
                   if (members >= members_for_breakeven) {
-                    paste0(
+                    tagList(
                       bs_icon("check-circle"),
                       " Already there! (",
                       members,
@@ -367,7 +367,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                     "color:#DC2626;"
                   },
                   if (avg_fee >= fee_for_breakeven) {
-                    paste0(
+                    tagList(
                       bs_icon("check-circle"),
                       " Current avg fee covers it"
                     )
@@ -419,7 +419,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                         "color:#DC2626;"
                       },
                       if (members >= members_for_target) {
-                        paste0(bs_icon("check-circle"), " Target already met!")
+                        tagList(bs_icon("check-circle"), " Target already met!")
                       } else {
                         paste0(members_for_target - members, " more needed")
                       }
@@ -453,7 +453,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                         "color:#DC2626;"
                       },
                       if (avg_fee >= fee_for_target) {
-                        paste0(
+                        tagList(
                           bs_icon("check-circle"),
                           " Current avg fee reaches target"
                         )
