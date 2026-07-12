@@ -289,3 +289,98 @@ test_that(".build_palette assigns a fallback color to unrecognised keys", {
   pal <- .build_palette("Grants", .src_palette, .pretty_src, NULL)
   expect_equal(unname(pal["Grants"]), .fallback_color)
 })
+
+# ── .grouped_totals_dt() (category/source pie-mode summary table) ──────────
+
+transactions_overhead <- function() {
+  tibble::tibble(
+    practice_id = "test",
+    date = as.Date(c(
+      "2025-01-05",
+      "2025-01-10",
+      "2025-02-05",
+      "2025-02-10"
+    )),
+    week_start = as.Date(c(
+      "2025-01-05",
+      "2025-01-05",
+      "2025-02-02",
+      "2025-02-02"
+    )),
+    month = c(1L, 1L, 2L, 2L),
+    year = c(2025L, 2025L, 2025L, 2025L),
+    full_account_name = c(
+      "Expenses:Rent",
+      "Expenses:Staff",
+      "Expenses:Rent",
+      "Expenses:Staff"
+    ),
+    account_name = c("Rent", "Staff", "Rent", "Staff"),
+    description = "",
+    amount = c(1000, 500, 1000, 700),
+    category = c("rent", "staff", "rent", "staff"),
+    source = "gnucash_csv",
+    is_refund = FALSE
+  )
+}
+
+test_that(".grouped_totals_dt aggregates across all rows and computes % of total", {
+  r <- make_r()
+  testServer(mod_summary_server, args = list(r = r), {
+    d <- tibble::tibble(
+      label = c("Rent", "Staff", "Rent"),
+      total = c(1000, 500, 200)
+    )
+    dt <- .grouped_totals_dt(d, "Category")
+    out <- dt$x$data
+    expect_equal(names(out)[1], "Category")
+    expect_equal(out$Category, c("Rent", "Staff"))
+    expect_equal(out$Total, c("$1,200.00", "$500.00"))
+    expect_equal(out[["% of Total"]], c("71%", "29%"))
+  })
+})
+
+test_that("ovhd_by_cat can be filtered to a single period, matching what the by-period pie shows", {
+  r <- make_r()
+  r$overhead <- transactions_overhead()
+  testServer(mod_summary_server, args = list(r = r), {
+    d <- ovhd_by_cat()
+    expect_equal(
+      sort(unique(d$period_start)),
+      as.Date(c("2025-01-01", "2025-02-01"))
+    )
+
+    jan <- dplyr::filter(d, period_start == as.Date("2025-01-01"))
+    expect_equal(sum(jan$total[jan$category == "rent"]), 1000)
+    expect_equal(sum(jan$total[jan$category == "staff"]), 500)
+
+    feb <- dplyr::filter(d, period_start == as.Date("2025-02-01"))
+    expect_equal(sum(feb$total[feb$category == "staff"]), 700)
+  })
+})
+
+test_that("ovhd_table_caption reflects period-detail vs category-totals mode", {
+  r <- make_r()
+  r$overhead <- transactions_overhead()
+  testServer(mod_summary_server, args = list(r = r), {
+    session$setInputs(ovhd_by_cat = FALSE)
+    html1 <- as.character(output$ovhd_table_caption$html)
+    expect_true(grepl("Period detail", html1, fixed = TRUE))
+
+    session$setInputs(
+      ovhd_by_cat = TRUE,
+      ovhd_chart_type = "pie",
+      ovhd_pie_scope = "full"
+    )
+    html2 <- as.character(output$ovhd_table_caption$html)
+    expect_true(grepl("Category totals \\(full range\\)", html2))
+
+    session$setInputs(
+      ovhd_pie_scope = "period",
+      ovhd_pie_period = "2025-01-01"
+    )
+    html3 <- as.character(output$ovhd_table_caption$html)
+    expect_true(grepl("Category totals", html3, fixed = TRUE))
+    expect_true(grepl("Jan 2025", html3, fixed = TRUE))
+  })
+})

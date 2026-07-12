@@ -147,6 +147,27 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
                     choices = c("Bar" = "bar", "Pie" = "pie"),
                     selected = "bar",
                     inline = TRUE
+                  ),
+                  conditionalPanel(
+                    condition = sprintf(
+                      "input['%s'] == 'pie'",
+                      ns("ovhd_chart_type")
+                    ),
+                    radioButtons(
+                      ns("ovhd_pie_scope"),
+                      label = NULL,
+                      choices = c("Full data" = "full", "By period" = "period"),
+                      selected = "full",
+                      inline = TRUE
+                    )
+                  ),
+                  conditionalPanel(
+                    condition = sprintf(
+                      "input['%s'] == 'pie' && input['%s'] == 'period'",
+                      ns("ovhd_chart_type"),
+                      ns("ovhd_pie_scope")
+                    ),
+                    uiOutput(ns("ovhd_pie_period_ui"), inline = TRUE)
                   )
                 )
               }
@@ -159,10 +180,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
               ),
               plotOutput(ns("ovhd_plot"), height = "280px"),
               tags$hr(),
-              tags$p(
-                class = "small fw-semibold text-muted mb-1",
-                "Period detail"
-              ),
+              uiOutput(ns("ovhd_table_caption")),
               DT::dataTableOutput(ns("ovhd_table"))
             )
           ),
@@ -187,6 +205,27 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
                     choices = c("Bar" = "bar", "Pie" = "pie"),
                     selected = "bar",
                     inline = TRUE
+                  ),
+                  conditionalPanel(
+                    condition = sprintf(
+                      "input['%s'] == 'pie'",
+                      ns("inc_chart_type")
+                    ),
+                    radioButtons(
+                      ns("inc_pie_scope"),
+                      label = NULL,
+                      choices = c("Full data" = "full", "By period" = "period"),
+                      selected = "full",
+                      inline = TRUE
+                    )
+                  ),
+                  conditionalPanel(
+                    condition = sprintf(
+                      "input['%s'] == 'pie' && input['%s'] == 'period'",
+                      ns("inc_chart_type"),
+                      ns("inc_pie_scope")
+                    ),
+                    uiOutput(ns("inc_pie_period_ui"), inline = TRUE)
                   )
                 )
               }
@@ -199,10 +238,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
               ),
               plotOutput(ns("inc_plot"), height = "280px"),
               tags$hr(),
-              tags$p(
-                class = "small fw-semibold text-muted mb-1",
-                "Period detail"
-              ),
+              uiOutput(ns("inc_table_caption")),
               DT::dataTableOutput(ns("inc_table"))
             )
           )
@@ -327,6 +363,31 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       }
     })
 
+    #  Period selectors for "By period" pie mode
+    output$ovhd_pie_period_ui <- renderUI({
+      req(ovhd_by_cat())
+      periods <- sort(unique(ovhd_by_cat()$period_start), decreasing = TRUE)
+      choices <- stats::setNames(as.character(periods), fmt_period(periods))
+      selectInput(
+        ns("ovhd_pie_period"),
+        NULL,
+        choices = choices,
+        selected = isolate(input$ovhd_pie_period) %||% choices[1]
+      )
+    })
+
+    output$inc_pie_period_ui <- renderUI({
+      req(inc_by_src())
+      periods <- sort(unique(inc_by_src()$period_start), decreasing = TRUE)
+      choices <- stats::setNames(as.character(periods), fmt_period(periods))
+      selectInput(
+        ns("inc_pie_period"),
+        NULL,
+        choices = choices,
+        selected = isolate(input$inc_pie_period) %||% choices[1]
+      )
+    })
+
     #  Value boxes
     output$ovhd_vboxes <- renderUI({
       req(ovhd_overall())
@@ -438,7 +499,16 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       if (is_pie && has_cat_data) {
         d <- ovhd_by_cat() |>
           dplyr::mutate(label = .pretty_cat(category, overrides))
-        return(.pie_plot(d, pal, "Overhead by category"))
+        scope <- input$ovhd_pie_scope %||% "full"
+        title <- "Overhead by category"
+        if (identical(scope, "period")) {
+          sel <- input$ovhd_pie_period
+          if (!is.null(sel) && nzchar(sel)) {
+            d <- dplyr::filter(d, period_start == as.Date(sel))
+            title <- paste0(title, " — ", fmt_period(as.Date(sel)))
+          }
+        }
+        return(.pie_plot(d, pal, title))
       }
 
       if (by_cat && has_cat_data) {
@@ -510,7 +580,16 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       if (is_pie && has_src_data) {
         d <- inc_by_src() |>
           dplyr::mutate(label = .pretty_src(account_name, overrides))
-        return(.pie_plot(d, pal, "Revenue by source"))
+        scope <- input$inc_pie_scope %||% "full"
+        title <- "Revenue by source"
+        if (identical(scope, "period")) {
+          sel <- input$inc_pie_period
+          if (!is.null(sel) && nzchar(sel)) {
+            d <- dplyr::filter(d, period_start == as.Date(sel))
+            title <- paste0(title, " — ", fmt_period(as.Date(sel)))
+          }
+        }
+        return(.pie_plot(d, pal, title))
       }
 
       if (by_src && has_src_data) {
@@ -582,12 +661,82 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       )
     }
 
+    # Aggregate `d` (columns: label, total) down to one row per label,
+    # matching whatever slice of data the pie chart is currently showing
+    # (the full range, or a single selected period).
+    .grouped_totals_dt <- function(d, label_header) {
+      tot_all <- sum(d$total, na.rm = TRUE)
+      out <- d |>
+        dplyr::group_by(label) |>
+        dplyr::summarise(Total = sum(total, na.rm = TRUE), .groups = "drop") |>
+        dplyr::arrange(dplyr::desc(Total))
+      out[["% of Total"]] <- if (tot_all != 0) {
+        scales::percent(out$Total / tot_all, accuracy = 1)
+      } else {
+        "—"
+      }
+      out$Total <- fmt_dollar(out$Total)
+      names(out)[names(out) == "label"] <- label_header
+      .make_dt(out)
+    }
+
+    output$ovhd_table_caption <- renderUI({
+      by_cat <- isTRUE(input$ovhd_by_cat)
+      is_pie <- by_cat && identical(input$ovhd_chart_type, "pie")
+      scope <- input$ovhd_pie_scope %||% "full"
+      label <- if (is_pie && identical(scope, "period")) {
+        sel <- input$ovhd_pie_period
+        if (!is.null(sel) && nzchar(sel)) {
+          paste0("Category totals — ", fmt_period(as.Date(sel)))
+        } else {
+          "Category totals"
+        }
+      } else if (is_pie) {
+        "Category totals (full range)"
+      } else {
+        "Period detail"
+      }
+      tags$p(class = "small fw-semibold text-muted mb-1", label)
+    })
+
+    output$inc_table_caption <- renderUI({
+      by_src <- isTRUE(input$inc_by_src)
+      is_pie <- by_src && identical(input$inc_chart_type, "pie")
+      scope <- input$inc_pie_scope %||% "full"
+      label <- if (is_pie && identical(scope, "period")) {
+        sel <- input$inc_pie_period
+        if (!is.null(sel) && nzchar(sel)) {
+          paste0("Source totals — ", fmt_period(as.Date(sel)))
+        } else {
+          "Source totals"
+        }
+      } else if (is_pie) {
+        "Source totals (full range)"
+      } else {
+        "Period detail"
+      }
+      tags$p(class = "small fw-semibold text-muted mb-1", label)
+    })
+
     output$ovhd_table <- DT::renderDataTable({
       req(ovhd_overall())
       by_cat <- isTRUE(input$ovhd_by_cat)
 
       if (by_cat && !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0) {
-        # Wide format: period | Cat1 | Cat2 | ... | Total
+        is_pie <- identical(input$ovhd_chart_type, "pie")
+        if (is_pie) {
+          d <- ovhd_by_cat() |>
+            dplyr::mutate(label = .pretty_cat(category, r$category_labels))
+          if (identical(input$ovhd_pie_scope %||% "full", "period")) {
+            sel <- input$ovhd_pie_period
+            if (!is.null(sel) && nzchar(sel)) {
+              d <- dplyr::filter(d, period_start == as.Date(sel))
+            }
+          }
+          return(.grouped_totals_dt(d, "Category"))
+        }
+
+        # Bar mode -- wide format: period | Cat1 | Cat2 | ... | Total
         wide <- ovhd_by_cat() |>
           dplyr::mutate(label = .pretty_cat(category, r$category_labels)) |>
           dplyr::select(period_start, label, total) |>
@@ -629,6 +778,19 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       by_src <- isTRUE(input$inc_by_src)
 
       if (by_src && !is.null(inc_by_src()) && nrow(inc_by_src()) > 0) {
+        is_pie <- identical(input$inc_chart_type, "pie")
+        if (is_pie) {
+          d <- inc_by_src() |>
+            dplyr::mutate(label = .pretty_src(account_name, r$source_labels))
+          if (identical(input$inc_pie_scope %||% "full", "period")) {
+            sel <- input$inc_pie_period
+            if (!is.null(sel) && nzchar(sel)) {
+              d <- dplyr::filter(d, period_start == as.Date(sel))
+            }
+          }
+          return(.grouped_totals_dt(d, "Source"))
+        }
+
         wide <- inc_by_src() |>
           dplyr::mutate(label = .pretty_src(account_name, r$source_labels)) |>
           dplyr::select(period_start, label, total) |>
