@@ -24,31 +24,63 @@
   "Fee-for-Service" = "Fee-for-Service"
 )
 
-.pretty_cat <- function(x) ifelse(x %in% names(.cat_labels), .cat_labels[x], x)
+# `overrides` is an optional named chr vector (slug/key -> custom label),
+# typically r$category_labels / r$source_labels set via the "Customize
+# Category Labels" editor in Review & Edit. Falls back to the built-in
+# defaults, and ultimately to the raw key, when no override is present.
+.pretty_cat <- function(x, overrides = NULL) {
+  labs <- .cat_labels
+  if (!is.null(overrides)) {
+    labs[names(overrides)] <- overrides
+  }
+  ifelse(x %in% names(labs), labs[x], x)
+}
 # Map account_name to a display label; anything unrecognised is kept as-is.
-.pretty_src <- function(x) ifelse(x %in% names(.src_labels), .src_labels[x], x)
+.pretty_src <- function(x, overrides = NULL) {
+  labs <- .src_labels
+  if (!is.null(overrides)) {
+    for (key in names(overrides)) {
+      labs[[key]] <- overrides[[key]]
+    }
+  }
+  ifelse(x %in% names(labs), labs[x], x)
+}
 
-# Colour palettes (one per category / source)
+# Colour palettes, keyed on the underlying slug/account_name (NOT the pretty
+# label) so a custom display label still gets a stable, predictable color.
 .cat_palette <- c(
-  "Rent" = "#1e3a5f",
-  "Staff / Payroll" = "#4a90d9",
-  "Supplies" = "#2d6a4f",
-  "Software" = "#6baed6",
-  "Insurance" = "#e9a825",
-  "Marketing" = "#9ecae1",
-  "Labs" = "#c0392b",
-  "Equipment" = "#74c476",
-  "Licenses" = "#fd8d3c",
-  "Education" = "#756bb1",
-  "Other" = "#969696"
+  rent = "#1e3a5f",
+  staff = "#4a90d9",
+  supplies = "#2d6a4f",
+  software = "#6baed6",
+  insurance = "#e9a825",
+  marketing = "#9ecae1",
+  labs = "#c0392b",
+  equipment = "#74c476",
+  licenses = "#fd8d3c",
+  education = "#756bb1",
+  other = "#969696"
 )
 
-# Keyed on the pretty labels produced by .pretty_src()
 .src_palette <- c(
-  "Membership" = "#1e3a5f",
-  "Fee-for-Service" = "#4a90d9",
-  "Other" = "#969696"
+  "Membership Fees" = "#1e3a5f",
+  "Fee-for-Service" = "#4a90d9"
 )
+
+.fallback_color <- "#969696"
+
+# Build a `scale_fill_manual`-ready palette named by the *current* display
+# labels (after overrides) for the given raw keys, so renaming a category or
+# source doesn't break color matching.
+.build_palette <- function(keys, base_palette, pretty_fn, overrides) {
+  keys <- unique(keys)
+  cols <- ifelse(
+    keys %in% names(base_palette),
+    base_palette[keys],
+    .fallback_color
+  )
+  stats::setNames(cols, pretty_fn(keys, overrides))
+}
 
 
 #' Summary Module UI
@@ -395,21 +427,30 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       is_pie <- by_cat && identical(input$ovhd_chart_type, "pie")
       has_cat_data <- !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0
 
+      overrides <- r$category_labels
+      pal <- .build_palette(
+        ovhd_by_cat()$category,
+        .cat_palette,
+        .pretty_cat,
+        overrides
+      )
+
       if (is_pie && has_cat_data) {
-        d <- ovhd_by_cat() |> dplyr::mutate(label = .pretty_cat(category))
-        return(.pie_plot(d, .cat_palette, "Overhead by category"))
+        d <- ovhd_by_cat() |>
+          dplyr::mutate(label = .pretty_cat(category, overrides))
+        return(.pie_plot(d, pal, "Overhead by category"))
       }
 
       if (by_cat && has_cat_data) {
         d <- ovhd_by_cat() |>
-          dplyr::mutate(label = .pretty_cat(category))
+          dplyr::mutate(label = .pretty_cat(category, overrides))
         p <- ggplot2::ggplot(
           d,
           ggplot2::aes(period_start, total, fill = label)
         ) +
           ggplot2::geom_col(width = if (is_weekly()) 5 else 25) +
           ggplot2::scale_fill_manual(
-            values = .cat_palette,
+            values = pal,
             name = NULL,
             drop = FALSE
           ) +
@@ -458,21 +499,30 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       is_pie <- by_src && identical(input$inc_chart_type, "pie")
       has_src_data <- !is.null(inc_by_src()) && nrow(inc_by_src()) > 0
 
+      overrides <- r$source_labels
+      pal <- .build_palette(
+        inc_by_src()$account_name,
+        .src_palette,
+        .pretty_src,
+        overrides
+      )
+
       if (is_pie && has_src_data) {
-        d <- inc_by_src() |> dplyr::mutate(label = .pretty_src(account_name))
-        return(.pie_plot(d, .src_palette, "Revenue by source"))
+        d <- inc_by_src() |>
+          dplyr::mutate(label = .pretty_src(account_name, overrides))
+        return(.pie_plot(d, pal, "Revenue by source"))
       }
 
       if (by_src && has_src_data) {
         d <- inc_by_src() |>
-          dplyr::mutate(label = .pretty_src(account_name))
+          dplyr::mutate(label = .pretty_src(account_name, overrides))
         p <- ggplot2::ggplot(
           d,
           ggplot2::aes(period_start, total, fill = label)
         ) +
           ggplot2::geom_col(width = if (is_weekly()) 5 else 25) +
           ggplot2::scale_fill_manual(
-            values = .src_palette,
+            values = pal,
             name = NULL,
             drop = FALSE
           ) +
@@ -539,7 +589,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       if (by_cat && !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0) {
         # Wide format: period | Cat1 | Cat2 | ... | Total
         wide <- ovhd_by_cat() |>
-          dplyr::mutate(label = .pretty_cat(category)) |>
+          dplyr::mutate(label = .pretty_cat(category, r$category_labels)) |>
           dplyr::select(period_start, label, total) |>
           tidyr::pivot_wider(
             names_from = label,
@@ -580,7 +630,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
 
       if (by_src && !is.null(inc_by_src()) && nrow(inc_by_src()) > 0) {
         wide <- inc_by_src() |>
-          dplyr::mutate(label = .pretty_src(account_name)) |>
+          dplyr::mutate(label = .pretty_src(account_name, r$source_labels)) |>
           dplyr::select(period_start, label, total) |>
           tidyr::pivot_wider(
             names_from = label,

@@ -18,6 +18,8 @@ app_server <- function(input, output, session) {
     panel_size = NULL, # numeric \u2014 current DPC panel size (members)
     membership_fee = NULL, # numeric \u2014 weighted avg monthly membership fee per member ($)
     membership_tiers = NULL, # list of {label, members, fee} \u2014 detail behind panel_size/membership_fee
+    category_labels = NULL, # named chr vector: overhead category slug \u2192 custom display label
+    source_labels = NULL, # named chr vector: income account_name \u2192 custom display label
 
     # Data pipeline state
     transactions = NULL, # normalized tibble from ingest_gnucash_csv()
@@ -78,6 +80,8 @@ app_server <- function(input, output, session) {
       r$panel_size <- NULL
       r$membership_fee <- NULL
       r$membership_tiers <- NULL
+      r$category_labels <- NULL
+      r$source_labels <- NULL
       r$transactions <- NULL
       r$overhead <- NULL
       r$income <- NULL

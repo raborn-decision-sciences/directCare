@@ -240,3 +240,52 @@ test_that("ovhd_by_cat returns nothing (req fails silently) when r$overhead is N
     expect_null(result)
   })
 })
+
+# ── .pretty_cat / .pretty_src / .build_palette (category label overrides) ──────
+
+test_that(".pretty_cat returns default labels with no overrides", {
+  expect_equal(.pretty_cat("rent"), "Rent")
+  expect_equal(.pretty_cat("staff"), "Staff / Payroll")
+})
+
+test_that(".pretty_cat applies overrides and falls back for unmapped keys", {
+  overrides <- c(rent = "Facility Costs")
+  expect_equal(.pretty_cat("rent", overrides), "Facility Costs")
+  expect_equal(.pretty_cat("staff", overrides), "Staff / Payroll")
+  expect_equal(.pretty_cat("unknown_slug", overrides), "unknown_slug")
+})
+
+test_that(".pretty_src returns default labels with no overrides", {
+  expect_equal(.pretty_src("Membership Fees"), "Membership")
+  expect_equal(.pretty_src("Fee-for-Service"), "Fee-for-Service")
+})
+
+test_that(".pretty_src applies overrides including custom account names", {
+  overrides <- c("Membership Fees" = "Panel Revenue", "Grants" = "Grant Income")
+  expect_equal(.pretty_src("Membership Fees", overrides), "Panel Revenue")
+  expect_equal(.pretty_src("Grants", overrides), "Grant Income")
+  expect_equal(.pretty_src("Other Income", overrides), "Other Income")
+})
+
+test_that(".build_palette keys the palette by the current display label, not the slug", {
+  pal <- .build_palette(c("rent", "staff"), .cat_palette, .pretty_cat, NULL)
+  expect_equal(unname(pal["Rent"]), .cat_palette[["rent"]])
+  expect_equal(unname(pal["Staff / Payroll"]), .cat_palette[["staff"]])
+})
+
+test_that(".build_palette keeps the original color after a category is renamed", {
+  overrides <- c(rent = "Facility Costs")
+  pal <- .build_palette(
+    c("rent", "staff"),
+    .cat_palette,
+    .pretty_cat,
+    overrides
+  )
+  expect_equal(unname(pal["Facility Costs"]), .cat_palette[["rent"]])
+  expect_false("Rent" %in% names(pal))
+})
+
+test_that(".build_palette assigns a fallback color to unrecognised keys", {
+  pal <- .build_palette("Grants", .src_palette, .pretty_src, NULL)
+  expect_equal(unname(pal["Grants"]), .fallback_color)
+})

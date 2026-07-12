@@ -863,6 +863,24 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             ),
 
             card(
+              card_header(bs_icon("tags"), " Customize Category Labels"),
+              card_body(
+                p(
+                  class = "text-muted small",
+                  "Rename how overhead categories and income sources appear",
+                  " in the Summary and charts — the underlying data is unchanged."
+                ),
+                uiOutput(ns("label_editor_ui")),
+                actionButton(
+                  ns("btn_save_labels"),
+                  "Save Labels",
+                  icon = bs_icon("check2"),
+                  class = "btn-secondary w-100 mt-1"
+                )
+              )
+            ),
+
+            card(
               card_header(bs_icon("plus-circle"), " Add Transactions"),
               card_body(
                 accordion(
@@ -1055,6 +1073,92 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       req(r$transactions)
       accounts <- sort(unique(r$transactions$account_name))
       updateSelectInput(session, "remap_account", choices = accounts)
+    })
+
+    # -- Customize category / source display labels ---------------------------
+    # .cat_labels / .src_labels are the default slug -> pretty-label maps
+    # defined in mod_summary.R; r$category_labels / r$source_labels hold any
+    # user overrides, seeded from those defaults.
+    output$label_editor_ui <- renderUI({
+      cat_slugs <- names(.cat_labels)
+      cur_cat <- r$category_labels %||% .cat_labels
+
+      src_keys <- if (!is.null(r$income) && nrow(r$income) > 0L) {
+        sort(unique(r$income$account_name))
+      } else {
+        names(.src_labels)
+      }
+      cur_src <- r$source_labels %||% .src_labels
+
+      tagList(
+        tags$p(
+          class = "small fw-semibold text-muted mb-1",
+          "Overhead categories"
+        ),
+        lapply(cat_slugs, function(slug) {
+          textInput(
+            ns(paste0("cat_label_", slug)),
+            NULL,
+            value = isolate(input[[paste0("cat_label_", slug)]]) %||%
+              (cur_cat[[slug]] %||% .cat_labels[[slug]]),
+            placeholder = .cat_labels[[slug]]
+          )
+        }),
+        tags$p(
+          class = "small fw-semibold text-muted mb-1 mt-2",
+          "Income sources"
+        ),
+        lapply(src_keys, function(key) {
+          safe_id <- gsub("[^A-Za-z0-9]", "_", key)
+          textInput(
+            ns(paste0("src_label_", safe_id)),
+            key,
+            value = isolate(input[[paste0("src_label_", safe_id)]]) %||%
+              (cur_src[[key]] %||% key)
+          )
+        })
+      )
+    })
+
+    observeEvent(input$btn_save_labels, {
+      cat_slugs <- names(.cat_labels)
+      new_cat <- stats::setNames(
+        vapply(
+          cat_slugs,
+          function(slug) {
+            v <- input[[paste0("cat_label_", slug)]] %||% ""
+            if (nzchar(trimws(v))) v else .cat_labels[[slug]]
+          },
+          character(1)
+        ),
+        cat_slugs
+      )
+      r$category_labels <- new_cat
+
+      src_keys <- if (!is.null(r$income) && nrow(r$income) > 0L) {
+        sort(unique(r$income$account_name))
+      } else {
+        names(.src_labels)
+      }
+      new_src <- stats::setNames(
+        vapply(
+          src_keys,
+          function(key) {
+            safe_id <- gsub("[^A-Za-z0-9]", "_", key)
+            v <- input[[paste0("src_label_", safe_id)]] %||% ""
+            if (nzchar(trimws(v))) v else key
+          },
+          character(1)
+        ),
+        src_keys
+      )
+      r$source_labels <- new_src
+
+      showNotification(
+        "Category labels updated.",
+        type = "message",
+        duration = 2
+      )
     })
 
     # -- Clear date filter back to full range ---------------------------------
