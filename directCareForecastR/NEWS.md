@@ -2,6 +2,13 @@
 
 ## Data ingestion
 
+- `ingest_quickbooks_csv()` added. Reads a QuickBooks Online "Transaction List
+  by Date" CSV export, classifies each row as overhead or income by the sign
+  of `Amount`, maps expense accounts to internal categories via
+  `default_account_map()`, and returns a tibble in the same shape as
+  `ingest_gnucash_csv()` — fully compatible with `filter_gnucash_overhead()`
+  and `normalize_gnucash_income()`.
+
 - `ingest_csv_generic()` added. Reads a caller-specified CSV file, maps
   user-supplied column names to the internal schema, and validates the result.
   Supports three modes via the `type` argument: `"both"` (default) splits a

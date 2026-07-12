@@ -235,13 +235,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 choiceNames = list(
                   "GnuCash",
                   "Other / Generic CSV",
-                  tagList(
-                    "QuickBooks ",
-                    tags$span(
-                      class = "badge text-bg-secondary small ms-1",
-                      "coming soon"
-                    )
-                  ),
+                  "QuickBooks Online",
                   tagList(
                     "Wave ",
                     tags$span(
@@ -255,7 +249,6 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
               ),
               tags$script(HTML(paste0(
                 "$(document).ready(function() {",
-                "  $('input[type=radio][value=quickbooks]').prop('disabled', true);",
                 "  $('input[type=radio][value=wave]').prop('disabled', true);",
                 "});"
               ))),
@@ -284,6 +277,8 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
         .gnucash_controls_ui(ns)
       } else if (sw == "other") {
         .generic_controls_ui(ns)
+      } else if (sw == "quickbooks") {
+        .quickbooks_controls_ui(ns)
       } else {
         p(
           class = "text-muted small",
@@ -329,7 +324,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
         # account mapping + data preview
         tagList(
           uiOutput(ns("validation_badges")),
-          if (sw == "gnucash") {
+          if (sw %in% c("gnucash", "quickbooks")) {
             card(
               card_header(
                 tagList(
@@ -539,6 +534,18 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                   practice_id = r$practice_id
                 )
               }
+              overhead <- directCareForecastR::filter_gnucash_overhead(
+                transactions
+              )
+              income <- directCareForecastR::normalize_gnucash_income(
+                transactions
+              )
+              r$transactions <- transactions
+            } else if (sw == "quickbooks") {
+              transactions <- directCareForecastR::ingest_quickbooks_csv(
+                path = input$csv_file$datapath,
+                practice_id = r$practice_id
+              )
               overhead <- directCareForecastR::filter_gnucash_overhead(
                 transactions
               )
@@ -1008,6 +1015,113 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       class = "btn-primary w-100"
     ),
     div(class = "my-2 text-center text-muted small", "\u2014 or \u2014"),
+    actionButton(
+      ns("btn_manual_entry"),
+      "Enter Data Manually",
+      icon = bs_icon("keyboard"),
+      class = "btn-outline-secondary w-100"
+    )
+  )
+}
+
+.quickbooks_controls_ui <- function(ns) {
+  tagList(
+    fileInput(
+      ns("csv_file"),
+      tagList(
+        "CSV Export",
+        tooltip(
+          bs_icon("info-circle", title = "Expected file format"),
+          placement = "right",
+          tagList(
+            tags$strong("QuickBooks Online export"),
+            tags$br(),
+            tags$p(
+              class = "mb-1",
+              "In QuickBooks Online: ",
+              tags$em("Reports → Transaction List by Date → Export to CSV"),
+              ". The file must include these columns:",
+              tags$ul(
+                class = "mb-0 mt-1 ps-3",
+                tags$li(
+                  tags$code("Date"),
+                  " — transaction date"
+                ),
+                tags$li(
+                  tags$code("Account"),
+                  " — the account name (e.g. Rent Expense)"
+                ),
+                tags$li(
+                  tags$code("Amount"),
+                  " — signed amount (negative = money out, positive = ",
+                  "money in)"
+                )
+              )
+            )
+          )
+        )
+      ),
+      accept = ".csv",
+      buttonLabel = "Browse...",
+      placeholder = "No file selected"
+    ),
+    accordion(
+      open = FALSE,
+      accordion_panel(
+        title = "File format reference",
+        icon = bs_icon("table"),
+        tags$p(
+          class = "small text-muted mb-2",
+          "Your CSV should look like the example below. Extra columns are ignored."
+        ),
+        tags$div(
+          class = "table-responsive",
+          tags$table(
+            class = "table table-sm table-bordered small mb-0",
+            style = "font-family: monospace; font-size: 0.75rem;",
+            tags$thead(
+              tags$tr(
+                tags$th("Date"),
+                tags$th("Account"),
+                tags$th("Amount")
+              )
+            ),
+            tags$tbody(
+              tags$tr(
+                tags$td("01/15/2024"),
+                tags$td("Rent Expense"),
+                tags$td("-1200.00")
+              ),
+              tags$tr(
+                tags$td("01/15/2024"),
+                tags$td("Membership Fees"),
+                tags$td("3500.00")
+              ),
+              tags$tr(
+                tags$td("02/01/2024"),
+                tags$td("Office Supplies"),
+                tags$td("-145.00")
+              )
+            )
+          )
+        ),
+        tags$p(
+          class = "small text-muted mt-2 mb-0",
+          bs_icon("lightbulb"),
+          " Money leaving the practice (bills, checks, expenses) is negative; ",
+          "money coming in (invoices, sales receipts, deposits) is positive ",
+          "— that sign determines whether each row is overhead or income."
+        )
+      )
+    ),
+    div(class = "mt-3"),
+    actionButton(
+      ns("btn_upload"),
+      "Upload & Process",
+      icon = icon("upload"),
+      class = "btn-primary w-100"
+    ),
+    div(class = "my-2 text-center text-muted small", "— or —"),
     actionButton(
       ns("btn_manual_entry"),
       "Enter Data Manually",

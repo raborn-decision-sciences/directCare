@@ -9,6 +9,7 @@ reference:
     contents:
       - ingest_gnucash_csv
       - ingest_gnucash_xml
+      - ingest_quickbooks_csv
       - ingest_csv_generic
       - ingest_manual
 
