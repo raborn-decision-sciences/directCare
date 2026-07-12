@@ -358,6 +358,17 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     # -- Membership tier UI (Practice Profile sidebar section) ----------------
     proj_n_tiers <- reactiveVal(1L)
 
+    # -- Global Start Over: clear this module's local UI state -------------
+    observeEvent(
+      r$reset_signal,
+      {
+        proj_n_tiers(1L)
+        shown_warnings(character(0))
+        n_overhead_events(0L)
+      },
+      ignoreInit = TRUE
+    )
+
     # When the scenario populates r$membership_tiers, sync the tier count so
     # the sidebar pre-fills with the end-of-period values.
     observeEvent(

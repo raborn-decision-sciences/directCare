@@ -44,9 +44,6 @@ mod_upload_ui <- function(id) {
       )
     ),
 
-    # -- Start Over (shown when workflow is already in progress) ---------------
-    uiOutput(ns("start_over_ui")),
-
     # -- Step 2: Path choice or upload flow (dynamic) -----------------------
     uiOutput(ns("main_content")),
 
@@ -83,64 +80,18 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     # Track which generic-CSV files have been successfully loaded.
     loaded <- reactiveValues(overhead = FALSE, income = FALSE)
 
-    # -- Start Over button & confirmation modal -----------------------------
-    output$start_over_ui <- renderUI({
-      has_progress <- !is.null(path_chosen()) ||
-        !is.null(r$overhead_monthly) ||
-        !is.null(r$transactions)
-      if (!has_progress) {
-        return(NULL)
-      }
-      div(
-        class = "d-flex justify-content-end mb-2",
-        actionButton(
-          ns("btn_start_over"),
-          tagList(
-            bs_icon("arrow-counterclockwise"),
-            " Start Over / Change Workflow"
-          ),
-          class = "btn-outline-warning btn-sm"
-        )
-      )
-    })
-
-    observeEvent(input$btn_start_over, {
-      showModal(modalDialog(
-        title = tagList(bs_icon("exclamation-triangle-fill"), " Start Over?"),
-        p(
-          "This will clear all loaded data and return you to the workflow selection screen."
-        ),
-        p(
-          tags$strong("Your practice name and ID will be kept,"),
-          " but all uploaded or generated financial data will be removed."
-        ),
-        footer = tagList(
-          modalButton("Cancel"),
-          actionButton(
-            ns("btn_confirm_reset"),
-            "Yes, start over",
-            class = "btn-warning"
-          )
-        ),
-        easyClose = TRUE
-      ))
-    })
-
-    observeEvent(input$btn_confirm_reset, {
-      removeModal()
-      path_chosen(NULL)
-      loaded$overhead <- FALSE
-      loaded$income <- FALSE
-      r$transactions <- NULL
-      r$overhead <- NULL
-      r$income <- NULL
-      r$overhead_monthly <- NULL
-      r$income_monthly <- NULL
-      r$scenario_inputs <- NULL
-      r$panel_size <- NULL
-      r$membership_fee <- NULL
-      r$validation <- list()
-    })
+    # -- Global Start Over: clear this module's local UI state -------------
+    # The actual data reset happens once in app_server; this just keeps the
+    # path-selection UI in sync so it reverts to the initial choice screen.
+    observeEvent(
+      r$reset_signal,
+      {
+        path_chosen(NULL)
+        loaded$overhead <- FALSE
+        loaded$income <- FALSE
+      },
+      ignoreInit = TRUE
+    )
 
     # -- Required-field validation ------------------------------------------
     details_ok <- reactive({

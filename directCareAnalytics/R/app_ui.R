@@ -49,6 +49,15 @@ app_ui <- function(request) {
       nav_spacer(),
       nav_item(
         tags$a(
+          bs_icon("arrow-counterclockwise", title = "Start Over"),
+          href = "#",
+          title = "Start Over",
+          class = "nav-link",
+          onclick = "Shiny.setInputValue('global_start_over_click', Math.random(), {priority: 'event'}); return false;"
+        )
+      ),
+      nav_item(
+        tags$a(
           bs_icon("question-circle", title = "Help"),
           href = "#",
           title = "Help",

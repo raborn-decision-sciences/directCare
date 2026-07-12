@@ -28,13 +28,64 @@ app_server <- function(input, output, session) {
     scenario_inputs = NULL, # list of Quick Estimator form values
 
     # Validation flags surfaced from validate_overhead() / validate_income()
-    validation = list()
+    validation = list(),
+
+    # Incremented on every confirmed Start Over; modules observe this to
+    # clear their own local reactive state (selected path, tier counts, etc).
+    reset_signal = 0L
   )
 
   # -- Brand-click: return to Upload tab (navigation only, no data reset) -------
   observeEvent(
     input$brand_click,
     {
+      updateNavbarPage(session, inputId = "main_nav", selected = "upload")
+    },
+    ignoreInit = TRUE
+  )
+
+  # -- Global Start Over: available from every page via the navbar icon --------
+  observeEvent(
+    input$global_start_over_click,
+    {
+      showModal(modalDialog(
+        title = tagList(bs_icon("exclamation-triangle-fill"), " Start Over?"),
+        p(
+          "This will clear all loaded data and return you to the workflow selection screen."
+        ),
+        p(
+          tags$strong("Your practice name and ID will be kept,"),
+          " but all uploaded or generated financial data will be removed."
+        ),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton(
+            "global_confirm_start_over",
+            "Yes, start over",
+            class = "btn-warning"
+          )
+        ),
+        easyClose = TRUE
+      ))
+    },
+    ignoreInit = TRUE
+  )
+
+  observeEvent(
+    input$global_confirm_start_over,
+    {
+      removeModal()
+      r$panel_size <- NULL
+      r$membership_fee <- NULL
+      r$membership_tiers <- NULL
+      r$transactions <- NULL
+      r$overhead <- NULL
+      r$income <- NULL
+      r$overhead_monthly <- NULL
+      r$income_monthly <- NULL
+      r$scenario_inputs <- NULL
+      r$validation <- list()
+      r$reset_signal <- r$reset_signal + 1L
       updateNavbarPage(session, inputId = "main_nav", selected = "upload")
     },
     ignoreInit = TRUE

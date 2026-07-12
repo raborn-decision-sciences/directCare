@@ -395,6 +395,17 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     # A local reactiveVal so it doesn't pollute the shared r object.
     estimator_done <- reactiveVal(FALSE)
 
+    # -- Global Start Over: clear this module's local UI state -------------
+    observeEvent(
+      r$reset_signal,
+      {
+        estimator_done(FALSE)
+        est_n_tiers(1L)
+        summary_grid_data(.ovhd_grid())
+      },
+      ignoreInit = TRUE
+    )
+
     # TRUE only while a CSV-sourced transaction table (nrow > 0) is loaded.
     # Used to gate csv_edit_ui so it only re-renders on data-load, not on
     # every individual row edit.
