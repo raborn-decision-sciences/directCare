@@ -29,18 +29,20 @@ mod_calculator_ui <- function(id) {
           )
         ),
         card_body(
-          tags$h6(
-            class = "fw-semibold mb-3",
-            bs_icon("receipt"),
-            " Monthly Overhead"
+          tags$div(
+            class = "d-flex justify-content-between align-items-center mb-1",
+            tags$h6(
+              class = "fw-semibold mb-0",
+              bs_icon("receipt"),
+              " Monthly Overhead"
+            ),
+            bslib::input_switch(
+              ns("ovhd_multi"),
+              "Multiple sources",
+              value = FALSE
+            )
           ),
-          numericInput(
-            ns("monthly_overhead"),
-            "Total monthly overhead ($)",
-            value = 0,
-            min = 0,
-            step = 100
-          ),
+          uiOutput(ns("overhead_input_ui")),
 
           tags$hr(),
 
@@ -113,6 +115,109 @@ mod_calculator_ui <- function(id) {
 mod_calculator_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # -- Computed totals (shared helper needed by overhead UI below) ------------
+    .nn <- function(x) {
+      v <- x %||% 0
+      if (length(v) != 1L || !is.finite(v)) 0 else v
+    }
+
+    # -- Dynamic overhead-source UI ----------------------------------------------
+    n_ovhd_items <- reactiveVal(1L)
+
+    observeEvent(input$btn_add_ovhd_item, {
+      n_ovhd_items(n_ovhd_items() + 1L)
+    })
+
+    output$overhead_input_ui <- renderUI({
+      if (!isTRUE(input$ovhd_multi)) {
+        return(numericInput(
+          ns("monthly_overhead"),
+          "Total monthly overhead ($)",
+          value = isolate(input$monthly_overhead) %||% 0,
+          min = 0,
+          step = 100
+        ))
+      }
+
+      n <- n_ovhd_items()
+      tagList(
+        lapply(seq_len(n), function(i) {
+          saved_label <- isolate(input[[paste0("ovhd_item_label_", i)]]) %||%
+            ""
+          saved_amount <- isolate(input[[paste0("ovhd_item_amount_", i)]]) %||%
+            0
+          div(
+            class = "border rounded p-2 mb-2",
+            tags$div(
+              class = "d-flex justify-content-between align-items-center mb-1",
+              tags$span(
+                class = "small fw-semibold text-muted",
+                paste("Source", i)
+              ),
+              if (i > 1L) {
+                actionButton(
+                  ns(paste0("btn_remove_ovhd_item_", i)),
+                  bs_icon("x", title = paste("Remove source", i)),
+                  class = "btn-outline-danger btn-sm py-0 px-1"
+                )
+              }
+            ),
+            layout_columns(
+              col_widths = c(6, 6),
+              textInput(
+                ns(paste0("ovhd_item_label_", i)),
+                "Label (optional)",
+                value = saved_label,
+                placeholder = "e.g. Rent"
+              ),
+              numericInput(
+                ns(paste0("ovhd_item_amount_", i)),
+                "Amount ($)",
+                value = saved_amount,
+                min = 0,
+                step = 100
+              )
+            )
+          )
+        }),
+        actionButton(
+          ns("btn_add_ovhd_item"),
+          tagList(bs_icon("plus-circle"), " Add Source"),
+          class = "btn-outline-secondary btn-sm mt-1"
+        )
+      )
+    })
+
+    observe({
+      n <- n_ovhd_items()
+      lapply(seq_len(n), function(i) {
+        if (i > 1L) {
+          btn_id <- paste0("btn_remove_ovhd_item_", i)
+          observeEvent(
+            input[[btn_id]],
+            {
+              n_ovhd_items(max(1L, n_ovhd_items() - 1L))
+            },
+            ignoreInit = TRUE,
+            once = TRUE
+          )
+        }
+      })
+    })
+
+    total_overhead <- reactive({
+      if (isTRUE(input$ovhd_multi)) {
+        n <- n_ovhd_items()
+        sum(vapply(
+          seq_len(n),
+          \(i) .nn(input[[paste0("ovhd_item_amount_", i)]]),
+          numeric(1)
+        ))
+      } else {
+        .nn(input$monthly_overhead)
+      }
+    })
 
     # -- Dynamic tier UI --------------------------------------------------------
     n_tiers <- reactiveVal(1L)
@@ -192,11 +297,6 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
     })
 
     # -- Computed totals --------------------------------------------------------
-    .nn <- function(x) {
-      v <- x %||% 0
-      if (length(v) != 1L || !is.finite(v)) 0 else v
-    }
-
     tier_total_members <- reactive({
       n <- n_tiers()
       sum(vapply(
@@ -225,7 +325,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
 
     # -- Results UI -------------------------------------------------------------
     output$results_ui <- renderUI({
-      ovhd <- .nn(input$monthly_overhead)
+      ovhd <- total_overhead()
       rev <- tier_total_revenue()
       net <- rev - ovhd
       target <- .nn(input$target_income)
