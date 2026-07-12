@@ -170,6 +170,29 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             class = "btn-outline-secondary btn-sm w-100 mb-2"
           ),
           hr(),
+          # -- Planned future fee changes ----------------------------------
+          tags$p(
+            class = "small fw-semibold mb-0",
+            bs_icon("calendar-plus"),
+            " Planned Fee Changes",
+            tooltip(
+              bs_icon("info-circle", title = "About fee change events"),
+              paste0(
+                "Add a planned membership fee change for one of your tiers ",
+                "that starts at a specific point in the forecast horizon. ",
+                "The revenue forecast is stepped up (or down) by the ",
+                "resulting change in that tier's monthly revenue from that ",
+                "period forward."
+              )
+            )
+          ),
+          uiOutput(ns("fee_events_ui")),
+          actionButton(
+            ns("btn_add_fee_event"),
+            tagList(bs_icon("plus-circle"), " Add Fee Change"),
+            class = "btn-outline-secondary btn-sm w-100 mb-2"
+          ),
+          hr(),
           # -- Target-specific control -----------------------------------
           uiOutput(ns("target_input_ui")),
           # -- Run button ------------------------------------------------
@@ -365,6 +388,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         proj_n_tiers(1L)
         shown_warnings(character(0))
         n_overhead_events(0L)
+        n_fee_events(0L)
       },
       ignoreInit = TRUE
     )
@@ -873,6 +897,155 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       do.call(rbind, valid)
     })
 
+    # -- Planned fee-change events UI and state --------------------------------
+    n_fee_events <- reactiveVal(0L)
+
+    observeEvent(input$btn_add_fee_event, {
+      n_fee_events(n_fee_events() + 1L)
+    })
+
+    # Month choices shared with the overhead-events UI (first forecast period
+    # through the end of the horizon).
+    .fee_event_month_choices <- reactive({
+      horizon <- input$horizon %||% 12L
+      last_obs <- if (
+        !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
+      ) {
+        om <- r$overhead_monthly
+        if ("period_start" %in% names(om)) {
+          max(om$period_start, na.rm = TRUE)
+        } else if (all(c("year", "month") %in% names(om))) {
+          idx <- which.max(om$year * 12L + om$month)
+          lubridate::make_date(om$year[idx], om$month[idx], 1L)
+        } else {
+          Sys.Date()
+        }
+      } else {
+        Sys.Date()
+      }
+      first_mo <- as.Date(format(last_obs + 31L, "%Y-%m-01"))
+      mo_seq <- seq(first_mo, by = "month", length.out = as.integer(horizon))
+      stats::setNames(as.character(mo_seq), format(mo_seq, "%b %Y"))
+    })
+
+    output$fee_events_ui <- renderUI({
+      n <- n_fee_events()
+      if (n == 0L) {
+        return(tags$p(
+          class = "small text-muted mb-1",
+          "No fee changes added."
+        ))
+      }
+
+      mo_choices <- .fee_event_month_choices()
+      tiers <- proj_tiers_list()
+      tier_choices <- stats::setNames(
+        as.character(seq_along(tiers)),
+        vapply(
+          seq_along(tiers),
+          function(i) {
+            lbl <- if (nzchar(tiers[[i]]$label)) {
+              tiers[[i]]$label
+            } else {
+              paste("Tier", i)
+            }
+            paste0(lbl, " (", fmt_dollar(tiers[[i]]$fee), "/mo)")
+          },
+          character(1)
+        )
+      )
+
+      lapply(seq_len(n), function(i) {
+        div(
+          class = "border rounded p-2 mb-2",
+          tags$div(
+            class = "d-flex justify-content-between align-items-center mb-1",
+            tags$span(
+              class = "small fw-semibold text-muted",
+              paste("Fee change", i)
+            ),
+            actionButton(
+              ns(paste0("btn_rm_fee_event_", i)),
+              bs_icon("x", title = paste("Remove fee change", i)),
+              class = "btn-outline-danger btn-sm py-0 px-1"
+            )
+          ),
+          selectInput(
+            ns(paste0("fee_event_tier_", i)),
+            "Tier",
+            choices = tier_choices,
+            selected = input[[paste0("fee_event_tier_", i)]] %||%
+              tier_choices[1L]
+          ),
+          selectInput(
+            ns(paste0("fee_event_start_", i)),
+            NULL,
+            choices = mo_choices,
+            selected = input[[paste0("fee_event_start_", i)]] %||%
+              mo_choices[1L]
+          ),
+          numericInput(
+            ns(paste0("fee_event_new_fee_", i)),
+            "New fee ($/mo)",
+            value = input[[paste0("fee_event_new_fee_", i)]] %||% 0,
+            min = 0,
+            step = 5
+          )
+        )
+      })
+    })
+
+    observe({
+      n <- n_fee_events()
+      lapply(seq_len(n), function(i) {
+        btn_id <- paste0("btn_rm_fee_event_", i)
+        observeEvent(
+          input[[btn_id]],
+          {
+            n_fee_events(max(0L, n_fee_events() - 1L))
+          },
+          ignoreInit = TRUE,
+          once = TRUE
+        )
+      })
+    })
+
+    fee_events_df <- reactive({
+      n <- n_fee_events()
+      if (n == 0L) {
+        return(NULL)
+      }
+      tiers <- proj_tiers_list()
+      rows <- lapply(seq_len(n), function(i) {
+        tier_idx <- suppressWarnings(as.integer(
+          input[[paste0("fee_event_tier_", i)]]
+        ))
+        start_str <- input[[paste0("fee_event_start_", i)]]
+        new_fee <- as.numeric(input[[paste0("fee_event_new_fee_", i)]] %||% 0)
+        if (
+          is.null(start_str) ||
+            !nzchar(start_str) ||
+            is.na(tier_idx) ||
+            tier_idx < 1L ||
+            tier_idx > length(tiers)
+        ) {
+          return(NULL)
+        }
+        tier <- tiers[[tier_idx]]
+        delta <- (new_fee - tier$fee) * tier$members
+        data.frame(
+          start_date = as.Date(start_str),
+          revenue_delta = delta,
+          stringsAsFactors = FALSE
+        )
+      })
+      valid <- Filter(Negate(is.null), rows)
+      if (length(valid) == 0L) {
+        return(NULL)
+      }
+      do.call(rbind, valid)
+    })
+
     adj_breakeven <- reactive({
       req(breakeven_result())
       oa <- overhead_assumptions()
@@ -882,15 +1055,17 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         overhead_growth_pct = oa$growth_pct,
         overhead_flat = oa$flat
       )
-      apply_overhead_events(res, overhead_events_df())
+      res <- apply_overhead_events(res, overhead_events_df())
+      apply_membership_fee_events(res, fee_events_df())
     })
 
     adj_revenue <- reactive({
       req(revenue_result())
-      apply_growth_assumptions(
+      res <- apply_growth_assumptions(
         revenue_result(),
         income_growth_pct = input$income_growth %||% 0
       )
+      apply_membership_fee_events(res, fee_events_df())
     })
 
     adj_target <- reactive({
@@ -910,7 +1085,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       # Store target_income on result so apply_overhead_events can re-derive
       # required_revenue = overhead_forecast + target_income after event steps.
       res$target_income <- as.numeric(input$target_income %||% 0)
-      apply_overhead_events(res, overhead_events_df())
+      res <- apply_overhead_events(res, overhead_events_df())
+      apply_membership_fee_events(res, fee_events_df())
     })
 
     # -- Break-even UI --------------------------------------------------------

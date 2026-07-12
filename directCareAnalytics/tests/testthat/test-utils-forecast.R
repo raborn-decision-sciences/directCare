@@ -235,3 +235,80 @@ test_that("target_is_sustained returns FALSE when revenue falls below required i
   result$forecast_data$revenue_forecast <- rep(1000, 12) # well below required (2500)
   expect_false(target_is_sustained(result))
 })
+
+# ── apply_membership_fee_events ────────────────────────────────────────────────
+
+test_that("apply_membership_fee_events returns result unchanged when events is NULL", {
+  result <- make_breakeven_result()
+  adj <- apply_membership_fee_events(result, NULL)
+  expect_identical(adj, result)
+})
+
+test_that("apply_membership_fee_events steps revenue up from the event start date", {
+  result <- make_breakeven_result(periods_to_breakeven = NA_integer_)
+  fd0 <- result$forecast_data
+  events <- data.frame(
+    start_date = fd0$period_start[6],
+    revenue_delta = 500,
+    stringsAsFactors = FALSE
+  )
+
+  adj <- apply_membership_fee_events(result, events)
+  fd1 <- adj$forecast_data
+
+  # Before the event, revenue is unchanged.
+  expect_equal(fd1$revenue_forecast[1:5], fd0$revenue_forecast[1:5])
+  # From the event forward, revenue is stepped up by the delta.
+  expect_equal(fd1$revenue_forecast[6:12], fd0$revenue_forecast[6:12] + 500)
+  expect_equal(fd1$revenue_lower[6:12], fd0$revenue_lower[6:12] + 500)
+  expect_equal(fd1$revenue_upper[6:12], fd0$revenue_upper[6:12] + 500)
+})
+
+test_that("apply_membership_fee_events re-derives break-even crossing", {
+  # Revenue starts below overhead and only crosses after the fee bump.
+  result <- make_breakeven_result(
+    periods_to_breakeven = NA_integer_,
+    revenue_start = 1000,
+    overhead = 2000
+  )
+  result$forecast_data$revenue_forecast <- rep(1500, 12)
+  events <- data.frame(
+    start_date = result$forecast_data$period_start[4],
+    revenue_delta = 600,
+    stringsAsFactors = FALSE
+  )
+
+  adj <- apply_membership_fee_events(result, events)
+
+  expect_equal(adj$periods_to_breakeven, 4L)
+  expect_equal(adj$breakeven_date, result$forecast_data$period_start[4])
+})
+
+test_that("apply_membership_fee_events re-derives target crossing", {
+  result <- make_target_result(current_gap = -500)
+  result$forecast_data$revenue_forecast <- rep(2000, 12)
+  result$forecast_data$required_revenue <- rep(2500, 12)
+  events <- data.frame(
+    start_date = result$forecast_data$period_start[3],
+    revenue_delta = 700,
+    stringsAsFactors = FALSE
+  )
+
+  adj <- apply_membership_fee_events(result, events)
+
+  expect_equal(adj$periods_to_target, 3L)
+  expect_equal(adj$target_date, result$forecast_data$period_start[3])
+})
+
+test_that("apply_membership_fee_events ignores zero and non-finite deltas", {
+  result <- make_breakeven_result()
+  fd0 <- result$forecast_data
+  events <- data.frame(
+    start_date = fd0$period_start[1],
+    revenue_delta = c(0, NA_real_),
+    stringsAsFactors = FALSE
+  )
+
+  adj <- apply_membership_fee_events(result, events)
+  expect_equal(adj$forecast_data$revenue_forecast, fd0$revenue_forecast)
+})

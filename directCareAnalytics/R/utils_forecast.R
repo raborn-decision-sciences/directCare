@@ -259,6 +259,87 @@ apply_overhead_events <- function(result, events = NULL) {
 }
 
 
+# -- Planned future membership fee changes -------------------------------------
+
+#' Apply user-defined future membership fee step changes to a forecast result.
+#'
+#' Each event adds a permanent revenue step (positive or negative) from its
+#' start period forward, computed upstream as
+#' `(new_fee - current_fee) * tier_members`. The function adds the cumulative
+#' event revenue delta to the fitted revenue forecast columns, then re-derives
+#' crossing dates for both break-even and income-target results.
+#'
+#' @param result  List returned by `apply_growth_assumptions()` /
+#'   `apply_overhead_events()`.
+#' @param events  Data frame with columns `start_date` (Date), `revenue_delta`
+#'   (numeric). May be NULL or 0-row, in which case `result` is returned
+#'   unchanged.
+#'
+#' @return Updated result list with revenue columns and crossing dates
+#'   adjusted.
+#' @noRd
+apply_membership_fee_events <- function(result, events = NULL) {
+  if (is.null(result)) {
+    return(result)
+  }
+  if (is.null(events) || nrow(events) == 0L) {
+    return(result)
+  }
+
+  fd <- result$forecast_data
+  rev_cols <- intersect(
+    c("revenue_forecast", "revenue_lower", "revenue_upper"),
+    names(fd)
+  )
+  if (length(rev_cols) == 0L || !"period_start" %in% names(fd)) {
+    return(result)
+  }
+
+  for (i in seq_len(nrow(events))) {
+    ev_start <- events$start_date[i]
+    ev_delta <- as.numeric(events$revenue_delta[i])
+    if (!is.finite(ev_delta) || ev_delta == 0) {
+      next
+    }
+    mask <- fd$period_start >= ev_start
+    for (col in rev_cols) {
+      fd[[col]][mask] <- fd[[col]][mask] + ev_delta
+    }
+  }
+
+  result$forecast_data <- fd
+
+  # Re-derive break-even crossing
+  if ("overhead_forecast" %in% names(fd)) {
+    already <- identical(result$periods_to_breakeven, 0L)
+    if (!already) {
+      cross <- which(fd$revenue_forecast >= fd$overhead_forecast)
+      if (length(cross) > 0L) {
+        result$periods_to_breakeven <- cross[1L]
+        result$breakeven_date <- fd$period_start[cross[1L]]
+      } else {
+        result$periods_to_breakeven <- NA_integer_
+        result$breakeven_date <- as.Date(NA)
+      }
+    }
+  }
+
+  # Re-derive target crossing
+  if ("required_revenue" %in% names(fd)) {
+    cross <- which(fd$revenue_forecast >= fd$required_revenue)
+    if (length(cross) > 0L) {
+      result$periods_to_target <- cross[1L]
+      result$target_date <- fd$period_start[cross[1L]]
+    } else {
+      result$periods_to_target <- NA_integer_
+      result$target_date <- as.Date(NA)
+    }
+  }
+
+  result
+}
+
+
 # -- Break-even sustainability check ------------------------------------------
 
 #' Is an already-achieved break-even sustained through the forecast horizon?
