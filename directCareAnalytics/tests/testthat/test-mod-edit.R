@@ -306,3 +306,44 @@ test_that("Edit tab shows manual-entry message when overhead_monthly set but no 
     expect_true(grepl("aggregate data manually", html, fixed = TRUE))
   })
 })
+
+# ── label_editor_ui (Customize Category Labels) ─────────────────────────────
+
+# Full-schema income fixture (mirrors empty_r()'s income tibble) with real
+# rows so unrelated observers (e.g. the date-range filter) don't error.
+make_income_with_accounts <- function(account_names) {
+  n <- length(account_names)
+  tibble::tibble(
+    practice_id = rep("test", n),
+    date = rep(as.Date("2025-01-15"), n),
+    week_start = rep(as.Date("2025-01-13"), n),
+    month = rep(1L, n),
+    year = rep(2025L, n),
+    full_account_name = paste0("Income:", account_names),
+    account_name = account_names,
+    description = rep("", n),
+    revenue = rep(100, n),
+    category = rep("other", n),
+    source = rep("gnucash_csv", n),
+    is_refund = rep(FALSE, n)
+  )
+}
+
+test_that("label_editor_ui renders without error for income accounts with no default label", {
+  r <- empty_r()
+  r$income <- make_income_with_accounts(
+    c("Membership Fees", "Fee-for-Service", "Grants", "Other Income")
+  )
+  testServer(mod_edit_server, args = list(r = r), {
+    expect_no_error(force(output$label_editor_ui))
+  })
+})
+
+test_that("label_editor_ui renders without error when source_labels lacks a detected account", {
+  r <- empty_r()
+  r$income <- make_income_with_accounts(c("Membership Fees", "Grants"))
+  r$source_labels <- c("Membership Fees" = "Panel Revenue")
+  testServer(mod_edit_server, args = list(r = r), {
+    expect_no_error(force(output$label_editor_ui))
+  })
+})

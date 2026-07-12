@@ -1079,6 +1079,12 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     # .cat_labels / .src_labels are the default slug -> pretty-label maps
     # defined in mod_summary.R; r$category_labels / r$source_labels hold any
     # user overrides, seeded from those defaults.
+    # `[[` on an atomic named vector errors (not NULL) when `key` is absent,
+    # e.g. for an income account_name with no default or saved override yet.
+    .lookup_label <- function(vec, key, default) {
+      if (!is.null(vec) && key %in% names(vec)) vec[[key]] else default
+    }
+
     output$label_editor_ui <- renderUI({
       cat_slugs <- names(.cat_labels)
       cur_cat <- r$category_labels %||% .cat_labels
@@ -1100,7 +1106,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             ns(paste0("cat_label_", slug)),
             NULL,
             value = isolate(input[[paste0("cat_label_", slug)]]) %||%
-              (cur_cat[[slug]] %||% .cat_labels[[slug]]),
+              .lookup_label(cur_cat, slug, .cat_labels[[slug]]),
             placeholder = .cat_labels[[slug]]
           )
         }),
@@ -1114,7 +1120,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             ns(paste0("src_label_", safe_id)),
             key,
             value = isolate(input[[paste0("src_label_", safe_id)]]) %||%
-              (cur_src[[key]] %||% key)
+              .lookup_label(cur_src, key, key)
           )
         })
       )
