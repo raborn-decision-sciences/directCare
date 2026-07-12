@@ -15,6 +15,15 @@
 #'   \code{account_name}, \code{description}, \code{amount}, \code{category},
 #'   \code{source}.
 #'
+#' @section Sign convention:
+#' GnuCash's CSV export uses the same signed-split convention as its native
+#' XML ledger (see \code{ingest_gnucash_xml()}): EXPENSE splits carry a
+#' positive amount when money flows out, and INCOME splits carry a negative
+#' amount when money flows in (credits). This function negates INCOME split
+#' amounts so that normal revenue appears as a positive value, consistent
+#' with the rest of the package. Chargebacks (positive INCOME splits) emerge
+#' as negative values and are flagged by \code{validate_income()}.
+#'
 #' @noRd
 normalize_gnucash_csv <- function(data, practice_id, source) {
   required_cols <- c(
@@ -48,6 +57,11 @@ normalize_gnucash_csv <- function(data, practice_id, source) {
       date
     ) |>
     dplyr::mutate(
+      amount = ifelse(
+        grepl("Income", full_account_name),
+        -amount,
+        amount
+      ),
       practice_id = practice_id,
       source = source,
       date = lubridate::mdy(date),

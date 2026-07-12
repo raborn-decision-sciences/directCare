@@ -63,3 +63,48 @@ test_that("ingest_gnucash_csv requires practice_id", {
 
   unlink(temp_csv)
 })
+
+test_that("ingest_gnucash_csv negates INCOME split amounts to positive revenue", {
+  # Real GnuCash CSV exports use the same signed-split ledger convention as
+  # the native XML: INCOME splits are recorded as negative (a credit), while
+  # EXPENSE splits are positive. Confirmed against an actual practice export
+  # where every Income:* row carried a negative Amount Num.
+  temp_csv <- tempfile(fileext = ".csv")
+  test_data <- data.frame(
+    Date = c("01/15/2025", "01/16/2025"),
+    `Full Account Name` = c("Income:Membership Fees", "Expenses:Rent"),
+    `Account Name` = c("Membership Fees", "Rent"),
+    Description = c("Membership payment", "Office rent"),
+    `Amount Num.` = c(-150.00, 1000.00),
+    check.names = FALSE
+  )
+  readr::write_csv(test_data, temp_csv)
+
+  result <- ingest_gnucash_csv(temp_csv, practice_id = 1)
+
+  income_row <- result[result$account_name == "Membership Fees", ]
+  expect_equal(income_row$amount, 150.00)
+
+  expense_row <- result[result$account_name == "Rent", ]
+  expect_equal(expense_row$amount, 1000.00)
+
+  unlink(temp_csv)
+})
+
+test_that("ingest_gnucash_csv preserves negative EXPENSE amounts as refunds", {
+  temp_csv <- tempfile(fileext = ".csv")
+  test_data <- data.frame(
+    Date = "01/15/2025",
+    `Full Account Name` = "Expenses:Rent",
+    `Account Name` = "Rent",
+    Description = "Rent refund",
+    `Amount Num.` = -100.00,
+    check.names = FALSE
+  )
+  readr::write_csv(test_data, temp_csv)
+
+  result <- ingest_gnucash_csv(temp_csv, practice_id = 1)
+  expect_equal(result$amount, -100.00)
+
+  unlink(temp_csv)
+})
