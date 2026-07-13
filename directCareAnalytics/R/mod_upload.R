@@ -116,7 +116,7 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     # its value ever changes. Debounced so the ID (and details_ok(), which
     # auto-advances the page) doesn't update after every keystroke.
     practice_name_debounced <- reactive(input$practice_name) |>
-      debounce(800)
+      debounce(1500)
 
     observeEvent(practice_name_debounced(), {
       updateTextInput(
