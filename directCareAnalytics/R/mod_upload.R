@@ -1,3 +1,20 @@
+# Add the `readonly` HTML attribute to a textInput()'s underlying <input>
+# element. Unlike `disabled`, a readonly field's value is still submitted
+# via Shiny's JS binding, so the auto-generated Practice ID keeps updating
+# and syncing to the server while the user can't type into it directly.
+.readonly_input <- function(input_tag) {
+  input_tag$children[[2]]$attribs$readonly <- "readonly"
+  input_tag
+}
+
+# Lower-cased, dash-separated slug derived from the Practice Name, used as
+# the default (and only, for now) Practice ID.
+.slugify <- function(x) {
+  x <- tolower(trimws(x %||% ""))
+  x <- gsub("[^a-z0-9]+", "-", x)
+  gsub("^-+|-+$", "", x)
+}
+
 #' Upload Module UI
 #'
 #' Tab 1 -- Two-step onboarding: practice identity, then path choice
@@ -23,7 +40,7 @@ mod_upload_ui <- function(id) {
             ),
             placeholder = "e.g. Riverside Direct Care"
           ),
-          textInput(
+          .readonly_input(textInput(
             ns("practice_id"),
             label = tagList(
               tags$span(class = "text-danger", "*"),
@@ -31,14 +48,15 @@ mod_upload_ui <- function(id) {
               tooltip(
                 bs_icon("info-circle", title = "About Practice ID"),
                 paste0(
-                  "A unique identifier for this practice. ",
-                  "Use any short string for now \u2014 this will be ",
-                  "linked to your login in a future release."
+                  "An example unique identifier for this practice, ",
+                  "generated automatically from the Practice Name. ",
+                  "This will be used to link your practice to your ",
+                  "account in a future release."
                 )
               )
             ),
             placeholder = "e.g. riverside-dpc"
-          )
+          ))
         ),
         uiOutput(ns("upload_validation_msg"))
       )
@@ -92,6 +110,17 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       },
       ignoreInit = TRUE
     )
+
+    # -- Auto-derive Practice ID from Practice Name -------------------------
+    # The field is readonly (see .readonly_input()), so this is the only way
+    # its value ever changes.
+    observeEvent(input$practice_name, {
+      updateTextInput(
+        session,
+        "practice_id",
+        value = .slugify(input$practice_name)
+      )
+    })
 
     # -- Required-field validation ------------------------------------------
     details_ok <- reactive({
