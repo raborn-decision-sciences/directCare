@@ -235,7 +235,13 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 choiceNames = list(
                   "GnuCash",
                   "Other / Generic CSV",
-                  "QuickBooks Online",
+                  tagList(
+                    "QuickBooks Online ",
+                    tags$span(
+                      class = "badge text-bg-warning small ms-1",
+                      "experimental"
+                    )
+                  ),
                   tagList(
                     "Wave ",
                     tags$span(
@@ -1034,6 +1040,14 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
 
 .quickbooks_controls_ui <- function(ns) {
   tagList(
+    tags$div(
+      class = "alert alert-warning small py-2 px-3 mb-3",
+      bs_icon("exclamation-triangle"),
+      tags$strong(" Experimental — "),
+      "built from QuickBooks Online's documented export format, but not yet ",
+      "tested against a real QuickBooks export. Please double-check the ",
+      "results (especially overhead vs. income totals) before relying on them."
+    ),
     fileInput(
       ns("csv_file"),
       tagList(
