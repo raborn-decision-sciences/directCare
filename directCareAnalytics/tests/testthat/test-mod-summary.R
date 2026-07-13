@@ -324,6 +324,23 @@ transactions_overhead <- function() {
   )
 }
 
+transactions_income <- function() {
+  tibble::tibble(
+    practice_id = "test",
+    date = as.Date(c("2025-01-05", "2025-01-10")),
+    week_start = as.Date(c("2025-01-05", "2025-01-05")),
+    month = c(1L, 1L),
+    year = c(2025L, 2025L),
+    full_account_name = c("Income:Membership Fees", "Income:Fee-for-Service"),
+    account_name = c("Membership Fees", "Fee-for-Service"),
+    description = "",
+    revenue = c(800, 200),
+    category = "other",
+    source = "gnucash_csv",
+    is_refund = FALSE
+  )
+}
+
 test_that(".grouped_totals_dt aggregates across all rows and computes % of total", {
   r <- make_r()
   testServer(mod_summary_server, args = list(r = r), {
@@ -382,5 +399,57 @@ test_that("ovhd_table_caption reflects period-detail vs category-totals mode", {
     html3 <- as.character(output$ovhd_table_caption$html)
     expect_true(grepl("Category totals", html3, fixed = TRUE))
     expect_true(grepl("Jan 2025", html3, fixed = TRUE))
+  })
+})
+
+# ── renderPlot outputs don't crash under thematic auto-theming ─────────────
+# Regression test for a real bug: shiny's startPNG() calls
+# getCurrentOutputInfo()[["bg"]]() when thematic::thematic_shiny(bg = "auto")
+# (the default) is active, and that call errored ("attempt to apply
+# non-function") for plotOutput()s inside full_screen bslib cards -- exactly
+# how ovhd_plot/inc_plot are set up. app_server.R now pins bg/fg instead of
+# leaving them on "auto"; these tests force the plots to actually render
+# (triggering the real PNG device pipeline) with that same pinned call.
+
+test_that("ovhd_plot renders without error in pie mode under thematic auto-theming", {
+  r <- make_r()
+  r$overhead <- transactions_overhead()
+  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  on.exit(thematic::thematic_off(), add = TRUE)
+
+  testServer(mod_summary_server, args = list(r = r), {
+    session$setInputs(
+      ovhd_by_cat = TRUE,
+      ovhd_chart_type = "pie",
+      ovhd_pie_scope = "full"
+    )
+    expect_no_error(force(output$ovhd_plot))
+  })
+})
+
+test_that("inc_plot renders without error in pie mode under thematic auto-theming", {
+  r <- make_r()
+  r$income <- transactions_income()
+  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  on.exit(thematic::thematic_off(), add = TRUE)
+
+  testServer(mod_summary_server, args = list(r = r), {
+    session$setInputs(
+      inc_by_src = TRUE,
+      inc_chart_type = "pie",
+      inc_pie_scope = "full"
+    )
+    expect_no_error(force(output$inc_plot))
+  })
+})
+
+test_that("ovhd_plot bar mode also renders without error under thematic auto-theming", {
+  r <- make_r()
+  r$overhead <- transactions_overhead()
+  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  on.exit(thematic::thematic_off(), add = TRUE)
+
+  testServer(mod_summary_server, args = list(r = r), {
+    expect_no_error(force(output$ovhd_plot))
   })
 })

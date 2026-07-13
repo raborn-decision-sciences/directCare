@@ -5,7 +5,13 @@
 #' @importFrom thematic thematic_shiny
 #' @noRd
 app_server <- function(input, output, session) {
-  thematic::thematic_shiny()
+  # Pinned rather than "auto": auto-detection calls back into
+  # shiny::getCurrentOutputInfo()[["bg"]]() to resolve the plot background
+  # from the surrounding CSS, which errors ("attempt to apply non-function")
+  # for plotOutput()s inside full_screen bslib cards (as ovhd_plot/inc_plot
+  # in mod_summary.R are) on some shiny/bslib version combinations. Pinning
+  # to the theme's actual colors sidesteps that code path entirely.
+  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
 
   # -- Shared reactive state --------------------------------------------------
   # All three modules read and write through `r`. Tab 1 populates the data;
