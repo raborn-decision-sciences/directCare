@@ -173,3 +173,73 @@ test_that("income_summary falls back to 80% of overhead when income is absent", 
     expect_equal(d$total_revenue, rep(2000 * 0.8, 6))
   })
 })
+
+# ── Partial-report download (.safe_result / download_ui) ───────────────────
+# Regression tests for a real bug: target_result() (and, before the user
+# switches to that sub-tab and re-runs, revenue/breakeven the same way) is
+# an eventReactive() gated on input$btn_run. Before it has ever fired,
+# calling it throws a shiny.silent.error -- and is.null(x) does NOT catch
+# that, it just propagates. The old download handler called
+# is.null(adj_target()) directly, so downloading a report after running
+# only Break-even/Revenue (never switching to the Income Target sub-tab)
+# crashed the downloadHandler's content function, which Shiny then served
+# as an HTML error page instead of the PDF.
+
+test_that(".safe_result resolves an un-run forecast to NULL instead of throwing", {
+  r <- make_monthly_r(6)
+  testServer(mod_projections_server, args = list(r = r), {
+    session$setInputs(
+      method = "linear",
+      horizon = 3,
+      confidence = 0.95,
+      forecast_type = "breakeven"
+    )
+    session$setInputs(btn_run = 1)
+
+    expect_false(is.null(.safe_result(adj_breakeven())))
+    expect_false(is.null(.safe_result(adj_revenue())))
+    # Never switched to the Income Target sub-tab, so target_result() was
+    # never triggered.
+    expect_true(is.null(.safe_result(adj_target())))
+  })
+})
+
+test_that("download_ui offers the button and lists missing sections for a partial report", {
+  r <- make_monthly_r(6)
+  testServer(mod_projections_server, args = list(r = r), {
+    session$setInputs(
+      method = "linear",
+      horizon = 3,
+      confidence = 0.95,
+      forecast_type = "breakeven"
+    )
+    session$setInputs(btn_run = 1)
+
+    html <- as.character(output$download_ui$html)
+    expect_true(grepl("Download Report", html, fixed = TRUE))
+    expect_true(grepl("will not include", html, fixed = TRUE))
+    expect_true(grepl("Income Target", html, fixed = TRUE))
+  })
+})
+
+test_that("download_ui shows no missing-sections note once all three forecasts have run", {
+  r <- make_monthly_r(6)
+  testServer(mod_projections_server, args = list(r = r), {
+    session$setInputs(
+      method = "linear",
+      horizon = 3,
+      confidence = 0.95,
+      target_income = 5000,
+      forecast_type = "target"
+    )
+    session$setInputs(btn_run = 1)
+
+    expect_false(is.null(.safe_result(adj_breakeven())))
+    expect_false(is.null(.safe_result(adj_revenue())))
+    expect_false(is.null(.safe_result(adj_target())))
+
+    html <- as.character(output$download_ui$html)
+    expect_true(grepl("Download Report", html, fixed = TRUE))
+    expect_false(grepl("will not include", html, fixed = TRUE))
+  })
+})

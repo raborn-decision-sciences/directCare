@@ -1475,15 +1475,44 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       ))
     })
 
+    # Reactives built with eventReactive()/req() throw a silent
+    # "shiny.silent.error" condition when called before their trigger has
+    # fired (e.g. target_result() before the user has run the forecast from
+    # the Income Target sub-tab) -- is.null() does NOT catch that, it just
+    # propagates. Resolving each forecast through this helper turns "not run
+    # yet" into a plain NULL so the rest of the report/download logic (which
+    # already NULL-checks each section) works instead of crashing.
+    .safe_result <- function(expr) {
+      tryCatch(expr, shiny.silent.error = function(e) NULL)
+    }
+
     # -- Sidebar download button (appears once any forecast has been run) ------
     output$download_ui <- renderUI({
-      if (is.null(breakeven_result()) && is.null(revenue_result())) {
+      have <- c(
+        "Break-even" = !is.null(.safe_result(adj_breakeven())),
+        "Revenue Forecast" = !is.null(.safe_result(adj_revenue())),
+        "Income Target" = !is.null(.safe_result(adj_target()))
+      )
+      if (!any(have)) {
         return(NULL)
       }
-      downloadButton(
-        ns("dl_report"),
-        tagList(bs_icon("file-earmark-pdf"), " Download Report"),
-        class = "btn-outline-secondary w-100 mt-2"
+
+      missing_names <- names(have)[!have]
+      tagList(
+        downloadButton(
+          ns("dl_report"),
+          tagList(bs_icon("file-earmark-pdf"), " Download Report"),
+          class = "btn-outline-secondary w-100 mt-2"
+        ),
+        if (length(missing_names) > 0L) {
+          tags$p(
+            class = "small text-muted mt-1 mb-0",
+            bs_icon("info-circle"),
+            " Report will not include: ",
+            paste(missing_names, collapse = ", "),
+            " (run that forecast first to include it)."
+          )
+        }
       )
     })
 
@@ -1500,12 +1529,16 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         )
       },
       content = function(file) {
+        bkevn_res <- .safe_result(adj_breakeven())
+        rev_res <- .safe_result(adj_revenue())
+        tgt_res <- .safe_result(adj_target())
+
         # Collect interpretation text (HTML \u2192 plain text handled inside build_report_data)
-        bkevn_text <- if (!is.null(adj_breakeven())) {
+        bkevn_text <- if (!is.null(bkevn_res)) {
           interpret_breakeven(
-            adj_breakeven(),
+            bkevn_res,
             r$practice_name,
-            sustained = breakeven_is_sustained(adj_breakeven()),
+            sustained = breakeven_is_sustained(bkevn_res),
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
             membership_tiers = r$membership_tiers,
@@ -1515,9 +1548,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           NULL
         }
 
-        rev_text <- if (!is.null(adj_revenue())) {
+        rev_text <- if (!is.null(rev_res)) {
           interpret_revenue(
-            adj_revenue(),
+            rev_res,
             r$practice_name,
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
@@ -1528,12 +1561,12 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           NULL
         }
 
-        tgt_text <- if (!is.null(adj_target())) {
+        tgt_text <- if (!is.null(tgt_res)) {
           interpret_target(
-            adj_target(),
+            tgt_res,
             r$practice_name,
             input$target_income,
-            sustained = target_is_sustained(adj_target()),
+            sustained = target_is_sustained(tgt_res),
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
             membership_tiers = r$membership_tiers
@@ -1550,9 +1583,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             confidence = input$confidence,
             target_income = input$target_income
           ),
-          breakeven_res = adj_breakeven(),
-          revenue_res = adj_revenue(),
-          target_res = adj_target(),
+          breakeven_res = bkevn_res,
+          revenue_res = rev_res,
+          target_res = tgt_res,
           interpret_bkevn = bkevn_text,
           interpret_rev = rev_text,
           interpret_tgt = tgt_text
@@ -1562,9 +1595,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           render_report_pdf(
             data,
             file,
-            breakeven_res = adj_breakeven(),
-            revenue_res = adj_revenue(),
-            target_res = adj_target(),
+            breakeven_res = bkevn_res,
+            revenue_res = rev_res,
+            target_res = tgt_res,
             income_monthly = r$income_monthly,
             overhead_monthly = r$overhead_monthly
           )
