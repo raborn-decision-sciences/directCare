@@ -113,12 +113,16 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
 
     # -- Auto-derive Practice ID from Practice Name -------------------------
     # The field is readonly (see .readonly_input()), so this is the only way
-    # its value ever changes.
-    observeEvent(input$practice_name, {
+    # its value ever changes. Debounced so the ID (and details_ok(), which
+    # auto-advances the page) doesn't update after every keystroke.
+    practice_name_debounced <- reactive(input$practice_name) |>
+      debounce(800)
+
+    observeEvent(practice_name_debounced(), {
       updateTextInput(
         session,
         "practice_id",
-        value = .slugify(input$practice_name)
+        value = .slugify(practice_name_debounced())
       )
     })
 
