@@ -402,19 +402,30 @@ test_that("ovhd_table_caption reflects period-detail vs category-totals mode", {
   })
 })
 
-# ── renderPlot outputs don't crash under thematic auto-theming ─────────────
+# ── renderPlot outputs don't crash or warn under thematic auto-theming ─────
 # Regression test for a real bug: shiny's startPNG() calls
 # getCurrentOutputInfo()[["bg"]]() when thematic::thematic_shiny(bg = "auto")
 # (the default) is active, and that call errored ("attempt to apply
 # non-function") for plotOutput()s inside full_screen bslib cards -- exactly
-# how ovhd_plot/inc_plot are set up. app_server.R now pins bg/fg instead of
-# leaving them on "auto"; these tests force the plots to actually render
-# (triggering the real PNG device pipeline) with that same pinned call.
+# how ovhd_plot/inc_plot are set up. Even after pinning bg/fg/accent so
+# nothing is "auto", thematic::auto_resolve_theme() unconditionally probes
+# shiny::getCurrentOutputInfo() on every render and warns when that context
+# lacks CSS-reporting info -- app_server.R also drops "shiny" from the
+# auto-config priority list to skip that probe. These tests replicate both
+# app_server.R calls exactly and force the plots to actually render
+# (triggering the real PNG device pipeline).
 
-test_that("ovhd_plot renders without error in pie mode under thematic auto-theming", {
+.setup_thematic_like_app <- function() {
+  thematic::auto_config_set(
+    thematic::auto_config(priority = c("config", "bslib", "rstudio"))
+  )
+  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033", accent = "#14B8A6")
+}
+
+test_that("ovhd_plot renders without error or warning in pie mode under thematic auto-theming", {
   r <- make_r()
   r$overhead <- transactions_overhead()
-  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  .setup_thematic_like_app()
   on.exit(thematic::thematic_off(), add = TRUE)
 
   testServer(mod_summary_server, args = list(r = r), {
@@ -424,13 +435,14 @@ test_that("ovhd_plot renders without error in pie mode under thematic auto-themi
       ovhd_pie_scope = "full"
     )
     expect_no_error(force(output$ovhd_plot))
+    expect_no_warning(force(output$ovhd_plot))
   })
 })
 
-test_that("inc_plot renders without error in pie mode under thematic auto-theming", {
+test_that("inc_plot renders without error or warning in pie mode under thematic auto-theming", {
   r <- make_r()
   r$income <- transactions_income()
-  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  .setup_thematic_like_app()
   on.exit(thematic::thematic_off(), add = TRUE)
 
   testServer(mod_summary_server, args = list(r = r), {
@@ -440,16 +452,18 @@ test_that("inc_plot renders without error in pie mode under thematic auto-themin
       inc_pie_scope = "full"
     )
     expect_no_error(force(output$inc_plot))
+    expect_no_warning(force(output$inc_plot))
   })
 })
 
-test_that("ovhd_plot bar mode also renders without error under thematic auto-theming", {
+test_that("ovhd_plot bar mode also renders without error or warning under thematic auto-theming", {
   r <- make_r()
   r$overhead <- transactions_overhead()
-  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  .setup_thematic_like_app()
   on.exit(thematic::thematic_off(), add = TRUE)
 
   testServer(mod_summary_server, args = list(r = r), {
     expect_no_error(force(output$ovhd_plot))
+    expect_no_warning(force(output$ovhd_plot))
   })
 })

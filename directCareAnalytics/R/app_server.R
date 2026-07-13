@@ -6,12 +6,24 @@
 #' @noRd
 app_server <- function(input, output, session) {
   # Pinned rather than "auto": auto-detection calls back into
-  # shiny::getCurrentOutputInfo()[["bg"]]() to resolve the plot background
-  # from the surrounding CSS, which errors ("attempt to apply non-function")
-  # for plotOutput()s inside full_screen bslib cards (as ovhd_plot/inc_plot
-  # in mod_summary.R are) on some shiny/bslib version combinations. Pinning
-  # to the theme's actual colors sidesteps that code path entirely.
-  thematic::thematic_shiny(bg = "#F8FAFC", fg = "#172033")
+  # shiny::getCurrentOutputInfo() to resolve bg/fg/accent from the
+  # surrounding CSS. That resolution errored ("attempt to apply
+  # non-function") for bg/fg on plotOutput()s inside full_screen bslib
+  # cards (as ovhd_plot/inc_plot in mod_summary.R are). Pinning colors
+  # avoids using any "auto" value, but thematic::auto_resolve_theme() still
+  # unconditionally probes shiny::getCurrentOutputInfo() on every plot
+  # render to see whether it *could* auto-resolve something — and warns
+  # when that output context lacks CSS-reporting info, even though the
+  # result goes unused since nothing here is actually "auto". Dropping
+  # "shiny" from the auto-config priority list skips that probe entirely.
+  thematic::auto_config_set(
+    thematic::auto_config(priority = c("config", "bslib", "rstudio"))
+  )
+  thematic::thematic_shiny(
+    bg = "#F8FAFC",
+    fg = "#172033",
+    accent = "#14B8A6"
+  )
 
   # -- Shared reactive state --------------------------------------------------
   # All three modules read and write through `r`. Tab 1 populates the data;
