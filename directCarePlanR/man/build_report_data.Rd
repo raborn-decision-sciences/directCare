@@ -9,7 +9,8 @@ build_report_data(
   revenue = NULL,
   projections = NULL,
   capital = NULL,
-  interpretations = NULL
+  interpretations = NULL,
+  practice_name = NULL
 )
 }
 \arguments{
@@ -25,11 +26,18 @@ elements, as returned by \code{\link[=calc_startup_costs]{calc_startup_costs()}}
 \code{\link[=calc_personal_runway]{calc_personal_runway()}}.}
 
 \item{interpretations}{A named list of narrative strings produced by the
-\verb{interpret_*()} functions.}
+\verb{interpret_*()} functions (e.g. \code{list(revenue = ..., projection = ..., capital = ...)}).}
+
+\item{practice_name}{Optional character string. Defaults to a name
+derived from \code{market_context}'s geography when supplied, else
+\code{"Untitled Practice"}.}
 }
 \value{
 A plain list, ready to be serialized to JSON with
-\code{\link[jsonlite:write_json]{jsonlite::write_json()}}.
+\code{\link[jsonlite:write_json]{jsonlite::write_json()}}. Each of \code{market}, \code{revenue}, \code{projections},
+\code{capital}, and \code{interpretations} is \code{NULL} when its corresponding
+input is \code{NULL}, so the template can render only the sections that
+were supplied.
 }
 \description{
 Builds the \code{data.json} object consumed by the Planner's Typst report
