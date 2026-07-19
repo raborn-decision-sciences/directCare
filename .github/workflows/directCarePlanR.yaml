@@ -1,16 +1,23 @@
-# Workflow for directCarePlanR. Two monorepo-specific steps beyond a
+# Workflow for directCarePlanR. Two monorepo-specific issues beyond a
 # standard R CMD check:
 #
-# 1. directCarePlanR depends on directCareData via a `Remotes:` GitHub
-#    reference in DESCRIPTION. Left alone, dependency resolution would
-#    fetch directCareData from its default branch on GitHub -- not the
-#    branch/PR actually checked out here -- so a PR touching both
-#    packages together would silently test against a stale
-#    directCareData. Installing the local, just-checked-out copy via
-#    `R CMD INSTALL` *before* setup-r-dependencies runs means pak finds
-#    directCareData already satisfied locally and never reaches out to
-#    GitHub for it. directCareData has no runtime Imports of its own, so
-#    this install needs nothing beyond base R.
+# 1. directCarePlanR depends on directCareData, a sibling package in this
+#    same monorepo, declared via a `Remotes:` GitHub reference in
+#    DESCRIPTION. `pak` (which r-lib/actions/setup-r-dependencies uses
+#    internally) cannot be made to treat an already-installed local copy
+#    of a non-CRAN package as satisfying that dependency when solving
+#    "local::." -- confirmed by direct reproduction: even with
+#    directCareData already installed (via plain `R CMD INSTALL`, no pak
+#    involved) and even with the `Remotes:` field removed entirely,
+#    `pak::pkg_deps("local::.")` still fails with
+#    "Can't find package called directCareData". This appears to be a pak
+#    limitation with local/non-CRAN sibling dependencies, not a
+#    configuration problem on our end. Workaround: skip pak-based
+#    dependency resolution for this package entirely. Install
+#    directCareData locally via `R CMD INSTALL`, install directCarePlanR's
+#    own CRAN dependencies via plain `install.packages()`, and run
+#    `rcmdcheck::rcmdcheck()` directly -- verified locally to produce a
+#    clean check with this exact sequence.
 # 2. report.R's tests do a real (not mocked) Typst compile, so the
 #    `typst` CLI must be on PATH. ubuntu-latest has no package-manager
 #    typst, so this downloads the official prebuilt Linux binary
@@ -30,7 +37,6 @@ jobs:
   R-CMD-check:
     runs-on: ubuntu-latest
     env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
     steps:
       - uses: actions/checkout@v4
@@ -51,14 +57,10 @@ jobs:
       - name: Install local directCareData
         run: R CMD INSTALL directCareData
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          working-directory: directCarePlanR
-          extra-packages: any::rcmdcheck
-          needs: check
+      - name: Install directCarePlanR's own dependencies
+        run: |
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "testthat", "typr", "rcmdcheck"))'
 
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          working-directory: directCarePlanR
-          error-on: '"warning"'
-          upload-snapshots: true
+      - name: Check directCarePlanR
+        run: |
+          Rscript -e 'rcmdcheck::rcmdcheck("directCarePlanR", args = c("--no-manual"), error_on = "warning")'
