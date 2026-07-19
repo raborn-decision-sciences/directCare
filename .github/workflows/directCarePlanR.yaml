@@ -1,0 +1,64 @@
+# Workflow for directCarePlanR. Two monorepo-specific steps beyond a
+# standard R CMD check:
+#
+# 1. directCarePlanR depends on directCareData via a `Remotes:` GitHub
+#    reference in DESCRIPTION. Left alone, dependency resolution would
+#    fetch directCareData from its default branch on GitHub -- not the
+#    branch/PR actually checked out here -- so a PR touching both
+#    packages together would silently test against a stale
+#    directCareData. Installing the local, just-checked-out copy via
+#    `R CMD INSTALL` *before* setup-r-dependencies runs means pak finds
+#    directCareData already satisfied locally and never reaches out to
+#    GitHub for it. directCareData has no runtime Imports of its own, so
+#    this install needs nothing beyond base R.
+# 2. report.R's tests do a real (not mocked) Typst compile, so the
+#    `typst` CLI must be on PATH. ubuntu-latest has no package-manager
+#    typst, so this downloads the official prebuilt Linux binary
+#    directly from GitHub's stable "latest" release URL.
+
+on:
+  push:
+    branches: [main, PlanR]
+    paths: ["directCarePlanR/**", "directCareData/**"]
+  pull_request:
+    branches: [main, PlanR]
+    paths: ["directCarePlanR/**", "directCareData/**"]
+
+name: directCarePlanR.yaml
+
+jobs:
+  R-CMD-check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Install Typst
+        run: |
+          curl -sL -o typst.tar.xz \
+            "https://github.com/typst/typst/releases/latest/download/typst-x86_64-unknown-linux-musl.tar.xz"
+          tar -xf typst.tar.xz
+          install_dir="$(realpath "$(find . -maxdepth 1 -type d -name 'typst-*')")"
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Install local directCareData
+        run: R CMD INSTALL directCareData
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: directCarePlanR
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          working-directory: directCarePlanR
+          error-on: '"warning"'
+          upload-snapshots: true
