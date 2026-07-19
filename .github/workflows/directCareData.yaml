@@ -6,10 +6,11 @@
 on:
   push:
     branches: [main, PlanR]
-    paths: ["directCareData/**"]
+    paths: ["directCareData/**", ".github/workflows/directCareData.yaml"]
   pull_request:
     branches: [main, PlanR]
-    paths: ["directCareData/**"]
+    paths: ["directCareData/**", ".github/workflows/directCareData.yaml"]
+  workflow_dispatch: {}
 
 name: directCareData.yaml
 
