@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "directCarePlanner",
+      "runtimeExecutable": "Rscript",
+      "runtimeArgs": [
+        "-e",
+        "options(shiny.port = 3838, shiny.host = '127.0.0.1'); directCarePlanner::run_app()"
+      ],
+      "port": 3838
+    }
+  ]
+}
