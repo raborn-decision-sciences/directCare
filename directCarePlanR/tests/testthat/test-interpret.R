@@ -92,9 +92,9 @@ test_that("interpret_capital() reports totals, top line items, and a combined fi
   text <- interpret_capital(startup_costs, personal_runway)
 
   expect_true(grepl("\\$14,000", text))
-  expect_true(grepl("ehr_setup \\(\\$8,000\\)", text))
-  expect_true(grepl("equipment \\(\\$5,000\\)", text))
-  expect_false(grepl("licensing", text)) # smallest item, not in the top 2
+  expect_true(grepl("EHR Setup \\(\\$8,000\\)", text))
+  expect_true(grepl("Equipment \\(\\$5,000\\)", text))
+  expect_false(grepl("[Ll]icensing", text)) # smallest item, not in the top 2
   expect_true(grepl("6 months at \\$4,000/month", text))
   expect_true(grepl("\\$24,000", text))
   expect_true(grepl("secure at least \\$38,000", text))

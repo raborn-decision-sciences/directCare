@@ -22,6 +22,23 @@
 
 #let dollar(x) = "$" + str(calc.round(x))
 
+// Turns a snake_case programmatic key (interpretation section names,
+// scenario names, startup cost line-item names, ...) into a readable
+// label: "ehr_setup" -> "EHR Setup", "fee_for_service" -> "Fee For
+// Service". Extend `acronyms` as new all-caps abbreviations show up in
+// exposed keys.
+#let acronyms = ("ehr": "EHR")
+#let humanize(key) = {
+  key
+    .split("_")
+    .map(word => if word in acronyms {
+      acronyms.at(word)
+    } else {
+      upper(word.slice(0, 1)) + word.slice(1)
+    })
+    .join(" ")
+}
+
 #if d.market != none [
   == Market Context
   - County: #d.market.county_name, #d.market.state_abb
@@ -53,7 +70,7 @@
   == Scenario Projections
 
   #for scenario in d.projections.scenarios [
-    === #scenario.scenario
+    === #humanize(scenario.scenario)
 
     #table(
       columns: 5,
@@ -71,7 +88,19 @@
 
 #if d.capital != none [
   == Capital Requirements
-  - Startup costs: #dollar(d.capital.startup_total)
+
+  === Startup Costs
+
+  #table(
+    columns: 2,
+    [*Item*], [*Amount*],
+    ..d.capital.startup_line_items.pairs().map(item => (
+      humanize(item.at(0)),
+      dollar(item.at(1)),
+    )).flatten()
+  )
+
+  - Total startup costs: #dollar(d.capital.startup_total)
   - Personal runway: #dollar(d.capital.runway_total)
   - *Combined total: #dollar(d.capital.combined_total)*
 ]
@@ -80,7 +109,7 @@
   == Interpretation
 
   #for (section, paragraphs) in d.interpretations [
-    === #section
+    === #humanize(section)
     #for p in paragraphs [
       #p
 

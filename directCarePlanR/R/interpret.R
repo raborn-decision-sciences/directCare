@@ -14,6 +14,33 @@
   paste0(sign, "$", formatC(abs(round(x)), format = "d", big.mark = ","))
 }
 
+# Known all-caps abbreviations to preserve when humanizing a snake_case
+# key (e.g. cost line-item names). Extend as new ones show up.
+.label_acronyms <- c(ehr = "EHR")
+
+#' Turn a Snake-Case Key Into a Readable Label
+#'
+#' E.g. `"ehr_setup"` -> `"EHR Setup"`. Mirrors the `humanize()` Typst
+#' function in `inst/report/report.typ`, which applies the same
+#' transformation to keys rendered directly in the PDF report; this is
+#' the R-side equivalent for keys that get woven into narrative text
+#' instead.
+#'
+#' @param key Character scalar, e.g. a startup cost line-item name.
+#'
+#' @noRd
+.humanize_label <- function(key) {
+  words <- strsplit(key, "_", fixed = TRUE)[[1]]
+  words <- vapply(words, function(w) {
+    if (w %in% names(.label_acronyms)) {
+      .label_acronyms[[w]]
+    } else {
+      paste0(toupper(substr(w, 1, 1)), substr(w, 2, nchar(w)))
+    }
+  }, character(1))
+  paste(words, collapse = " ")
+}
+
 #' Interpret Revenue Projections
 #'
 #' Generates narrative text describing a revenue projection, framed
@@ -221,7 +248,12 @@ interpret_capital <- function(startup_costs, personal_runway) {
   top_items <- sort(unlist(line_items), decreasing = TRUE)
   top_n <- utils::head(top_items, 2L)
   top_items_str <- paste(
-    paste0(names(top_n), " (", vapply(top_n, .fmt_dollar, character(1)), ")"),
+    paste0(
+      vapply(names(top_n), .humanize_label, character(1)),
+      " (",
+      vapply(top_n, .fmt_dollar, character(1)),
+      ")"
+    ),
     collapse = " and "
   )
 
