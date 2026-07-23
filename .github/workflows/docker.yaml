@@ -1,0 +1,103 @@
+# Builds the self-hosting Docker images (docker/base.Dockerfile plus both
+# app Dockerfiles) and brings up db+dca+planner via Compose, then polls
+# each app's root URL for a 200 response as a liveness smoke test. Caddy is
+# skipped here -- it needs real DNS/TLS it won't have on a CI runner, so
+# docker-compose.ci.yml publishes dca/planner ports directly instead.
+#
+# This does not test an actual shinymanager login round-trip (the
+# `practices` table is empty in a fresh CI database) -- it only confirms
+# both images build and both apps come up and serve their login page.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - "directCareAnalytics/**"
+      - "directCarePlanner/**"
+      - "directCareForecastR/**"
+      - "directCarePlanR/**"
+      - "directCareData/**"
+      - "db/**"
+      - "docker-compose.yml"
+      - "docker-compose.ci.yml"
+      - "Caddyfile"
+      - "Makefile"
+      - ".dockerignore"
+      - ".github/workflows/docker.yaml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - "directCareAnalytics/**"
+      - "directCarePlanner/**"
+      - "directCareForecastR/**"
+      - "directCarePlanR/**"
+      - "directCareData/**"
+      - "db/**"
+      - "docker-compose.yml"
+      - "docker-compose.ci.yml"
+      - "Caddyfile"
+      - "Makefile"
+      - ".dockerignore"
+      - ".github/workflows/docker.yaml"
+  workflow_dispatch: {}
+
+name: docker.yaml
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/base.Dockerfile
+          tags: directcare-base:latest
+          load: true
+          cache-from: type=gha,scope=directcare-base
+          cache-to: type=gha,mode=max,scope=directcare-base
+
+      - name: Build app images
+        run: docker compose build
+
+      - name: Generate ephemeral CI-only db password
+        run: |
+          mkdir -p secrets
+          openssl rand -base64 32 > secrets/db_password.txt
+
+      - name: Start db, dca, planner (no caddy in CI)
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner
+
+      - name: Wait for apps to serve their login page
+        run: |
+          for url in http://localhost:3838 http://localhost:3939; do
+            echo "Waiting on $url"
+            ok=""
+            for i in $(seq 1 30); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$url" || echo "000")
+              if [ "$code" = "200" ]; then
+                echo "$url responded 200"
+                ok=1
+                break
+              fi
+              sleep 3
+            done
+            if [ -z "$ok" ]; then
+              echo "$url never returned 200"
+              exit 1
+            fi
+          done
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v

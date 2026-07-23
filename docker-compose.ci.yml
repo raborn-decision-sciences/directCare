@@ -1,0 +1,13 @@
+# CI/local-testing override: publishes dca/planner ports directly to the
+# host so they can be curled without Caddy (which needs real DNS/TLS it
+# won't have in CI). Not used in production.
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner
+services:
+  dca:
+    ports:
+      - "3838:3838"
+
+  planner:
+    ports:
+      - "3939:3838"
