@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
     curl \
     ca-certificates \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # typst CLI -- both DCA and Planner shell out to `typst` (via Sys.which()) to
