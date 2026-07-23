@@ -51,17 +51,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: docker/setup-buildx-action@v3
-
+      # Plain `docker build`/`docker compose build` on the runner's default
+      # builder, not docker/setup-buildx-action's docker-container builder.
+      # That builder runs BuildKit in an isolated container with its own
+      # image store -- `--load` imports its output into the Docker daemon,
+      # but a later build submitted to that same isolated builder can't see
+      # it back out again for a `FROM directcare-base:latest` reference, and
+      # tries (and fails) to pull it from Docker Hub instead. The default
+      # builder shares the daemon's image store directly, so this chaining
+      # just works -- same as `make deploy` on the VPS.
       - name: Build base image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: docker/base.Dockerfile
-          tags: directcare-base:latest
-          load: true
-          cache-from: type=gha,scope=directcare-base
-          cache-to: type=gha,mode=max,scope=directcare-base
+        run: docker build -f docker/base.Dockerfile -t directcare-base:latest .
 
       - name: Build app images
         run: docker compose build
