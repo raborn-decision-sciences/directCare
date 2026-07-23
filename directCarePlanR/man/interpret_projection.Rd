@@ -10,7 +10,8 @@ interpret_projection(projection)
 \item{projection}{A tibble as returned by \code{\link[=project_scenarios]{project_scenarios()}}.}
 }
 \value{
-A character string of narrative text.
+A character string of narrative text, with paragraphs separated
+by \code{"\\n\\n"}.
 }
 \description{
 Generates narrative text describing a scenario projection, calling out

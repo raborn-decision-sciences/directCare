@@ -12,7 +12,8 @@ interpret_capital(startup_costs, personal_runway)
 \item{personal_runway}{A list as returned by \code{\link[=calc_personal_runway]{calc_personal_runway()}}.}
 }
 \value{
-A character string of narrative text.
+A character string of narrative text, with paragraphs separated
+by \code{"\\n\\n"}.
 }
 \description{
 Generates narrative text describing startup capital and personal runway

@@ -11,7 +11,8 @@ interpret_revenue(revenue)
 \code{\link[=calc_mixed_revenue]{calc_mixed_revenue()}}.}
 }
 \value{
-A character string of narrative text.
+A character string of narrative text, with paragraphs separated
+by \code{"\\n\\n"}.
 }
 \description{
 Generates narrative text describing a revenue projection, framed
