@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libtiff5-dev \
     libjpeg-dev \
+    libuv1-dev \
+    libpq-dev \
     curl \
     ca-certificates \
     xz-utils \
