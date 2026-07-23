@@ -16,8 +16,11 @@ run_app <- function(
 ) {
   with_golem_options(
     app = shinyApp(
-      ui = app_ui,
-      server = app_server,
+      ui = shinymanager::secure_app(app_ui),
+      server = function(input, output, session) {
+        shinymanager::secure_server(check_credentials = check_credentials_db)
+        app_server(input, output, session)
+      },
       onStart = onStart,
       options = options,
       enableBookmarking = enableBookmarking,

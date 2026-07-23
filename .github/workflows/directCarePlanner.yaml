@@ -48,7 +48,7 @@ jobs:
 
       - name: Install directCarePlanner's own dependencies
         run: |
-          Rscript -e 'install.packages(c("bsicons", "bslib", "config", "DT", "ggplot2", "golem", "scales", "shiny", "thematic", "testthat", "rcmdcheck"))'
+          Rscript -e 'install.packages(c("bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
       - name: Check directCarePlanner
         run: |
