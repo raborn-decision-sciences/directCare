@@ -1,0 +1,55 @@
+# Workflow for directCarePlanner: a Golem Shiny app that depends on two
+# sibling packages in this same monorepo, directCareData and
+# directCarePlanR, both declared via `Remotes:` GitHub references in
+# DESCRIPTION. As with directCarePlanR.yaml, `pak` (used internally by
+# r-lib/actions/setup-r-dependencies) cannot resolve a local sibling
+# package when solving "local::." -- same confirmed limitation, same
+# workaround: skip pak-based dependency resolution entirely. Install both
+# sibling packages locally via `R CMD INSTALL`, install
+# directCarePlanner's own CRAN dependencies via plain `install.packages()`,
+# and run `rcmdcheck::rcmdcheck()` directly.
+#
+# Unlike directCarePlanR, directCarePlanner's tests don't exercise the
+# PDF-report download handler (no testServer() call touches
+# output$dl_report), so no Typst binary is needed here.
+
+on:
+  push:
+    branches: [main, PlanR]
+    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", ".github/workflows/directCarePlanner.yaml"]
+  pull_request:
+    branches: [main, PlanR]
+    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", ".github/workflows/directCarePlanner.yaml"]
+  workflow_dispatch: {}
+
+name: directCarePlanner.yaml
+
+jobs:
+  R-CMD-check:
+    runs-on: ubuntu-latest
+    env:
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - name: Install directCarePlanR's own dependencies
+        run: |
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble"))'
+
+      - name: Install local directCareData and directCarePlanR
+        run: |
+          R CMD INSTALL directCareData
+          R CMD INSTALL directCarePlanR
+
+      - name: Install directCarePlanner's own dependencies
+        run: |
+          Rscript -e 'install.packages(c("bsicons", "bslib", "config", "DT", "ggplot2", "golem", "scales", "shiny", "thematic", "testthat", "rcmdcheck"))'
+
+      - name: Check directCarePlanner
+        run: |
+          Rscript -e 'rcmdcheck::rcmdcheck("directCarePlanner", args = c("--no-manual"), error_on = "warning")'
