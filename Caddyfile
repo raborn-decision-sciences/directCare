@@ -1,0 +1,7 @@
+app.directcareanalytics.com {
+    reverse_proxy dca:3838
+}
+
+planner.directcareanalytics.com {
+    reverse_proxy planner:3838
+}

@@ -13,3 +13,8 @@ test-gnucash.csv
 *.tar.gz
 skills-lock.json
 .Renviron
+
+# Docker secrets (generate locally, never commit)
+secrets/*
+!secrets/.gitkeep
+!secrets/README.md

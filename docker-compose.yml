@@ -1,0 +1,65 @@
+services:
+  dca:
+    build:
+      context: .
+      dockerfile: directCareAnalytics/Dockerfile
+    image: directcare/dca:latest
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: directcare
+      DB_USER: directcare
+      DB_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    depends_on:
+      - db
+
+  planner:
+    build:
+      context: .
+      dockerfile: directCarePlanner/Dockerfile
+    image: directcare/planner:latest
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: directcare
+      DB_USER: directcare
+      DB_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: directcare
+      POSTGRES_USER: directcare
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt

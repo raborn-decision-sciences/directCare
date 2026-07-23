@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+.agents
+landing
+assets
+*.md
+**/rsconnect
+**/renv
+**/.Rproj.user
+**/*.Rcheck
+**/tests
+test-gnucash.csv
+skills-lock.json
