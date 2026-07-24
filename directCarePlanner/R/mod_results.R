@@ -24,7 +24,10 @@
 #' @importFrom shiny NS tagList
 mod_results_ui <- function(id) {
   ns <- NS(id)
-  uiOutput(ns("content"))
+  tagList(
+    uiOutput(ns("content")),
+    .branded_footer()
+  )
 }
 
 #' results Server Functions
@@ -136,7 +139,7 @@ mod_results_server <- function(id, r) {
           downloadButton(
             ns("dl_report"),
             tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
-            class = "btn-outline-secondary"
+            class = "btn-primary"
           )
         )
       )
