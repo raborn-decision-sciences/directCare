@@ -65,6 +65,28 @@ app_server <- function(input, output, session, res_auth = NULL) {
     accent = "#14B8A6"
   )
 
+  # -- Dark/light mode toggle -------------------------------------------------
+  # bslib::input_dark_mode() flips the client-side data-bs-theme attribute
+  # (driving custom.css's [data-bs-theme="dark"] overrides) and emits
+  # "light"/"dark" strings via input$dark_mode -- not TRUE/FALSE, so this
+  # checks with identical() rather than isTRUE(). rds_theme_dark() is
+  # constructed fresh here (a plain bs_theme() call, not a piped
+  # bs_add_rules() chain), which avoids a known session$setCurrentTheme()
+  # class-check failure some bslib versions have with piped-together theme
+  # objects. Plots need re-theming too, since thematic_shiny() above pins
+  # explicit colors rather than "auto" (see comment on that call) -- a CSS
+  # variable swap alone wouldn't reach them.
+  observeEvent(input$dark_mode, {
+    is_dark <- identical(input$dark_mode, "dark")
+    session$setCurrentTheme(if (is_dark) rds_theme_dark() else rds_theme())
+    thematic::thematic_shiny(
+      bg = if (is_dark) "#0F172A" else "#F8FAFC",
+      fg = if (is_dark) "#E2E8F0" else "#172033",
+      accent = "#14B8A6"
+    )
+    r$dark_mode <- input$dark_mode
+  })
+
   # -- Shared reactive state --------------------------------------------------
   # All three modules read and write through `r`. Tab 1 populates the data;
   # Tab 2 may modify categories or append manual rows; Tab 3 consumes the
@@ -92,7 +114,17 @@ app_server <- function(input, output, session, res_auth = NULL) {
 
     # Incremented on every confirmed Start Over; modules observe this to
     # clear their own local reactive state (selected path, tier counts, etc).
-    reset_signal = 0L
+    reset_signal = 0L,
+
+    # "light" or "dark" -- referenced (unused) inside each module's
+    # renderPlot() blocks purely to register a reactive dependency, since
+    # none of those plots otherwise depend on anything that changes when
+    # the theme toggles. Without it, Shiny never re-runs renderPlot() on
+    # toggle and the old, wrong-theme PNG just stays displayed (confirmed
+    # empirically: the observeEvent() below re-configures thematic_shiny()
+    # correctly, but that alone does nothing for a plot whose reactive
+    # dependencies haven't changed).
+    dark_mode = "light"
   )
 
   # -- Brand-click: return to Upload tab (navigation only, no data reset) -------
