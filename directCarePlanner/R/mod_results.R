@@ -181,6 +181,7 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     })
 
     output$projection_plot <- renderPlot({
+      r$dark_mode # dependency only -- forces a redraw when the theme toggles
       req(r$projections)
       ggplot2::ggplot(
         r$projections,

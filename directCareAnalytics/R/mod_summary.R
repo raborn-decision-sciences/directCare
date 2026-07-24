@@ -483,6 +483,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
 
     #  Plots
     output$ovhd_plot <- renderPlot({
+      r$dark_mode # dependency only -- forces a redraw when the theme toggles
       req(ovhd_overall())
       by_cat <- isTRUE(input$ovhd_by_cat)
       is_pie <- by_cat && identical(input$ovhd_chart_type, "pie")
@@ -564,6 +565,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
     })
 
     output$inc_plot <- renderPlot({
+      r$dark_mode # dependency only -- forces a redraw when the theme toggles
       req(inc_overall())
       by_src <- isTRUE(input$inc_by_src)
       is_pie <- by_src && identical(input$inc_chart_type, "pie")

@@ -1201,6 +1201,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
 
     output$breakeven_plot <- renderPlot(
       {
+        r$dark_mode # dependency only -- forces a redraw when the theme toggles
         req(adj_breakeven())
         plot_forecast_breakeven(
           adj_breakeven(),
@@ -1323,6 +1324,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
 
     output$revenue_plot <- renderPlot(
       {
+        r$dark_mode # dependency only -- forces a redraw when the theme toggles
         req(adj_revenue())
         plot_forecast_revenue(adj_revenue(), income_monthly = r$income_monthly)
       },
@@ -1447,6 +1449,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
 
     output$target_plot <- renderPlot(
       {
+        r$dark_mode # dependency only -- forces a redraw when the theme toggles
         req(adj_target())
         plot_forecast_target(adj_target(), income_monthly = r$income_monthly)
       },
