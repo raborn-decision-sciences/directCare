@@ -27,6 +27,9 @@ mod_plan_inputs_ui <- function(id) {
         card_header(bsicons::bs_icon("geo-alt"), " Location"),
         card_body(
           htmltools::tagQuery(
+            textInput(ns("practice_name"), "Practice Name (optional)", placeholder = "e.g. Riverside Direct Care")
+          )$find("input")$addAttrs(autocomplete = "off")$allTags(),
+          htmltools::tagQuery(
             textInput(ns("location"), "ZIP code or county name", value = "30309")
           )$find("input")$addAttrs(autocomplete = "off")$allTags(),
           # dropdownParent = "body" detaches the dropdown from this card's DOM
@@ -108,7 +111,8 @@ mod_plan_inputs_ui <- function(id) {
     div(
       class = "d-flex justify-content-end mt-3 mb-4",
       input_task_button(ns("submit"), "Build My Plan", icon = bsicons::bs_icon("arrow-right-circle"))
-    )
+    ),
+    .branded_footer()
   )
 }
 
@@ -190,7 +194,12 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         capital = directCarePlanR::interpret_capital(startup_costs, personal_runway)
       )
 
-      r$practice_name <- paste0(market_context$geography$county_name, ", ", market_context$geography$state_abb, " Practice")
+      practice_name_input <- trimws(input$practice_name %||% "")
+      r$practice_name <- if (nzchar(practice_name_input)) {
+        practice_name_input
+      } else {
+        paste0(market_context$geography$county_name, ", ", market_context$geography$state_abb, " Practice")
+      }
       r$horizon_months <- input$horizon_months
       r$market_context <- market_context
       r$revenue <- revenue
