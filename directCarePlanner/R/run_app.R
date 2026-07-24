@@ -29,6 +29,11 @@ run_app <- function(
         # The default floating logout button is disabled here; app_server()
         # renders a Logout link in the navbar instead (see account_menu).
         fab_position = "none",
+        # golem_add_external_resources() sets the browser-tab favicon, but it
+        # only runs inside app_ui(), which shinymanager doesn't call until
+        # after login -- without this, the login page falls back to a
+        # default/generic tab icon instead of matching the app.
+        head_auth = tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
         tags_top = tags$div(
           style = "text-align:center;",
           tags$img(src = "www/favicon.svg", height = "48px", alt = "RDS"),

@@ -6,22 +6,28 @@
 #'   `shinymanager::secure_server()`, holding the logged-in practice's
 #'   `user_info` (practice_id, practice_name, email). `NULL` outside of
 #'   `run_app()` (e.g. in tests), in which case the account menu renders
-#'   without a practice name.
+#'   without an email.
 #' @import shiny
 #' @noRd
 app_server <- function(input, output, session, res_auth = NULL) {
-  # -- Account menu: practice name + logout, top-right of the navbar --------
+  # -- Account menu: login email + logout, top-right of the navbar ----------
+  # Shows the login email rather than practice_name: practice_name is
+  # editable in-app (the optional Practice Name field on Plan Inputs) but
+  # res_auth is captured once at login and never re-syncs with that edit,
+  # so displaying it here would go stale. Revisit once there's a proper
+  # account/profile page reading live from the practices table.
+  #
   # id = ".shinymanager_logout" is not a namespacing choice -- it's the
   # exact input id shinymanager::secure_server() listens for internally
   # (see fab_button()'s usage inside shinymanager::secure_app()). Reusing it
   # here lets this link trigger the same logout logic as the default
   # floating button, which run_app() disables via fab_position = "none".
   output$account_menu <- renderUI({
-    practice_name <- res_auth$practice_name
+    email <- res_auth$email
     tags$span(
       class = "d-flex align-items-center gap-2",
-      if (!is.null(practice_name) && nzchar(practice_name)) {
-        tags$span(class = "text-light small", practice_name)
+      if (!is.null(email) && nzchar(email)) {
+        tags$span(class = "text-light small", email)
       },
       tags$a(
         id = ".shinymanager_logout",
