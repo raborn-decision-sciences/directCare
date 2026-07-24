@@ -1,7 +1,7 @@
 # Suppress R CMD check NOTEs for bare column names and imported symbols
 # used in data-masking and UI contexts throughout the app.
 
-#' @importFrom bslib bs_theme card card_body card_footer card_header input_switch input_task_button layout_column_wrap layout_columns nav_item nav_panel nav_spacer navset_card_underline navset_tab page_navbar page_sidebar sidebar accordion accordion_panel tooltip value_box
+#' @importFrom bslib bs_add_rules bs_theme card card_body card_footer card_header input_dark_mode input_switch input_task_button layout_column_wrap layout_columns nav_item nav_panel nav_spacer navset_card_underline navset_tab page_navbar page_sidebar sidebar accordion accordion_panel tooltip value_box
 #' @importFrom bsicons bs_icon
 #' @importFrom shiny NS moduleServer observeEvent reactive reactiveVal reactiveValues renderUI req uiOutput updateSelectInput updateDateRangeInput showNotification downloadButton downloadHandler actionButton fileInput textInput numericInput selectInput sliderInput dateInput dateRangeInput radioButtons renderPlot plotOutput icon tagList tags hr p HTML
 #' @importFrom dplyr where

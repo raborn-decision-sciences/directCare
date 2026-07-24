@@ -67,6 +67,7 @@ app_ui <- function(request) {
           onclick = "Shiny.setInputValue('help_click', Math.random(), {priority: 'event'}); return false;"
         )
       ),
+      nav_item(input_dark_mode(id = "dark_mode", mode = "light")),
       nav_item(uiOutput("account_menu", inline = TRUE))
     )
   )
@@ -105,6 +106,46 @@ rds_theme <- function() {
     # -- Code ---------------------------------------------------------------
     "code-bg" = "#EEF2F7",
     "code-color" = "#2F3A4A"
+  )
+}
+
+#' Raborn Decision Sciences bslib theme -- dark variant
+#'
+#' bs_theme()'s bg/fg args always compile into the `:root,
+#' [data-bs-theme="light"]` bucket, regardless of how dark the colors
+#' actually are -- Bootstrap 5.3 then auto-generates a `[data-bs-theme=
+#' "dark"]` bucket from them via its own color-inversion heuristics, and
+#' that auto-generated bucket wins once input_dark_mode() sets
+#' data-bs-theme="dark" on <html> (confirmed empirically: passing dark
+#' colors directly to bg/fg produced a washed-out near-white auto-inverted
+#' background, not the dark navy requested). The fix is to start from the
+#' normal light rds_theme() and layer explicit `[data-bs-theme="dark"]`
+#' CSS variable overrides on top via bs_add_rules(), which compile after
+#' -- and therefore win the cascade over -- Bootstrap's auto-generated
+#' block. The navbar is deliberately left out of the overrides -- it's
+#' already dark-navy in the light theme, so it reads correctly unchanged.
+#' @noRd
+rds_theme_dark <- function() {
+  bs_add_rules(
+    rds_theme(),
+    "[data-bs-theme=\"dark\"] {
+      color-scheme: dark;
+      --bs-body-bg: #0F172A;
+      --bs-body-color: #E2E8F0;
+      --bs-emphasis-color: #E2E8F0;
+      --bs-heading-color: #E2E8F0;
+      --bs-secondary: #64748B;
+      --bs-secondary-rgb: 100, 116, 139;
+      --bs-secondary-color: rgba(226, 232, 240, 0.75);
+      --bs-secondary-color-rgb: 226, 232, 240;
+      --bs-secondary-bg: #1E293B;
+      --bs-tertiary-bg: #1E293B;
+      --bs-border-color: #334155;
+      --bs-link-color: #2DD4BF;
+      --bs-link-hover-color: #5EEAD4;
+      --bs-code-color: #CBD5E1;
+      --bs-code-bg: #1E293B;
+    }"
   )
 }
 
