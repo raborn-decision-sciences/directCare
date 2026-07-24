@@ -7,7 +7,18 @@ app_ui <- function(request) {
   tagList(
     golem_add_external_resources(),
     page_navbar(
-      title = "Direct Care Practice Launch Planner",
+      title = tagList(
+        tags$img(
+          src = "www/favicon.svg",
+          height = "28px",
+          width = "28px",
+          alt = "RDS"
+        ),
+        tags$span(
+          style = "font-weight:600;font-size:0.95rem;white-space:nowrap;",
+          "Direct Care Practice Launch Planner"
+        )
+      ),
       id = "main_nav",
       theme = rds_theme(),
       nav_panel(
@@ -65,17 +76,34 @@ rds_theme <- function() {
 #' Add external Resources to the Application
 #'
 #' @import shiny
-#' @importFrom golem add_resource_path activate_js favicon bundle_resources
+#' @importFrom golem add_resource_path activate_js bundle_resources
 #' @noRd
 golem_add_external_resources <- function() {
   add_resource_path("www", app_sys("app/www"))
 
   tags$head(
-    favicon(),
+    tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "Direct Care Practice Launch Planner | Raborn Decision Sciences"
     ),
     tags$link(rel = "stylesheet", href = "www/custom.css")
+  )
+}
+
+# Branded footer, matching directCareAnalytics's mod_upload.R. Appended to
+# each tab's own UI (not as a page_navbar() sibling) since page_navbar()
+# manages full-page fill layout and a sibling div's placement there is
+# untested.
+#' @noRd
+.branded_footer <- function() {
+  tags$div(
+    class = "mt-5 pt-3 border-top d-flex align-items-center justify-content-center gap-3",
+    style = "opacity:0.55;",
+    tags$img(
+      src = "www/logo-rds-alt.svg",
+      height = "36px",
+      alt = "Raborn Decision Sciences"
+    )
   )
 }
