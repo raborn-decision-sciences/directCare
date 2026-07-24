@@ -26,8 +26,17 @@ mod_plan_inputs_ui <- function(id) {
       card(
         card_header(bsicons::bs_icon("geo-alt"), " Location"),
         card_body(
-          textInput(ns("location"), "ZIP code or county name", value = "30309"),
-          selectInput(ns("state"), "State (to disambiguate a county name)", choices = state_choices)
+          htmltools::tagQuery(
+            textInput(ns("location"), "ZIP code or county name", value = "30309")
+          )$find("input")$addAttrs(autocomplete = "off")$allTags(),
+          # dropdownParent = "body" detaches the dropdown from this card's DOM
+          # subtree so bslib's fillable-card `overflow: auto` doesn't clip it.
+          selectizeInput(
+            ns("state"),
+            "State (to disambiguate a county name)",
+            choices = state_choices,
+            options = list(dropdownParent = "body")
+          )
         )
       ),
       card(
