@@ -56,70 +56,96 @@
               bs_icon("receipt"),
               " Monthly Overhead"
             ),
-            numericInput(
-              ns("est_rent"),
-              "Rent & Facility ($)",
-              value = .v("est_rent"),
-              min = 0,
-              step = 50
-            ),
-            numericInput(
-              ns("est_payroll"),
-              "Staff & Payroll ($)",
-              value = .v("est_payroll"),
-              min = 0,
-              step = 100
-            ),
-            numericInput(
-              ns("est_ehr"),
-              tagList(
-                "EHR & Software ($)",
-                tooltip(
-                  bs_icon(
-                    "info-circle",
-                    title = "EHR and software subscriptions"
-                  ),
-                  paste0(
-                    "Includes your EHR (e.g. Elation Health, Hint Health), ",
-                    "practice management tools, telehealth platforms, and other ",
-                    "software subscriptions."
-                  )
-                )
+            radioButtons(
+              ns("est_ovhd_mode"),
+              NULL,
+              choices = c(
+                "Itemized by category" = "itemized",
+                "Single total" = "single"
               ),
-              value = .v("est_ehr"),
-              min = 0,
-              step = 10
+              selected = .v("est_ovhd_mode", "itemized"),
+              inline = TRUE
             ),
-            numericInput(
-              ns("est_malpractice"),
-              tagList(
-                "Malpractice Insurance ($)",
-                tooltip(
-                  bs_icon("info-circle", title = "Malpractice premium"),
-                  paste0(
-                    "Enter your monthly average. ",
-                    "If paid quarterly, divide the quarterly premium by 3; ",
-                    "if annually, divide by 12."
-                  )
-                )
+            conditionalPanel(
+              condition = sprintf("input['%s'] == 'single'", ns("est_ovhd_mode")),
+              numericInput(
+                ns("est_ovhd_single"),
+                "Total Monthly Overhead ($)",
+                value = .v("est_ovhd_single"),
+                min = 0,
+                step = 50
+              )
+            ),
+            conditionalPanel(
+              condition = sprintf(
+                "input['%s'] != 'single'",
+                ns("est_ovhd_mode")
               ),
-              value = .v("est_malpractice"),
-              min = 0,
-              step = 10
-            ),
-            numericInput(
-              ns("est_supplies"),
-              "Supplies & Labs ($)",
-              value = .v("est_supplies"),
-              min = 0,
-              step = 10
-            ),
-            numericInput(
-              ns("est_other_overhead"),
-              "Other Overhead ($)",
-              value = .v("est_other_overhead"),
-              min = 0,
-              step = 10
+              numericInput(
+                ns("est_rent"),
+                "Rent & Utilities ($)",
+                value = .v("est_rent"),
+                min = 0,
+                step = 50
+              ),
+              numericInput(
+                ns("est_payroll"),
+                "Staff & Payroll ($)",
+                value = .v("est_payroll"),
+                min = 0,
+                step = 100
+              ),
+              numericInput(
+                ns("est_ehr"),
+                tagList(
+                  "EHR & Software ($)",
+                  tooltip(
+                    bs_icon(
+                      "info-circle",
+                      title = "EHR and software subscriptions"
+                    ),
+                    paste0(
+                      "Includes your EHR (e.g. Elation Health, Hint Health), ",
+                      "practice management tools, telehealth platforms, and other ",
+                      "software subscriptions."
+                    )
+                  )
+                ),
+                value = .v("est_ehr"),
+                min = 0,
+                step = 10
+              ),
+              numericInput(
+                ns("est_malpractice"),
+                tagList(
+                  "Malpractice Insurance ($)",
+                  tooltip(
+                    bs_icon("info-circle", title = "Malpractice premium"),
+                    paste0(
+                      "Enter your monthly average. ",
+                      "If paid quarterly, divide the quarterly premium by 3; ",
+                      "if annually, divide by 12."
+                    )
+                  )
+                ),
+                value = .v("est_malpractice"),
+                min = 0,
+                step = 10
+              ),
+              numericInput(
+                ns("est_supplies"),
+                "Supplies & Labs ($)",
+                value = .v("est_supplies"),
+                min = 0,
+                step = 10
+              ),
+              numericInput(
+                ns("est_other_overhead"),
+                "Other Overhead ($)",
+                value = .v("est_other_overhead"),
+                min = 0,
+                step = 10
+              )
             ),
             uiOutput(ns("ovhd_total_ui"))
           ),
@@ -710,6 +736,8 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       .quickstart_ui(
         ns,
         vals = list(
+          est_ovhd_mode = isolate(input$est_ovhd_mode),
+          est_ovhd_single = isolate(input$est_ovhd_single),
           est_rent = isolate(input$est_rent),
           est_payroll = isolate(input$est_payroll),
           est_ehr = isolate(input$est_ehr),
@@ -777,8 +805,16 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             ),
             card_body(
               # Date range filter + aggregation frequency
+              # fill = FALSE: this card has full_screen = TRUE, which makes
+              # bslib treat its card_body as a fillable flex container --
+              # layout_columns() is an html-fill-item by default, so without
+              # this it stretches to consume all remaining vertical space in
+              # the card (observed: ~850px tall for what's visually a single
+              # row of inputs), pushing the Expenses/Income tabs far down
+              # and leaving a large blank gap between them.
               layout_columns(
                 col_widths = c(6, 3, 3),
+                fill = FALSE,
                 dateRangeInput(
                   ns("date_filter"),
                   "Filter by date range",
@@ -867,12 +903,41 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
                 selectInput(
                   ns("remap_account"),
                   "Account",
-                  choices = NULL # populated in server
+                  # Computed here, not via a separate updateSelectInput()
+                  # observer: this whole renderUI re-fires on every
+                  # r$transactions change (has_csv_data() has no way to
+                  # short-circuit on an unchanged boolean, despite the
+                  # "fires once" intent elsewhere in this file), recreating
+                  # this element from scratch each time -- a same-flush
+                  # updateSelectInput() targeting the old element lost that
+                  # race every time (confirmed empirically: the client-side
+                  # selectize instance's own .options stayed {} no matter
+                  # how the update was gated/timed). Scoped to
+                  # r$overhead$account_name (not r$transactions$account_name)
+                  # deliberately: r$overhead is re-derived as
+                  # filter_gnucash_overhead(transactions), which keeps only
+                  # rows whose full_account_name contains "Expenses" --
+                  # offering every account in r$transactions here (asset
+                  # accounts like "Checking Account", the "Imbalance-USD"
+                  # double-entry offset, income accounts, ...) let a user
+                  # "successfully" re-map one of those and find nothing
+                  # changed anywhere downstream, since those rows are never
+                  # included in r$overhead no matter what category they're
+                  # assigned.
+                  choices = if (!is.null(r$overhead) && nrow(r$overhead) > 0) {
+                    sort(unique(r$overhead$account_name))
+                  }
                 ),
                 selectInput(
                   ns("remap_category"),
                   "New Category",
-                  choices = valid_categories
+                  # Pretty labels (matching "Customize Category Labels"
+                  # below, including any saved rename), not raw slugs --
+                  # same race/re-render reasoning as remap_account above.
+                  choices = stats::setNames(
+                    valid_categories,
+                    .pretty_cat(valid_categories, r$category_labels)
+                  )
                 ),
                 actionButton(
                   ns("btn_remap"),
@@ -1089,13 +1154,6 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       }
     })
 
-    # -- Populate account selector --------------------------------------------
-    observe({
-      req(r$transactions)
-      accounts <- sort(unique(r$transactions$account_name))
-      updateSelectInput(session, "remap_account", choices = accounts)
-    })
-
     # -- Customize category / source display labels ---------------------------
     # .cat_labels / .src_labels are the default slug -> pretty-label maps
     # defined in mod_summary.R; r$category_labels / r$source_labels hold any
@@ -1209,6 +1267,20 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     })
 
     output$est_tier_ui <- renderUI({
+      # estimator_done() -- dependency only, result unused. output$estimator_ui
+      # (the container) recreates a *fresh* uiOutput(ns("est_tier_ui"))
+      # placeholder every time estimator_done() toggles (Generate ->
+      # "Scenario Ready" view, or "Revise Estimates" back to the form) --
+      # est_n_tiers() alone doesn't change across that toggle, so without
+      # this, this output never re-fires and the new placeholder never gets
+      # anything pushed into it. Confirmed empirically: the tier section
+      # after "Revise Estimates" was showing this output's *last-computed*
+      # HTML (baked-in values from whenever est_n_tiers() last actually
+      # changed, e.g. the last "Add Tier" click) rather than current input
+      # values -- any tier added or edited after that point silently
+      # reverted, which is exactly the "Revise Estimates loses tier info"
+      # bug report.
+      estimator_done()
       n <- est_n_tiers()
       lapply(seq_len(n), function(i) {
         saved_label <- isolate(input[[paste0("est_tier_label_", i)]]) %||% ""
@@ -1322,6 +1394,9 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
 
     # Live reactive totals used by the rendered summary rows in the form.
     ovhd_total_r <- reactive({
+      if (identical(input$est_ovhd_mode, "single")) {
+        return(input$est_ovhd_single %||% 0)
+      }
       sum(
         c(
           input$est_rent %||% 0,
@@ -1356,16 +1431,25 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
 
     # Overhead total display + breakdown (bottom of the overhead column)
     output$ovhd_total_ui <- renderUI({
-      cats <- list(
-        "Rent & Facility" = .nn(input$est_rent),
-        "Staff & Payroll" = .nn(input$est_payroll),
-        "EHR & Software" = .nn(input$est_ehr),
-        "Malpractice Ins." = .nn(input$est_malpractice),
-        "Supplies & Labs" = .nn(input$est_supplies),
-        "Other" = .nn(input$est_other_overhead)
-      )
-      tot <- sum(unlist(cats), na.rm = TRUE)
-      nonzero <- cats[sapply(cats, \(v) v > 0)]
+      is_single <- identical(input$est_ovhd_mode, "single")
+      cats <- if (is_single) {
+        list()
+      } else {
+        list(
+          "Rent & Utilities" = .nn(input$est_rent),
+          "Staff & Payroll" = .nn(input$est_payroll),
+          "EHR & Software" = .nn(input$est_ehr),
+          "Malpractice Ins." = .nn(input$est_malpractice),
+          "Supplies & Labs" = .nn(input$est_supplies),
+          "Other" = .nn(input$est_other_overhead)
+        )
+      }
+      tot <- if (is_single) .nn(input$est_ovhd_single) else sum(unlist(cats), na.rm = TRUE)
+      # Filter(), not cats[sapply(...)]: sapply() over an empty list (single
+      # mode) returns list(), not a zero-length logical vector, and
+      # subsetting a list with a list index errors ("invalid subscript type
+      # 'list'") -- Filter() handles the empty-input case safely.
+      nonzero <- Filter(\(v) v > 0, cats)
 
       tagList(
         if (length(nonzero) > 0L) {
@@ -1497,7 +1581,13 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           label = input[[paste0("est_tier_label_", i)]] %||% paste("Tier", i),
           members = .nn(input[[paste0("est_tier_members_", i)]]),
           fee = .nn(input[[paste0("est_tier_fee_", i)]]),
-          monthly_growth = .nn(input[[paste0("est_tier_growth_", i)]])
+          # round(): the numericInput's step = 1 only constrains its
+          # up/down arrows, not typed values -- a typed "0.5" would
+          # otherwise flow into the per-month growth_revenue loop below
+          # and imply fractional patient panel growth mid-forecast, which
+          # nothing downstream (directCareForecastR, the Projections
+          # charts) is built to represent.
+          monthly_growth = round(.nn(input[[paste0("est_tier_growth_", i)]]))
         )
       })
 
