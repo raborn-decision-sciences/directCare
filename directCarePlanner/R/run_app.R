@@ -14,12 +14,37 @@ run_app <- function(
   uiPattern = "/",
   ...
 ) {
+  # Resource path must be registered before secure_app() wraps the UI --
+  # golem_add_external_resources() (which normally does this) only runs
+  # inside app_ui(), which shinymanager doesn't call until after a
+  # successful login, so the login page itself would 404 on www/ assets
+  # (favicon, logo) otherwise.
+  golem::add_resource_path("www", app_sys("app/www"))
+
   with_golem_options(
     app = shinyApp(
-      ui = shinymanager::secure_app(app_ui),
+      ui = shinymanager::secure_app(
+        app_ui,
+        theme = rds_theme(),
+        # The default floating logout button is disabled here; app_server()
+        # renders a Logout link in the navbar instead (see account_menu).
+        fab_position = "none",
+        tags_top = tags$div(
+          style = "text-align:center;",
+          tags$img(src = "www/favicon.svg", height = "48px", alt = "RDS"),
+          tags$h4(
+            style = "margin-top:8px;font-weight:600;color:#172033;",
+            "Direct Care Practice Launch Planner"
+          )
+        ),
+        tags_bottom = tags$div(
+          style = "text-align:center;opacity:0.6;margin-top:16px;",
+          tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
+        )
+      ),
       server = function(input, output, session) {
-        shinymanager::secure_server(check_credentials = check_credentials_db)
-        app_server(input, output, session)
+        res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
+        app_server(input, output, session, res_auth = res_auth)
       },
       onStart = onStart,
       options = options,
