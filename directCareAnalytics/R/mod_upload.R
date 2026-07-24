@@ -7,6 +7,16 @@
   input_tag
 }
 
+# Add `autocomplete="off"` to a textInput()'s underlying <input> element.
+# Without this, browsers bleed the just-typed shinymanager login email into
+# the first plain text field on the page after auth -- no server-side code
+# ties Practice Name to session/auth data, so this is browser-level
+# autofill, not an app bug.
+.no_autocomplete_input <- function(input_tag) {
+  input_tag$children[[2]]$attribs$autocomplete <- "off"
+  input_tag
+}
+
 # Lower-cased, dash-separated slug derived from the Practice Name, used as
 # the default (and only, for now) Practice ID.
 .slugify <- function(x) {
@@ -32,14 +42,14 @@ mod_upload_ui <- function(id) {
       card_body(
         layout_columns(
           col_widths = c(6, 6),
-          textInput(
+          .no_autocomplete_input(textInput(
             ns("practice_name"),
             label = tagList(
               tags$span(class = "text-danger", "*"),
               " Practice Name"
             ),
             placeholder = "e.g. Riverside Direct Care"
-          ),
+          )),
           .readonly_input(textInput(
             ns("practice_id"),
             label = tagList(
