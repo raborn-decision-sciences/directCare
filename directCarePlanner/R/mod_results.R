@@ -15,6 +15,25 @@
 
 .fmt_dollar <- function(x) scales::dollar(x, accuracy = 1)
 
+# Human-readable labels for calc_startup_costs()'s line_items names, which
+# are the raw internal names passed in from mod_plan_inputs.R's
+# cost_ehr/cost_equipment/etc inputs (ehr_setup, equipment, licensing,
+# marketing, other). Falls back to the raw name for any key not listed here,
+# rather than dropping it, in case new cost categories get added later.
+.cost_item_labels <- c(
+  ehr_setup = "EHR setup",
+  equipment = "Equipment",
+  licensing = "Licensing",
+  marketing = "Marketing",
+  other = "Other startup costs"
+)
+.humanize_cost_items <- function(names_vec) {
+  labels <- unname(.cost_item_labels[names_vec])
+  missing <- is.na(labels)
+  labels[missing] <- names_vec[missing]
+  labels
+}
+
 #' results UI Function
 #'
 #' @param id Internal parameter for `{shiny}`.
@@ -34,11 +53,17 @@ mod_results_ui <- function(id) {
 #'
 #' @param id Internal parameter for `{shiny}`.
 #' @param r Shared reactiveValues object, populated by mod_plan_inputs.
+#' @param parent_session The top-level session, used to switch the active
+#'   navbar tab back to Plan Inputs.
 #'
 #' @noRd
-mod_results_server <- function(id, r) {
+mod_results_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    observeEvent(input$btn_back, {
+      updateNavbarPage(parent_session %||% session, "main_nav", selected = "plan_inputs")
+    })
 
     output$content <- renderUI({
       if (is.null(r$projections)) {
@@ -47,7 +72,12 @@ mod_results_server <- function(id, r) {
             card_body(
               class = "text-center text-muted py-5",
               bsicons::bs_icon("arrow-left-circle", size = "2em"),
-              tags$p("Build a plan in the Plan Inputs tab to see results here.")
+              tags$p("Build a plan in the Plan Inputs tab to see results here."),
+              actionButton(
+                ns("btn_back"),
+                tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
+                class = "btn-outline-primary mt-2"
+              )
             )
           )
         )
@@ -135,7 +165,12 @@ mod_results_server <- function(id, r) {
           )
         ),
         div(
-          class = "d-flex justify-content-end mt-3 mb-4",
+          class = "d-flex justify-content-between mt-3 mb-4",
+          actionButton(
+            ns("btn_back"),
+            tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
+            class = "btn-outline-secondary"
+          ),
           downloadButton(
             ns("dl_report"),
             tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
@@ -166,7 +201,8 @@ mod_results_server <- function(id, r) {
       DT::datatable(
         r$revenue$total,
         options = list(pageLength = 6, dom = "tp"),
-        rownames = FALSE
+        rownames = FALSE,
+        colnames = c("Month", "Membership Revenue", "Fee-for-Service Revenue", "Total Revenue")
       ) |>
         DT::formatCurrency(c("membership_revenue", "fee_revenue", "total_revenue"), digits = 0)
     })
@@ -174,8 +210,13 @@ mod_results_server <- function(id, r) {
     output$startup_table <- DT::renderDT({
       req(r$capital$startup_costs)
       items <- r$capital$startup_costs$line_items
-      df <- data.frame(item = names(items), amount = as.numeric(items))
-      DT::datatable(df, options = list(dom = "t", paging = FALSE), rownames = FALSE) |>
+      df <- data.frame(item = .humanize_cost_items(names(items)), amount = as.numeric(items))
+      DT::datatable(
+        df,
+        options = list(dom = "t", paging = FALSE),
+        rownames = FALSE,
+        colnames = c("Item", "Amount")
+      ) |>
         DT::formatCurrency("amount", digits = 0)
     })
 
