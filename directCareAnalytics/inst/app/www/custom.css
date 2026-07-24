@@ -44,6 +44,20 @@ h1, h2, h3, h4, h5, h6 {
   width: auto;
 }
 
+/* bslib::input_dark_mode()'s icon color derives from --bs-emphasis-color /
+   --bs-tertiary-color (page-level text colors, set inline on the element
+   itself), which correctly flips between light/dark theme -- but the
+   navbar's own background stays dark navy in *both* modes by design (see
+   rds_theme()/rds_theme_dark()), so in light mode the icon inherits the
+   light theme's dark navy text color and blends invisibly into the dark
+   navbar. In dark mode it happens to look right only by coincidence
+   (dark theme's emphasis-color is light, which also suits the navbar).
+   Force it to always use a light color, independent of site theme mode. */
+.navbar bslib-input-dark-mode {
+  --bs-emphasis-color: #F8FAFC;
+  --bs-tertiary-color: rgba(248, 250, 252, 0.6);
+}
+
 /* Active nav tab accent in teal */
 .nav-underline .nav-link.active {
   border-bottom-color: var(--rds-teal);
