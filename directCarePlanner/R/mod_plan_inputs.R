@@ -43,6 +43,17 @@ mod_plan_inputs_ui <- function(id) {
         )
       ),
       card(
+        card_header(bsicons::bs_icon("receipt"), " Overhead"),
+        card_body(
+          numericInput(ns("overhead_monthly"), "Monthly overhead ($)", value = 12000, min = 0, step = 100)
+        )
+      )
+    ),
+    layout_columns(
+      col_widths = c(6, 6),
+      fill = FALSE,
+      fillable = FALSE,
+      card(
         card_header(bsicons::bs_icon("cash-coin"), " Revenue Model"),
         card_body(
           checkboxInput(ns("include_membership"), "Include membership revenue", value = TRUE),
@@ -66,17 +77,6 @@ mod_plan_inputs_ui <- function(id) {
             numericInput(ns("follow_up_fee"), "Follow-up visit fee ($)", value = 100, min = 0, step = 5),
             numericInput(ns("new_visit_pct"), "Share of visits that are new-patient (%)", value = 20, min = 0, max = 100, step = 1)
           )
-        )
-      )
-    ),
-    layout_columns(
-      col_widths = c(6, 6),
-      fill = FALSE,
-      fillable = FALSE,
-      card(
-        card_header(bsicons::bs_icon("receipt"), " Overhead"),
-        card_body(
-          numericInput(ns("overhead_monthly"), "Monthly overhead ($)", value = 12000, min = 0, step = 100)
         )
       ),
       card(
