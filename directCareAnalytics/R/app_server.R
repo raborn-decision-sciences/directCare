@@ -10,6 +10,25 @@
 #' @importFrom thematic thematic_shiny
 #' @noRd
 app_server <- function(input, output, session, res_auth = NULL) {
+  # -- Demo mode ----------------------------------------------------------
+  # The login page's "Try the demo" link (run_app.R) sends `?demo=1`, which
+  # the ui-level branch in run_app.R already used to skip straight to
+  # app_ui() -- but that decision isn't visible here, since ui and server
+  # are separate per-session closures with no direct channel between them.
+  # session$clientData$url_search is the reliable way to re-read the query
+  # string server-side (confirmed empirically: session$request$QUERY_STRING
+  # reflects the websocket upgrade request, not the original page URL, and
+  # reads empty). It isn't populated on the very first synchronous line of
+  # server code, but resolves within the same initial reactive flush, so a
+  # plain observe() sees the correct value on its first (only) run.
+  demo_mode <- reactiveVal(FALSE)
+  observe({
+    query <- parseQueryString(session$clientData$url_search)
+    if (isTRUE(query$demo == "1")) {
+      demo_mode(TRUE)
+    }
+  })
+
   # -- Account menu: login email + logout, top-right of the navbar ----------
   # Shows the login email rather than practice_name: practice_name is
   # editable in-app (the Practice Name field on the Upload tab) but
@@ -23,6 +42,26 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # here lets this link trigger the same logout logic as the default
   # floating button, which run_app() disables via fab_position = "none".
   output$account_menu <- renderUI({
+    if (demo_mode()) {
+      return(tags$span(
+        class = "d-flex align-items-center gap-2",
+        tags$span(
+          class = "badge text-bg-warning",
+          bs_icon("stars"),
+          " Demo Mode"
+        ),
+        tags$a(
+          href = "#",
+          class = "nav-link",
+          title = "Exit Demo",
+          # A plain navigation (not an action button) back to the same
+          # pathname without the `?demo=1` query string -- no server-side
+          # session/login state to unwind, unlike the real logout link.
+          onclick = "window.location.search=''; return false;",
+          "Exit Demo"
+        )
+      ))
+    }
     email <- res_auth$email
     tags$span(
       class = "d-flex align-items-center gap-2",
@@ -126,6 +165,43 @@ app_server <- function(input, output, session, res_auth = NULL) {
     # dependencies haven't changed).
     dark_mode = "light"
   )
+
+  # Fires once, only for demo sessions. Populates `r` the same way a real
+  # GnuCash CSV upload would (.load_demo_data(), utils_demo.R), then lands
+  # on the Edit tab, matching mod_upload.R's own post-upload destination --
+  # so a demo session looks exactly like "I just uploaded a CSV," not a
+  # special-cased shortcut. Practice Name/ID are also pushed into the
+  # Upload tab's own inputs (not just `r`) so that, if a demo user later
+  # clicks Start Over, the preserved identity is visible there too, not
+  # just held silently in `r` -- Start Over's modal promises "your practice
+  # name and ID will be kept," and leaving the Upload tab's own inputs
+  # blank would make that promise look broken.
+  #
+  # Deliberately not ignoreInit = TRUE: the observe() above (which sets
+  # demo_mode(TRUE)) runs in the same initial flush as this observer's own
+  # first evaluation, and does so first -- so for a demo session, this
+  # observer's "initial" run already sees demo_mode() == TRUE.
+  # ignoreInit's "skip the handler on this observer's first run" behavior
+  # would silently discard exactly that run, and demo_mode() never changes
+  # again afterward to trigger a second one (confirmed empirically: with
+  # ignoreInit = TRUE this handler never fired at all, even though
+  # demo_mode() was correctly TRUE by then). req() below does the "only
+  # run when true" gating instead, safely, on every run regardless of
+  # ordering.
+  observeEvent(demo_mode(), {
+    req(demo_mode())
+    .load_demo_data(r)
+    # onFlushed's callback runs outside any reactive context -- reading `r`
+    # (reactiveValues) inside it needs isolate(), same as reading a
+    # reactive value from a plain callback anywhere else.
+    practice_name <- isolate(r$practice_name)
+    practice_id <- isolate(r$practice_id)
+    session$onFlushed(function() {
+      updateTextInput(session, "upload-practice_name", value = practice_name)
+      updateTextInput(session, "upload-practice_id", value = practice_id)
+      updateNavbarPage(session, "main_nav", selected = "edit")
+    }, once = TRUE)
+  })
 
   # -- Brand-click: return to Upload tab (navigation only, no data reset) -------
   observeEvent(
