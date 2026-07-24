@@ -162,3 +162,48 @@ code {
   border-color: var(--rds-teal);
   box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.2);
 }
+
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+/* bg/fg/accent flip via rds_theme_dark() (session$setCurrentTheme()); these
+   --rds-* tokens are static custom properties Bootstrap's own theme swap
+   doesn't touch, so they need their own override here. The navbar is
+   intentionally excluded -- it's already dark-navy in light mode. */
+[data-bs-theme="dark"] {
+  --rds-off-white:  #0F172A;
+  --rds-white:      #1E293B;
+  --rds-light-gray: #334155;
+  --rds-border:     #334155;
+  --rds-gray:       #94A3B8;
+}
+
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .bslib-value-box {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-bs-theme="dark"] .card:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* .btn-outline-secondary's color is compiled from a Sass variable at build
+   time, not a runtime CSS custom property -- overriding --bs-secondary
+   above doesn't reach it, so it needs its own explicit override here. */
+[data-bs-theme="dark"] .btn-outline-secondary {
+  color: #94A3B8;
+  border-color: #64748B;
+}
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+  color: #E2E8F0;
+  background-color: #334155;
+  border-color: #64748B;
+}
+
+[data-bs-theme="dark"] .decision-point {
+  background: rgba(245, 158, 11, 0.15);
+  color: #E2E8F0;
+}
+
+[data-bs-theme="dark"] code {
+  background-color: var(--rds-white);
+  color: #CBD5E1;
+}
