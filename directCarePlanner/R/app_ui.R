@@ -87,7 +87,28 @@ golem_add_external_resources <- function() {
       path = app_sys("app/www"),
       app_title = "Direct Care Practice Launch Planner | Raborn Decision Sciences"
     ),
-    tags$link(rel = "stylesheet", href = "www/custom.css")
+    tags$link(rel = "stylesheet", href = "www/custom.css"),
+    # Hide workflow tabs from the navbar — navigation is via the "Build My
+    # Plan" submit button and the Back button on Results. Ported from
+    # directCareAnalytics's app_ui.R.
+    tags$script(HTML(
+      "(function() {
+        var vals = ['plan_inputs', 'results'];
+        function hideNavTabs() {
+          vals.forEach(function(v) {
+            var a = document.querySelector('.navbar-nav a[data-value=\"' + v + '\"]');
+            if (a && a.parentElement) {
+              a.parentElement.style.setProperty('display', 'none', 'important');
+            }
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', hideNavTabs);
+        } else {
+          hideNavTabs();
+        }
+      })();"
+    ))
   )
 }
 

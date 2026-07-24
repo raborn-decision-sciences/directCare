@@ -22,5 +22,5 @@ app_server <- function(input, output, session) {
   )
 
   mod_plan_inputs_server("plan_inputs", r, parent_session = session)
-  mod_results_server("results", r)
+  mod_results_server("results", r, parent_session = session)
 }
