@@ -416,21 +416,45 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       if (length(v) != 1L || !is.finite(v)) 0 else v
     }
 
+    # Tracks the last r$membership_tiers value this renderUI actually baked
+    # into its inputs, so it can tell "a new scenario just landed" (seed
+    # should win) apart from "re-rendering for some other reason, e.g. Add
+    # Tier" (the user's own typing, via isolate(input[[...]]), should win).
+    # Without this, isolate(input[[...]]) %||% seed always prefers the
+    # input side once any value exists there -- and a numericInput reports
+    # its own default (0) the first time it's ever bound, which is already
+    # non-NULL. That silently discarded every later scenario: generate,
+    # visit Projections once (0 gets latched in), Start Over, generate a
+    # *different* scenario -- the stale 0 always won over the fresh seed,
+    # which is exactly the "demo/old scenario's numbers stick around
+    # despite Start Over" bug report.
+    last_applied_tiers <- reactiveVal(NULL)
+
     output$proj_tier_ui <- renderUI({
       n <- proj_n_tiers()
       tiers_seed <- r$membership_tiers
+      is_new_scenario <- !identical(tiers_seed, isolate(last_applied_tiers()))
+      if (is_new_scenario) {
+        isolate(last_applied_tiers(tiers_seed))
+      }
       lapply(seq_len(n), function(i) {
         seed <- if (!is.null(tiers_seed) && i <= length(tiers_seed)) {
           tiers_seed[[i]]
         } else {
           NULL
         }
-        saved_label <- isolate(input[[paste0("proj_tier_label_", i)]]) %||%
-          (seed$label %||% "")
-        saved_members <- isolate(input[[paste0("proj_tier_members_", i)]]) %||%
-          (seed$members %||% 0L)
-        saved_fee <- isolate(input[[paste0("proj_tier_fee_", i)]]) %||%
-          (seed$fee %||% 0)
+        if (is_new_scenario) {
+          saved_label <- seed$label %||% ""
+          saved_members <- seed$members %||% 0L
+          saved_fee <- seed$fee %||% 0
+        } else {
+          saved_label <- isolate(input[[paste0("proj_tier_label_", i)]]) %||%
+            (seed$label %||% "")
+          saved_members <- isolate(input[[paste0("proj_tier_members_", i)]]) %||%
+            (seed$members %||% 0L)
+          saved_fee <- isolate(input[[paste0("proj_tier_fee_", i)]]) %||%
+            (seed$fee %||% 0)
+        }
         div(
           class = "border rounded p-2 mb-2",
           if (n > 1L) {
@@ -449,28 +473,31 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
               }
             )
           },
-          layout_columns(
-            col_widths = c(4, 4, 4),
-            textInput(
-              ns(paste0("proj_tier_label_", i)),
-              if (i == 1L && n == 1L) "Label (optional)" else "Label",
-              value = saved_label,
-              placeholder = "e.g. Adult"
-            ),
-            numericInput(
-              ns(paste0("proj_tier_members_", i)),
-              "Members",
-              value = saved_members,
-              min = 0L,
-              step = 1L
-            ),
-            numericInput(
-              ns(paste0("proj_tier_fee_", i)),
-              "Fee ($/mo)",
-              value = saved_fee,
-              min = 0,
-              step = 5
-            )
+          # Stacked, not a 3-column layout_columns() row: this sits in the
+          # narrow Practice Profile sidebar, which isn't wide enough for
+          # Label/Members/Fee side by side without smooshing/overflowing --
+          # matches how the Planned Overhead Events and Planned Fee Changes
+          # sections just below (also user-addable, bordered-card rows)
+          # already stack their fields vertically instead of using columns.
+          textInput(
+            ns(paste0("proj_tier_label_", i)),
+            if (i == 1L && n == 1L) "Label (optional)" else "Label",
+            value = saved_label,
+            placeholder = "e.g. Adult"
+          ),
+          numericInput(
+            ns(paste0("proj_tier_members_", i)),
+            "Members",
+            value = saved_members,
+            min = 0L,
+            step = 1L
+          ),
+          numericInput(
+            ns(paste0("proj_tier_fee_", i)),
+            "Fee ($/mo)",
+            value = saved_fee,
+            min = 0,
+            step = 5
           )
         )
       })
@@ -833,23 +860,31 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
               class = "btn-outline-danger btn-sm py-0 px-1"
             )
           ),
+          # isolate() on every input[[...]] read below is deliberate: these
+          # exist purely to seed value=/selected= with whatever the user
+          # already typed, so this renderUI survives its own re-renders
+          # without clearing the fields -- reading them non-isolated (as
+          # this block used to) makes renderUI depend on its own inputs, so
+          # every keystroke's debounced value update invalidates and
+          # re-runs it, tearing down and recreating these DOM nodes and
+          # kicking focus out of whatever field the user was typing in.
           textInput(
             ns(paste0("ov_event_label_", i)),
             NULL,
-            value = input[[paste0("ov_event_label_", i)]] %||% "",
+            value = isolate(input[[paste0("ov_event_label_", i)]]) %||% "",
             placeholder = "e.g. Hire MA"
           ),
           selectInput(
             ns(paste0("ov_event_start_", i)),
             NULL,
             choices = mo_choices,
-            selected = input[[paste0("ov_event_start_", i)]] %||%
+            selected = isolate(input[[paste0("ov_event_start_", i)]]) %||%
               as.character(mo_seq[1L])
           ),
           numericInput(
             ns(paste0("ov_event_cost_", i)),
             "Monthly cost increase ($)",
-            value = input[[paste0("ov_event_cost_", i)]] %||% 0,
+            value = isolate(input[[paste0("ov_event_cost_", i)]]) %||% 0,
             min = 0,
             step = 100
           )
@@ -970,24 +1005,27 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
               class = "btn-outline-danger btn-sm py-0 px-1"
             )
           ),
+          # isolate() here for the same reason as overhead_events_ui above --
+          # avoids this renderUI depending on its own inputs and
+          # self-triggering a focus-losing re-render on every keystroke.
           selectInput(
             ns(paste0("fee_event_tier_", i)),
             "Tier",
             choices = tier_choices,
-            selected = input[[paste0("fee_event_tier_", i)]] %||%
+            selected = isolate(input[[paste0("fee_event_tier_", i)]]) %||%
               tier_choices[1L]
           ),
           selectInput(
             ns(paste0("fee_event_start_", i)),
             NULL,
             choices = mo_choices,
-            selected = input[[paste0("fee_event_start_", i)]] %||%
+            selected = isolate(input[[paste0("fee_event_start_", i)]]) %||%
               mo_choices[1L]
           ),
           numericInput(
             ns(paste0("fee_event_new_fee_", i)),
             "New fee ($/mo)",
-            value = input[[paste0("fee_event_new_fee_", i)]] %||% 0,
+            value = isolate(input[[paste0("fee_event_new_fee_", i)]]) %||% 0,
             min = 0,
             step = 5
           )
