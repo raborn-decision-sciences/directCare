@@ -45,7 +45,27 @@ mod_plan_inputs_ui <- function(id) {
       card(
         card_header(bsicons::bs_icon("receipt"), " Overhead"),
         card_body(
-          numericInput(ns("overhead_monthly"), "Monthly overhead ($)", value = 12000, min = 0, step = 100)
+          radioButtons(
+            ns("overhead_mode"),
+            NULL,
+            choices = c("Itemized by category" = "itemized", "Single total" = "single"),
+            selected = "single",
+            inline = TRUE
+          ),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'single'", ns("overhead_mode")),
+            numericInput(ns("overhead_monthly"), "Monthly overhead ($)", value = 12000, min = 0, step = 100)
+          ),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'itemized'", ns("overhead_mode")),
+            numericInput(ns("overhead_rent"), "Rent & Utilities ($)", value = 0, min = 0, step = 50),
+            numericInput(ns("overhead_staff"), "Staff & Payroll ($)", value = 0, min = 0, step = 100),
+            numericInput(ns("overhead_ehr"), "EHR & Software ($)", value = 0, min = 0, step = 10),
+            numericInput(ns("overhead_malpractice"), "Malpractice Insurance ($)", value = 0, min = 0, step = 10),
+            numericInput(ns("overhead_supplies"), "Supplies & Labs ($)", value = 0, min = 0, step = 10),
+            numericInput(ns("overhead_other"), "Other Overhead ($)", value = 0, min = 0, step = 10),
+            uiOutput(ns("overhead_total_ui"))
+          )
         )
       )
     ),
@@ -83,18 +103,52 @@ mod_plan_inputs_ui <- function(id) {
         card_header(bsicons::bs_icon("piggy-bank"), " Capital Requirements"),
         card_body(
           tags$p(class = "text-muted small", "One-time startup costs"),
-          layout_columns(
-            col_widths = c(6, 6),
-            fill = FALSE,
-            fillable = FALSE,
-            numericInput(ns("cost_ehr"), "EHR setup ($)", value = 8000, min = 0, step = 100),
-            numericInput(ns("cost_equipment"), "Equipment ($)", value = 5000, min = 0, step = 100),
-            numericInput(ns("cost_licensing"), "Licensing ($)", value = 1500, min = 0, step = 100),
-            numericInput(ns("cost_marketing"), "Marketing ($)", value = 3000, min = 0, step = 100)
+          radioButtons(
+            ns("startup_mode"),
+            NULL,
+            choices = c("Itemized by category" = "itemized", "Single total" = "single"),
+            selected = "itemized",
+            inline = TRUE
           ),
-          numericInput(ns("cost_other"), "Other startup costs ($)", value = 0, min = 0, step = 100),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'single'", ns("startup_mode")),
+            numericInput(ns("cost_total"), "Total startup costs ($)", value = 17500, min = 0, step = 100)
+          ),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'itemized'", ns("startup_mode")),
+            layout_columns(
+              col_widths = c(6, 6),
+              fill = FALSE,
+              fillable = FALSE,
+              numericInput(ns("cost_ehr"), "EHR setup ($)", value = 8000, min = 0, step = 100),
+              numericInput(ns("cost_equipment"), "Equipment ($)", value = 5000, min = 0, step = 100),
+              numericInput(ns("cost_licensing"), "Licensing ($)", value = 1500, min = 0, step = 100),
+              numericInput(ns("cost_marketing"), "Marketing ($)", value = 3000, min = 0, step = 100)
+            ),
+            numericInput(ns("cost_other"), "Other startup costs ($)", value = 0, min = 0, step = 100)
+          ),
           tags$p(class = "text-muted small mt-3", "Personal runway"),
-          numericInput(ns("monthly_expenses"), "Monthly living expenses ($)", value = 5000, min = 0, step = 100),
+          radioButtons(
+            ns("runway_mode"),
+            NULL,
+            choices = c("Itemized by category" = "itemized", "Single total" = "single"),
+            selected = "single",
+            inline = TRUE
+          ),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'single'", ns("runway_mode")),
+            numericInput(ns("monthly_expenses"), "Monthly living expenses ($)", value = 5000, min = 0, step = 100)
+          ),
+          conditionalPanel(
+            condition = sprintf("input['%s'] == 'itemized'", ns("runway_mode")),
+            numericInput(ns("runway_housing"), "Housing ($)", value = 0, min = 0, step = 50),
+            numericInput(ns("runway_utilities"), "Utilities ($)", value = 0, min = 0, step = 25),
+            numericInput(ns("runway_food"), "Food & Groceries ($)", value = 0, min = 0, step = 25),
+            numericInput(ns("runway_insurance"), "Insurance ($)", value = 0, min = 0, step = 25),
+            numericInput(ns("runway_debt"), "Debt Payments ($)", value = 0, min = 0, step = 25),
+            numericInput(ns("runway_other"), "Other ($)", value = 0, min = 0, step = 25),
+            uiOutput(ns("runway_total_ui"))
+          ),
           numericInput(ns("months_coverage"), "Months of coverage needed", value = 6, min = 1, step = 1)
         )
       )
@@ -126,6 +180,63 @@ mod_plan_inputs_ui <- function(id) {
 #' @noRd
 mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
+    # .nn0(): coerce a potentially-NULL or NA numeric input to 0, so a
+    # cleared itemized field contributes $0 to the running total instead of
+    # propagating NA into it (a cleared numericInput sends NA, not NULL, so
+    # %||% alone doesn't catch it).
+    .nn0 <- function(x) {
+      v <- x %||% 0
+      if (length(v) != 1L || !is.finite(v)) 0 else v
+    }
+
+    overhead_total_r <- reactive({
+      if (identical(input$overhead_mode, "single")) {
+        .nn0(input$overhead_monthly)
+      } else {
+        sum(
+          c(
+            .nn0(input$overhead_rent),
+            .nn0(input$overhead_staff),
+            .nn0(input$overhead_ehr),
+            .nn0(input$overhead_malpractice),
+            .nn0(input$overhead_supplies),
+            .nn0(input$overhead_other)
+          )
+        )
+      }
+    })
+
+    output$overhead_total_ui <- renderUI({
+      tags$div(
+        class = "border-top pt-2 mt-1 small fw-semibold",
+        "Monthly overhead total: ", .fmt_dollar(overhead_total_r())
+      )
+    })
+
+    runway_total_r <- reactive({
+      if (identical(input$runway_mode, "single")) {
+        .nn0(input$monthly_expenses)
+      } else {
+        sum(
+          c(
+            .nn0(input$runway_housing),
+            .nn0(input$runway_utilities),
+            .nn0(input$runway_food),
+            .nn0(input$runway_insurance),
+            .nn0(input$runway_debt),
+            .nn0(input$runway_other)
+          )
+        )
+      }
+    })
+
+    output$runway_total_ui <- renderUI({
+      tags$div(
+        class = "border-top pt-2 mt-1 small fw-semibold",
+        "Monthly living expenses total: ", .fmt_dollar(runway_total_r())
+      )
+    })
+
     observeEvent(input$submit, {
       location <- trimws(input$location)
       if (!nzchar(location)) {
@@ -166,7 +277,7 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       assumptions <- list(
         membership_args = membership_args,
         fee_args = fee_args,
-        overhead_monthly = input$overhead_monthly,
+        overhead_monthly = overhead_total_r(),
         overhead_growth_rate = input$overhead_growth_rate / 100
       )
       projections <- run_plan(directCarePlanR::project_scenarios(assumptions, horizon_months = input$horizon_months))
@@ -174,15 +285,19 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         return(invisible(NULL))
       }
 
-      startup_costs <- run_plan(directCarePlanR::calc_startup_costs(c(
-        ehr_setup = input$cost_ehr,
-        equipment = input$cost_equipment,
-        licensing = input$cost_licensing,
-        marketing = input$cost_marketing,
-        other = input$cost_other
-      )))
+      startup_costs <- if (identical(input$startup_mode, "single")) {
+        run_plan(directCarePlanR::calc_startup_costs(c(total = input$cost_total)))
+      } else {
+        run_plan(directCarePlanR::calc_startup_costs(c(
+          ehr_setup = input$cost_ehr,
+          equipment = input$cost_equipment,
+          licensing = input$cost_licensing,
+          marketing = input$cost_marketing,
+          other = input$cost_other
+        )))
+      }
       personal_runway <- run_plan(
-        directCarePlanR::calc_personal_runway(input$monthly_expenses, input$months_coverage)
+        directCarePlanR::calc_personal_runway(runway_total_r(), input$months_coverage)
       )
       if (is.null(startup_costs) || is.null(personal_runway)) {
         return(invisible(NULL))

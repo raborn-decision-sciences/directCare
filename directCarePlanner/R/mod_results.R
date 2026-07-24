@@ -25,7 +25,10 @@
   equipment = "Equipment",
   licensing = "Licensing",
   marketing = "Marketing",
-  other = "Other startup costs"
+  other = "Other startup costs",
+  # "Single total" mode in mod_plan_inputs.R submits one line item keyed
+  # "total" instead of the 5 itemized categories above.
+  total = "Total startup costs"
 )
 .humanize_cost_items <- function(names_vec) {
   labels <- unname(.cost_item_labels[names_vec])
