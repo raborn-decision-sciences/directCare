@@ -66,7 +66,8 @@ app_ui <- function(request) {
           class = "nav-link",
           onclick = "Shiny.setInputValue('help_click', Math.random(), {priority: 'event'}); return false;"
         )
-      )
+      ),
+      nav_item(uiOutput("account_menu", inline = TRUE))
     )
   )
 }

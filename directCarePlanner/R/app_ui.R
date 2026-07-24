@@ -30,7 +30,9 @@ app_ui <- function(request) {
         title = tagList(bsicons::bs_icon("graph-up-arrow"), " Results"),
         value = "results",
         mod_results_ui("results")
-      )
+      ),
+      nav_spacer(),
+      nav_item(uiOutput("account_menu", inline = TRUE))
     )
   )
 }

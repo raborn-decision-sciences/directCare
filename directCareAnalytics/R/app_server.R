@@ -1,10 +1,44 @@
 #' The application server-side
 #'
 #' @param input,output,session Internal parameters for {shiny}. DO NOT REMOVE.
+#' @param res_auth The `reactiveValues` returned by
+#'   `shinymanager::secure_server()`, holding the logged-in practice's
+#'   `user_info` (practice_id, practice_name, email). `NULL` outside of
+#'   `run_app()` (e.g. in tests), in which case the account menu renders
+#'   without a practice name.
 #' @import shiny
 #' @importFrom thematic thematic_shiny
 #' @noRd
-app_server <- function(input, output, session) {
+app_server <- function(input, output, session, res_auth = NULL) {
+  # -- Account menu: practice name + logout, top-right of the navbar --------
+  # id = ".shinymanager_logout" is not a namespacing choice -- it's the
+  # exact input id shinymanager::secure_server() listens for internally
+  # (see fab_button()'s usage inside shinymanager::secure_app()). Reusing it
+  # here lets this link trigger the same logout logic as the default
+  # floating button, which run_app() disables via fab_position = "none".
+  output$account_menu <- renderUI({
+    practice_name <- res_auth$practice_name
+    tags$span(
+      class = "d-flex align-items-center gap-2",
+      if (!is.null(practice_name) && nzchar(practice_name)) {
+        tags$span(class = "text-light small", practice_name)
+      },
+      tags$a(
+        id = ".shinymanager_logout",
+        href = "#",
+        class = "nav-link action-button",
+        title = "Logout",
+        bs_icon("box-arrow-right", title = "Logout")
+      )
+    )
+  })
+  # Shiny suspends renderUI evaluation for outputs it judges "hidden" by
+  # default (suspendWhenHidden = TRUE) -- the navbar's <li class="... nav-item
+  # form-inline"> wrapper reads as zero-size to that heuristic, so the
+  # reactive never even ran (confirmed via Shiny.shinyapp.$values/$errors:
+  # neither a value nor an error was ever recorded for this output).
+  outputOptions(output, "account_menu", suspendWhenHidden = FALSE)
+
   # Pinned rather than "auto": auto-detection calls back into
   # shiny::getCurrentOutputInfo() to resolve bg/fg/accent from the
   # surrounding CSS. That resolution errored ("attempt to apply
