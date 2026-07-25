@@ -21,6 +21,14 @@ run_app <- function(
   # (favicon, logo) otherwise.
   golem::add_resource_path("www", app_sys("app/www"))
 
+  # The Username/Password fields and Login button are self-explanatory;
+  # shinymanager's default "Please authenticate" heading above them is
+  # redundant. set_labels() is shinymanager's own mechanism for overriding
+  # its built-in UI strings (see ?shinymanager::set_labels) -- blanking the
+  # string here leaves the <h3> element in place but empty, rather than
+  # fighting shinymanager's internal id/CSS to remove the element itself.
+  shinymanager::set_labels(language = "en", "Please authenticate" = "")
+
   with_golem_options(
     app = shinyApp(
       ui = shinymanager::secure_app(
