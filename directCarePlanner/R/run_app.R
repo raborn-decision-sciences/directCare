@@ -29,16 +29,40 @@ run_app <- function(
         # The default floating logout button is disabled here; app_server()
         # renders a Logout link in the navbar instead (see account_menu).
         fab_position = "none",
-        # golem_add_external_resources() sets the browser-tab favicon, but it
-        # only runs inside app_ui(), which shinymanager doesn't call until
-        # after login -- without this, the login page falls back to a
-        # default/generic tab icon instead of matching the app.
-        head_auth = tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
+        head_auth = tagList(
+          # golem_add_external_resources() sets the browser-tab favicon, but
+          # it only runs inside app_ui(), which shinymanager doesn't call
+          # until after login -- without this, the login page falls back to
+          # a default/generic tab icon instead of matching the app.
+          tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
+          # Same dark-mode CSS variable overrides as rds_theme_dark(), baked
+          # in statically here rather than relying on
+          # session$setCurrentTheme() -- see .dark_mode_css_rules()'s own
+          # roxygen comment for why.
+          tags$style(HTML(.dark_mode_css_rules()))
+        ),
         tags_top = tags$div(
-          style = "text-align:center;",
+          style = "text-align:center;position:relative;",
+          # Reuses the same input id as app_ui()'s navbar toggle -- the two
+          # are never in the DOM at once (shinymanager shows exactly one of
+          # the login form / authenticated app per session), and
+          # app_server()'s existing observeEvent(input$dark_mode, ...)
+          # already runs regardless of auth state (it's the same Shiny
+          # session throughout; app_server() starts executing immediately,
+          # well before any login completes), so no extra server-side
+          # wiring is needed here -- picking a mode on the login page
+          # carries straight through to the authenticated app.
+          tags$div(
+            style = "position:absolute;top:0;right:0;",
+            input_dark_mode(id = "dark_mode")
+          ),
           tags$img(src = "www/favicon.svg", height = "48px", alt = "RDS"),
           tags$h4(
-            style = "margin-top:8px;font-weight:600;color:#172033;",
+            # var(--bs-emphasis-color), not a literal hex: the page
+            # background (unlike the navbar) correctly follows the theme,
+            # so a hardcoded light-navy color would go dark-on-dark once
+            # dark mode is picked.
+            style = "margin-top:8px;font-weight:600;color:var(--bs-emphasis-color);",
             "Direct Care Practice Launch Planner"
           )
         ),

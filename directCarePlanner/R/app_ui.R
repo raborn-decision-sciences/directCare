@@ -32,7 +32,12 @@ app_ui <- function(request) {
         mod_results_ui("results")
       ),
       nav_spacer(),
-      nav_item(input_dark_mode(id = "dark_mode", mode = "light")),
+      # mode left unset (not "light"): bslib's <bslib-input-dark-mode>
+      # already checks window.matchMedia("(prefers-color-scheme: dark)")
+      # itself whenever no mode is explicitly set on the element, live
+      # (it also listens for OS-level preference changes), falling back to
+      # light when that signal is unavailable -- no custom JS needed.
+      nav_item(input_dark_mode(id = "dark_mode")),
       nav_item(uiOutput("account_menu", inline = TRUE))
     )
   )
@@ -93,27 +98,68 @@ rds_theme <- function() {
 #' already dark-navy in the light theme, so it reads correctly unchanged.
 #' @noRd
 rds_theme_dark <- function() {
-  bslib::bs_add_rules(
-    rds_theme(),
-    "[data-bs-theme=\"dark\"] {
+  bslib::bs_add_rules(rds_theme(), .dark_mode_css_rules())
+}
+
+#' Shared `[data-bs-theme="dark"]` CSS variable overrides
+#'
+#' Factored out of `rds_theme_dark()` so the exact same rules can *also* be
+#' injected as a static `<style>` on the shinymanager login page
+#' (`run_app.R`'s `head_auth`) -- `session$setCurrentTheme()` (which is how
+#' the authenticated app picks these up) doesn't reach the login page, since
+#' shinymanager appears to serve its login UI's theme CSS as a page-level
+#' static bundle rather than through bslib's per-session dynamic theme
+#' mechanism. The login page's `input_dark_mode()` toggle still correctly
+#' flips the client-side `data-bs-theme` attribute and Bootstrap's own
+#' built-in dark-mode component styles (confirmed live: the toggle icon and
+#' form-control colors update immediately) -- it was specifically these
+#' *custom* RDS variable overrides that went missing there without this.
+#' @noRd
+.dark_mode_css_rules <- function() {
+  # !important on every property: when this is injected as a static
+  # <style> in the login page's head_auth, it lands *before*
+  # bootstrap.min.css in the DOM (head_auth's content is written before
+  # shinymanager adds its own theme <link> tags) -- confirmed live
+  # (inspecting document.head.children) that without !important, Bootstrap
+  # 5.3's own auto-generated [data-bs-theme="dark"] bucket (the same
+  # color-inversion behavior documented on rds_theme_dark() above) loads
+  # after and wins on equal specificity, silently reverting every one of
+  # these back to Bootstrap's washed-out auto-inverted colors. Harmless for
+  # the bs_add_rules()/rds_theme_dark() path (authenticated app), which
+  # already wins the cascade on ordering alone.
+  #
+  # The `.panel-auth` rule is a separate fix for a separate bug: shinymanager
+  # ships its own static styles-auth.css with a hardcoded
+  # `.panel-auth { background-color: #fff; }` rule targeting the
+  # position:fixed, viewport-covering div that wraps the entire login form.
+  # None of the `--bs-*` variable overrides above touch it (it's not
+  # controlled by any Bootstrap variable), so without this the login page's
+  # text correctly re-colors for dark mode while the fixed white panel
+  # behind it does not -- producing light-gray-on-white "washed out" text
+  # (confirmed live via getComputedStyle + querying document.styleSheets for
+  # the exact rule/selector). Irrelevant on the authenticated app (no
+  # `.panel-auth` element exists there), so safe to include unconditionally.
+  "[data-bs-theme=\"dark\"] {
       color-scheme: dark;
-      --bs-body-bg: #0F172A;
-      --bs-body-color: #E2E8F0;
-      --bs-emphasis-color: #E2E8F0;
-      --bs-heading-color: #E2E8F0;
-      --bs-secondary: #64748B;
-      --bs-secondary-rgb: 100, 116, 139;
-      --bs-secondary-color: rgba(226, 232, 240, 0.75);
-      --bs-secondary-color-rgb: 226, 232, 240;
-      --bs-secondary-bg: #1E293B;
-      --bs-tertiary-bg: #1E293B;
-      --bs-border-color: #334155;
-      --bs-link-color: #2DD4BF;
-      --bs-link-hover-color: #5EEAD4;
-      --bs-code-color: #CBD5E1;
-      --bs-code-bg: #1E293B;
+      --bs-body-bg: #0F172A !important;
+      --bs-body-color: #E2E8F0 !important;
+      --bs-emphasis-color: #E2E8F0 !important;
+      --bs-heading-color: #E2E8F0 !important;
+      --bs-secondary: #64748B !important;
+      --bs-secondary-rgb: 100, 116, 139 !important;
+      --bs-secondary-color: rgba(226, 232, 240, 0.75) !important;
+      --bs-secondary-color-rgb: 226, 232, 240 !important;
+      --bs-secondary-bg: #1E293B !important;
+      --bs-tertiary-bg: #1E293B !important;
+      --bs-border-color: #334155 !important;
+      --bs-link-color: #2DD4BF !important;
+      --bs-link-hover-color: #5EEAD4 !important;
+      --bs-code-color: #CBD5E1 !important;
+      --bs-code-bg: #1E293B !important;
+    }
+    [data-bs-theme=\"dark\"] .panel-auth {
+      background-color: #0F172A !important;
     }"
-  )
 }
 
 #' Add external Resources to the Application
