@@ -35,5 +35,6 @@ RUN R -e "install.packages(c( \
     'shiny', 'golem', 'bslib', 'bsicons', 'config', 'DT', 'ggplot2', \
     'scales', 'thematic', 'dplyr', 'tibble', 'tidyr', 'rlang', \
     'jsonlite', 'htmltools', 'pkgload', 'forecast', 'lubridate', 'readr', \
-    'shinymanager', 'DBI', 'RPostgres', 'bcrypt', 'remotes' \
+    'shinymanager', 'DBI', 'RPostgres', 'bcrypt', 'remotes', \
+    'cicerone', 'later' \
   ), repos = 'https://packagemanager.posit.co/cran/__linux__/bookworm/latest')"

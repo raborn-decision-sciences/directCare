@@ -5,6 +5,8 @@ services:
       dockerfile: directCareAnalytics/Dockerfile
     image: directcare/dca:latest
     restart: unless-stopped
+    ports:
+      - "3838:3838"
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -22,6 +24,8 @@ services:
       dockerfile: directCarePlanner/Dockerfile
     image: directcare/planner:latest
     restart: unless-stopped
+    ports:
+      - "3839:3838"
     environment:
       DB_HOST: db
       DB_PORT: 5432
