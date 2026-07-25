@@ -69,6 +69,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
         tags$span(class = "text-light small", email)
       },
       tags$a(
+        href = "#",
+        class = "nav-link action-button",
+        title = "Account Settings",
+        onclick = "Shiny.setInputValue('account_settings_click', Math.random(), {priority: 'event'}); return false;",
+        bs_icon("gear", title = "Account Settings")
+      ),
+      tags$a(
         id = ".shinymanager_logout",
         href = "#",
         class = "nav-link action-button",
@@ -83,6 +90,122 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # reactive never even ran (confirmed via Shiny.shinyapp.$values/$errors:
   # neither a value nor an error was ever recorded for this output).
   outputOptions(output, "account_menu", suspendWhenHidden = FALSE)
+
+  # -- Account Settings modal: profile edit + password change -----------------
+  # res_auth is a plain reactiveValues() (shinymanager's secure_server()
+  # returns one directly, not a read-only snapshot -- confirmed by reading
+  # its source), so writing res_auth$practice_name/address back after a
+  # successful profile save is safe and immediately visible to every other
+  # reader of res_auth in this session, unlike the old in-app Practice Name
+  # field this replaces (see mod_upload.R), which had no write-back at all.
+  account_profile_msg <- reactiveVal(NULL)
+  account_password_msg <- reactiveVal(NULL)
+
+  output$account_profile_msg <- renderUI({
+    req(account_profile_msg())
+    account_profile_msg()
+  })
+  output$account_password_msg <- renderUI({
+    req(account_password_msg())
+    account_password_msg()
+  })
+
+  observeEvent(input$account_settings_click, {
+    req(res_auth)
+    account_profile_msg(NULL)
+    account_password_msg(NULL)
+    showModal(modalDialog(
+      title = tagList(bs_icon("gear"), " Account Settings"),
+      size = "m",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      tags$h6(class = "fw-bold", "Profile"),
+      textInput("account_practice_name", "Practice Name", value = res_auth$practice_name),
+      textInput("account_address", "Address", value = res_auth$address %||% ""),
+      uiOutput("account_profile_msg"),
+      actionButton(
+        "account_save_profile", "Save Profile",
+        class = "btn-primary btn-sm mt-2 mb-3"
+      ),
+      tags$hr(),
+      tags$h6(class = "fw-bold", "Change Password"),
+      passwordInput("account_current_password", "Current Password"),
+      passwordInput("account_new_password", "New Password"),
+      tags$p(class = "text-muted small mt-n2", "At least 10 characters."),
+      passwordInput("account_confirm_password", "Confirm New Password"),
+      uiOutput("account_password_msg"),
+      actionButton(
+        "account_change_password", "Change Password",
+        class = "btn-primary btn-sm mt-2"
+      )
+    ))
+  })
+
+  observeEvent(input$account_save_profile, {
+    practice_name <- trimws(input$account_practice_name %||% "")
+    address <- trimws(input$account_address %||% "")
+
+    if (!nzchar(practice_name)) {
+      account_profile_msg(tags$p(
+        class = "text-danger small mb-0",
+        bs_icon("exclamation-circle"), " Practice Name is required"
+      ))
+      return()
+    }
+
+    con <- directCareAuth::db_connect()
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    directCareAuth::practice_update_profile(con, res_auth$practice_id, practice_name, address)
+    directCareAuth::auth_event_log(
+      con, event_type = "profile_update",
+      practice_id = res_auth$practice_id, email = res_auth$email
+    )
+
+    res_auth$practice_name <- practice_name
+    res_auth$address <- address
+    r$practice_name <- practice_name
+    account_profile_msg(tags$p(
+      class = "text-success small mb-0",
+      bs_icon("check-circle"), " Profile updated"
+    ))
+  })
+
+  observeEvent(input$account_change_password, {
+    new_password <- input$account_new_password %||% ""
+    confirm_password <- input$account_confirm_password %||% ""
+
+    if (new_password != confirm_password) {
+      account_password_msg(tags$p(class = "text-danger small mb-0", "New passwords do not match"))
+      return()
+    }
+
+    con <- directCareAuth::db_connect()
+    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    result <- directCareAuth::practice_update_password(
+      con, res_auth$practice_id, input$account_current_password %||% "", new_password
+    )
+
+    if (isTRUE(result$ok)) {
+      directCareAuth::auth_event_log(
+        con, event_type = "password_change",
+        practice_id = res_auth$practice_id, email = res_auth$email
+      )
+      updateTextInput(session, "account_current_password", value = "")
+      updateTextInput(session, "account_new_password", value = "")
+      updateTextInput(session, "account_confirm_password", value = "")
+      account_password_msg(tags$p(
+        class = "text-success small mb-0",
+        bs_icon("check-circle"), " Password updated"
+      ))
+    } else {
+      msg <- switch(result$reason,
+        wrong_current_password = "Current password is incorrect",
+        weak_password = "New password must be at least 10 characters",
+        "Something went wrong -- please try again"
+      )
+      account_password_msg(tags$p(class = "text-danger small mb-0", msg))
+    }
+  })
 
   # Pinned rather than "auto": auto-detection calls back into
   # shiny::getCurrentOutputInfo() to resolve bg/fg/accent from the
