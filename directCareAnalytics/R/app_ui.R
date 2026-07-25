@@ -210,6 +210,9 @@ golem_add_external_resources <- function() {
       app_title = "Direct Care Analytics | Raborn Decision Sciences"
     ),
     tags$link(rel = "stylesheet", href = "www/custom.css"),
+    # Loads driver.js (cicerone's underlying JS/CSS) for the guided-tour
+    # walkthroughs launched from the help modal -- see R/utils_tours.R.
+    cicerone::use_cicerone(),
     # Hide workflow tabs from the navbar — navigation is via Next/Back buttons.
     # JS runs after DOM construction and is not subject to :has() browser support.
     tags$script(HTML(

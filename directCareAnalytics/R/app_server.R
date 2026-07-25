@@ -261,6 +261,249 @@ app_server <- function(input, output, session, res_auth = NULL) {
     ignoreInit = TRUE
   )
 
+  # -- Guided walkthroughs (cicerone) -------------------------------------------
+  # Three tours (R/utils_tours.R), one per Upload-tab workflow card, launched
+  # from links added to the help modal's workflow cards below. Each tour is
+  # built from several small "chapter" guides rather than one long one --
+  # see R/utils_tours.R's own top-of-file comment for why: cicerone/
+  # driver.js resolves every step's element at `$init()` time and silently
+  # *drops and compacts* any step whose element doesn't exist yet, so a
+  # single long guide's hardcoded step numbers break the moment an earlier
+  # step's element gets removed from the DOM (e.g. the Quick Estimator form
+  # replaced by "Scenario Ready" after Generate is clicked). Scoping each
+  # chapter to one DOM-stable stretch and always starting a fresh chapter at
+  # its own step 1 avoids that entirely.
+  #
+  # `active_tour` tracks which tour (if any) is currently running, so these
+  # observers -- which fire on ordinary app usage, not just during a tour --
+  # only touch a guide when its tour is actually in progress, and route
+  # shared chapters (Projections, reached by both the Historical Data and
+  # Plan My Practice tours) to the right one.
+  #
+  # A `later::later()` delay (not `session$onFlushed()`) gates every chapter
+  # switch: onFlushed only fires once, after the *current* reactive flush
+  # (e.g. the tab switch itself), but a tab's content here is a uiOutput()
+  # that Shiny suspends while hidden -- it only starts evaluating once the
+  # client reports the tab as visible, which lands in a *second*, later
+  # flush. onFlushed(once = TRUE) fired before that second flush completed,
+  # so the next chapter's `$init()` saw a DOM that still didn't have its
+  # target element (confirmed empirically: console logged "Element to
+  # highlight #edit-est_rent not found" immediately after clicking "Start
+  # Planning"). A 3-second delay clears that reliably; shorter delays (0.5s,
+  # 1s, 2s) worked for most transitions but silently failed reaching Projections
+  # specifically (its bslib::layout_sidebar() sidebar takes noticeably
+  # longer to finish its own JS-driven column-width layout pass than Edit's
+  # plain Quick Estimator form does) -- driver.js's own `canHighlight()`
+  # check (bundled driver.min.js) skips highlighting a still-zero-size
+  # element with *no* console warning at all, unlike the "not found"/"Invalid
+  # element" cases, which is what made that specific failure mode hard to
+  # tell apart from a logic bug. A fixed delay is blunter than tracking the
+  # exact flush properly, but is standard practice for this class of Shiny
+  # timing problem, and is imperceptible for a guided-tour transition.
+  active_tour <- reactiveVal(NULL) # NULL | "historical" | "plan" | "calculator"
+  # Tracks whichever chapter guide is currently on-screen, purely so it can
+  # be $reset() right before the next chapter takes over -- each chapter is
+  # a *separate* Cicerone `id` (a separate JS Driver instance under the
+  # hood), and nothing ever tears down the previous instance's overlay/
+  # popover DOM automatically just because a new one starts. Left alone,
+  # the old overlay (sized and positioned for whatever page it was on) can
+  # linger behind the new chapter's, which is exactly the kind of stale
+  # full-page dimming that made the Projections hand-off look broken.
+  current_chapter <- reactiveVal(NULL)
+
+  guide_h1 <- .build_tour_h1()
+  guide_h2 <- .build_tour_h2()
+  guide_h3 <- .build_tour_h3()
+  guide_h4 <- .build_tour_h4()
+  guide_h5 <- .build_tour_h5()
+  guide_p1 <- .build_tour_p1()
+  guide_p2 <- .build_tour_p2()
+  guide_p3 <- .build_tour_p3()
+  guide_c1 <- .build_tour_c1()
+  guide_c2 <- .build_tour_c2()
+  guide_proj1 <- .build_tour_proj1() # shared: Projections, before Run
+  guide_proj2 <- .build_tour_proj2() # shared: Projections, after Run
+
+  # Reset whichever chapter was previously on-screen (if any), then init +
+  # start the new one at its own step 1.
+  .tour_switch <- function(guide) {
+    # isolate() is required here: .tour_switch() is called from inside
+    # later::later() callbacks (via .tour_advance() and the prefill
+    # observers below), which run outside any reactive context -- reading
+    # a reactiveVal there without isolate() throws "Operation not allowed
+    # without an active reactive context" and crashes the whole R session
+    # (confirmed the hard way: the app process died mid-tour with exactly
+    # that error, which is what made the last leg of the Plan My Practice
+    # tour look like a UI/timing bug rather than a crash).
+    prev <- isolate(current_chapter())
+    if (!is.null(prev)) {
+      prev$reset(session)
+    }
+    guide$init(session)
+    guide$start(step = 1, session = session)
+    current_chapter(guide)
+  }
+
+  # Switch to the named tour's next chapter, but only if `tour_name` is the
+  # one currently running, and only after a short delay (see comment above)
+  # so the chapter's elements have actually rendered.
+  .tour_advance <- function(tour_name, guide) {
+    if (!identical(active_tour(), tour_name)) {
+      return(invisible())
+    }
+    later::later(function() {
+      .tour_switch(guide)
+    }, delay = 3)
+  }
+
+  observeEvent(input$launch_tour_historical, {
+    removeModal()
+    active_tour("historical")
+    .tour_switch(guide_h1)
+  })
+  observeEvent(input$launch_tour_plan, {
+    removeModal()
+    active_tour("plan")
+    .tour_switch(guide_p1)
+  })
+  observeEvent(input$launch_tour_calculator, {
+    removeModal()
+    active_tour("calculator")
+    .tour_switch(guide_c1)
+  })
+
+  # -- Historical Data: h1 (Upload cards) -> h2 (upload form) -> h3 (mapping
+  # results) -> h4 (Review & Edit) -> h5 (Summary) -> shared Projections tail.
+  observeEvent(
+    input[["upload-btn_use_real"]],
+    .tour_advance("historical", guide_h2),
+    ignoreInit = TRUE
+  )
+  # Both of h2's steps (csv_file, btn_upload) coexist in the same static
+  # upload form, so this is a plain in-chapter move_forward() -- no re-init
+  # (and no compaction risk) needed between two steps that never stop
+  # existing.
+  observeEvent(
+    input[["upload-csv_file"]],
+    {
+      if (identical(active_tour(), "historical")) {
+        guide_h2$move_forward(session = session)
+      }
+    },
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["upload-btn_upload"]],
+    .tour_advance("historical", guide_h3),
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["upload-btn_next_to_edit"]],
+    .tour_advance("historical", guide_h4),
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["edit-btn_next_to_summary"]],
+    .tour_advance("historical", guide_h5),
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["summary-btn_next_to_projections"]],
+    .tour_advance("historical", guide_proj1),
+    ignoreInit = TRUE
+  )
+
+  # -- Plan My Practice: p1 (Upload cards) -> p2 (Quick Estimator, pre-
+  # filled with demo-derived example values -- see R/utils_tours.R) -> p3
+  # ("Scenario Ready") -> shared Projections tail.
+  #
+  # The pre-fill is folded into the same later::later() delay .tour_advance()
+  # uses elsewhere, so it happens once the form exists and right before the
+  # tour switches to the chapter pointing at it.
+  observeEvent(
+    input[["upload-btn_use_plan"]],
+    {
+      if (identical(active_tour(), "plan")) {
+        later::later(function() {
+          updateNumericInput(session, "edit-est_rent", value = .tour_demo_overhead$rent)
+          updateNumericInput(session, "edit-est_payroll", value = .tour_demo_overhead$payroll)
+          updateNumericInput(session, "edit-est_ehr", value = .tour_demo_overhead$ehr)
+          updateNumericInput(session, "edit-est_malpractice", value = .tour_demo_overhead$malpractice)
+          updateNumericInput(session, "edit-est_supplies", value = .tour_demo_overhead$supplies)
+          updateNumericInput(session, "edit-est_other_overhead", value = .tour_demo_overhead$other)
+          updateTextInput(session, "edit-est_tier_label_1", value = .tour_demo_tier$label)
+          updateNumericInput(session, "edit-est_tier_members_1", value = .tour_demo_tier$members)
+          updateNumericInput(session, "edit-est_tier_fee_1", value = .tour_demo_tier$fee)
+          updateNumericInput(session, "edit-est_tier_growth_1", value = .tour_demo_tier$growth)
+          updateNumericInput(session, "edit-est_new_visit_fee", value = .tour_demo_ffs$new_visit_fee)
+          updateNumericInput(session, "edit-est_new_patients_mo", value = .tour_demo_ffs$new_patients_mo)
+          updateNumericInput(session, "edit-est_followup_fee", value = .tour_demo_ffs$followup_fee)
+          updateNumericInput(session, "edit-est_followups_mo", value = .tour_demo_ffs$followups_mo)
+          updateNumericInput(session, "edit-est_other_income", value = .tour_demo_ffs$other_income)
+          .tour_switch(guide_p2)
+        }, delay = 3)
+      }
+    },
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["edit-btn_generate"]],
+    .tour_advance("plan", guide_p3),
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["edit-btn_go_projections"]],
+    .tour_advance("plan", guide_proj1),
+    ignoreInit = TRUE
+  )
+
+  # -- Quick Calculator: c1 (Upload cards) -> c2 (calculator form,
+  # pre-filled). Same pre-fill pattern as Plan My Practice, one path-
+  # selection away rather than a tab switch; c2 is the tour's only other
+  # chapter since nothing gets removed from the DOM mid-flow here.
+  observeEvent(
+    input[["upload-btn_use_calculator"]],
+    {
+      if (identical(active_tour(), "calculator")) {
+        later::later(function() {
+          updateNumericInput(
+            session,
+            "upload-calculator-monthly_overhead",
+            value = .tour_demo_calc_overhead
+          )
+          updateTextInput(
+            session,
+            "upload-calculator-tier_label_1",
+            value = .tour_demo_tier$label
+          )
+          updateNumericInput(
+            session,
+            "upload-calculator-tier_members_1",
+            value = .tour_demo_tier$members
+          )
+          updateNumericInput(
+            session,
+            "upload-calculator-tier_fee_1",
+            value = .tour_demo_tier$fee
+          )
+          .tour_switch(guide_c2)
+        }, delay = 3)
+      }
+    },
+    ignoreInit = TRUE
+  )
+
+  # -- Shared tail: both Historical Data and Plan My Practice reach
+  # Projections (guide_proj1, wired above) and finish the same way here.
+  observeEvent(
+    input[["projections-btn_run"]],
+    {
+      .tour_advance("historical", guide_proj2)
+      .tour_advance("plan", guide_proj2)
+    },
+    ignoreInit = TRUE
+  )
+
   # -- Help modal ---------------------------------------------------------------
   observeEvent(
     input$help_click,
@@ -319,6 +562,11 @@ app_server <- function(input, output, session, res_auth = NULL) {
                   class = "card-text small mt-2 mb-0 text-muted",
                   bsicons::bs_icon("arrow-right-short"),
                   " Review & Edit \u2192 Summary \u2192 Projections"
+                ),
+                actionButton(
+                  "launch_tour_historical",
+                  tagList(bsicons::bs_icon("compass"), " Take the guided tour"),
+                  class = "btn-outline-primary btn-sm w-100 mt-2"
                 )
               )
             )
@@ -348,6 +596,11 @@ app_server <- function(input, output, session, res_auth = NULL) {
                   class = "card-text small mt-2 mb-0 text-muted",
                   bsicons::bs_icon("arrow-right-short"),
                   " Review Scenario \u2192 Projections"
+                ),
+                actionButton(
+                  "launch_tour_plan",
+                  tagList(bsicons::bs_icon("compass"), " Take the guided tour"),
+                  class = "btn-outline-info btn-sm w-100 mt-2"
                 )
               )
             )
@@ -376,6 +629,11 @@ app_server <- function(input, output, session, res_auth = NULL) {
                   class = "card-text small mt-2 mb-0 text-muted",
                   bsicons::bs_icon("arrow-right-short"),
                   " Results shown immediately, no navigation required"
+                ),
+                actionButton(
+                  "launch_tour_calculator",
+                  tagList(bsicons::bs_icon("compass"), " Take the guided tour"),
+                  class = "btn-outline-secondary btn-sm w-100 mt-2"
                 )
               )
             )

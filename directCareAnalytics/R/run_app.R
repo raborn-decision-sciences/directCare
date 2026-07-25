@@ -21,6 +21,13 @@ run_app <- function(
   # (favicon, logo) otherwise.
   golem::add_resource_path("www", app_sys("app/www"))
 
+  # Serves the bundled demo GnuCash CSV as a plain static download
+  # (demo-data/demo-gnucash.csv) for the Historical Data walkthrough's file-
+  # upload step (see R/utils_tours.R) -- a static resource path, rather than
+  # a downloadHandler, since the tour's step description is a plain HTML
+  # string embedded directly in a cicerone popover, not a renderUI() output.
+  golem::add_resource_path("demo-data", app_sys("extdata"))
+
   # The Username/Password fields and Login button are self-explanatory;
   # shinymanager's default "Please authenticate" heading above them is
   # redundant. set_labels() is shinymanager's own mechanism for overriding
