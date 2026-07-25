@@ -1,5 +1,29 @@
 #  Summary-tab helpers
 
+# Explicit background/text color overrides for the Summary tab's plots,
+# keyed off r$dark_mode. thematic::thematic_shiny() re-configures colors on
+# toggle (see app_server.R), but its re-hook doesn't reliably reach a
+# renderPlot() call made after the initial invocation -- confirmed
+# empirically: the panel/plot background stays white and title/legend text
+# stays theme_{minimal,void}()'s default dark grey/black in dark mode,
+# invisible against the dark card behind it. Colors match the literal
+# values already passed to thematic_shiny()'s bg/fg args, and (verified via
+# computed styles) the actual rendered .card background/text color in each
+# mode, so the plot blends into its card exactly as if thematic had worked.
+.plot_theme_overrides <- function(is_dark) {
+  bg <- if (is_dark) "#0F172A" else "#F8FAFC"
+  fg <- if (is_dark) "#E2E8F0" else "#172033"
+  ggplot2::theme(
+    plot.background = ggplot2::element_rect(fill = bg, colour = NA),
+    panel.background = ggplot2::element_rect(fill = bg, colour = NA),
+    legend.background = ggplot2::element_rect(fill = bg, colour = NA),
+    legend.key = ggplot2::element_rect(fill = bg, colour = NA),
+    text = ggplot2::element_text(colour = fg),
+    axis.text = ggplot2::element_text(colour = fg),
+    plot.title = ggplot2::element_text(colour = fg)
+  )
+}
+
 # Pretty labels for overhead categories and income sources
 .cat_labels <- c(
   rent = "Rent",
@@ -172,14 +196,30 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
                 )
               }
             ),
+            # Split into 3 card_body() sections, not 1: with everything in a
+            # single fillable body, the plot's fixed height = "280px" never
+            # changed in full_screen mode, so expanding the card just added
+            # blank space around a still-tiny plot. min_height (a floor, not
+            # a fixed size) on the plot's own body + height = "100%" lets it
+            # actually grow to fill the much taller full_screen modal, while
+            # fill = FALSE keeps the value boxes and table at their natural
+            # size in both states.
             card_body(
+              fill = FALSE,
               layout_column_wrap(
                 width = "140px",
                 fill = FALSE,
                 uiOutput(ns("ovhd_vboxes"))
-              ),
-              plotOutput(ns("ovhd_plot"), height = "280px"),
-              tags$hr(),
+              )
+            ),
+            card_body(
+              min_height = 280,
+              plotOutput(ns("ovhd_plot"), height = "100%")
+            ),
+            card_body(
+              fill = FALSE,
+              max_height = 320,
+              tags$hr(class = "mt-0"),
               uiOutput(ns("ovhd_table_caption")),
               DT::dataTableOutput(ns("ovhd_table"))
             )
@@ -231,13 +271,21 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
               }
             ),
             card_body(
+              fill = FALSE,
               layout_column_wrap(
                 width = "140px",
                 fill = FALSE,
                 uiOutput(ns("inc_vboxes"))
-              ),
-              plotOutput(ns("inc_plot"), height = "280px"),
-              tags$hr(),
+              )
+            ),
+            card_body(
+              min_height = 280,
+              plotOutput(ns("inc_plot"), height = "100%")
+            ),
+            card_body(
+              fill = FALSE,
+              max_height = 320,
+              tags$hr(class = "mt-0"),
               uiOutput(ns("inc_table_caption")),
               DT::dataTableOutput(ns("inc_table"))
             )
@@ -446,7 +494,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
     })
 
     #  Pie-chart helper: totals-by-group summed across the full range
-    .pie_plot <- function(d, palette, title) {
+    .pie_plot <- function(d, palette, title, is_dark = FALSE) {
       d <- d |>
         dplyr::group_by(label) |>
         dplyr::summarise(total = sum(total, na.rm = TRUE), .groups = "drop") |>
@@ -470,6 +518,14 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           fontface = "bold"
         ) +
         ggplot2::labs(title = title) +
+        # theme_void() blanks the panel/background entirely (by design, for
+        # maps and similar) -- fine on its own, but combined with thematic's
+        # re-hook not reliably reaching a post-initial renderPlot() (see
+        # .plot_theme_overrides() above), the title/legend text it leaves
+        # behind defaulted to ggplot2's built-in dark grey/black, invisible
+        # against the dark card behind the (still-transparent) plot in dark
+        # mode. .plot_theme_overrides() gives it a real, theme-matched
+        # background plus readable text instead of relying on transparency.
         ggplot2::theme_void(base_size = 12) +
         ggplot2::theme(
           legend.position = "bottom",
@@ -478,13 +534,15 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
             face = "bold",
             hjust = 0.5
           )
-        )
+        ) +
+        .plot_theme_overrides(is_dark)
     }
 
     #  Plots
     output$ovhd_plot <- renderPlot({
       r$dark_mode # dependency only -- forces a redraw when the theme toggles
       req(ovhd_overall())
+      is_dark <- identical(r$dark_mode, "dark")
       by_cat <- isTRUE(input$ovhd_by_cat)
       is_pie <- by_cat && identical(input$ovhd_chart_type, "pie")
       has_cat_data <- !is.null(ovhd_by_cat()) && nrow(ovhd_by_cat()) > 0
@@ -509,7 +567,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
             title <- paste0(title, " — ", fmt_period(as.Date(sel)))
           }
         }
-        return(.pie_plot(d, pal, title))
+        return(.pie_plot(d, pal, title, is_dark))
       }
 
       if (by_cat && has_cat_data) {
@@ -561,12 +619,14 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
         ggplot2::theme(
           legend.position = "bottom",
           plot.title = ggplot2::element_text(size = 12, face = "bold")
-        )
+        ) +
+        .plot_theme_overrides(is_dark)
     })
 
     output$inc_plot <- renderPlot({
       r$dark_mode # dependency only -- forces a redraw when the theme toggles
       req(inc_overall())
+      is_dark <- identical(r$dark_mode, "dark")
       by_src <- isTRUE(input$inc_by_src)
       is_pie <- by_src && identical(input$inc_chart_type, "pie")
       has_src_data <- !is.null(inc_by_src()) && nrow(inc_by_src()) > 0
@@ -591,7 +651,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
             title <- paste0(title, " — ", fmt_period(as.Date(sel)))
           }
         }
-        return(.pie_plot(d, pal, title))
+        return(.pie_plot(d, pal, title, is_dark))
       }
 
       if (by_src && has_src_data) {
@@ -643,7 +703,8 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
         ggplot2::theme(
           legend.position = "bottom",
           plot.title = ggplot2::element_text(size = 12, face = "bold")
-        )
+        ) +
+        .plot_theme_overrides(is_dark)
     })
 
     #  Tables
