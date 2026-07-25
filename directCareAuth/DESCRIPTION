@@ -1,0 +1,25 @@
+Package: directCareAuth
+Title: Shared Practice Authentication and Account Management
+Version: 0.0.0.9000
+Authors@R:
+    person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
+Description: Shared database access layer for authenticating and managing
+    practice accounts in the shared Postgres `practices` table used by
+    both directCareAnalytics and directCarePlanner. Provides connection
+    handling, credential lookup, signup, password change, profile edit,
+    login-attempt lockout, and a lightweight security-event audit log.
+    Consumers pass an already-open DBI connection to every function
+    except db_connect() itself.
+License: Apache License (>= 2) | file LICENSE
+Imports:
+    bcrypt,
+    DBI,
+    RPostgres
+Suggests:
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+URL: https://raborn-decision-sciences.github.io/directCareAuth/
