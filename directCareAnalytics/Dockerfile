@@ -1,5 +1,9 @@
 FROM directcare-base:latest
 
+COPY directCareAuth /tmp/directCareAuth
+RUN R -e "install.packages('/tmp/directCareAuth', repos = NULL, type = 'source')" \
+    && rm -rf /tmp/directCareAuth
+
 COPY directCareForecastR /tmp/directCareForecastR
 RUN R -e "install.packages('/tmp/directCareForecastR', repos = NULL, type = 'source')" \
     && rm -rf /tmp/directCareForecastR
