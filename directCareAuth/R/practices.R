@@ -1,3 +1,39 @@
+#' Default signup rate-limit parameters
+#'
+#' 5 attempts / 60 minutes -- a reasonable default, not derived from
+#' measured abuse. Revisit if real usage suggests otherwise.
+#' @noRd
+DEFAULT_SIGNUP_MAX_REQUESTS <- 5L
+#' @noRd
+DEFAULT_SIGNUP_WINDOW_MINUTES <- 60L
+
+#' Check whether an email has attempted too many signups recently
+#'
+#' Same pattern as [password_reset_is_rate_limited()] -- counts recent
+#' `"signup_attempt"` `auth_events` rows for the email. Checked (and
+#' logged) regardless of whether the signup itself succeeds, so this
+#' guards against automated account-enumeration/spam via the signup
+#' form's `email_taken` response, not just repeated real signups.
+#'
+#' @param con An open `DBI` connection.
+#' @param email The email to check.
+#' @param max_requests Attempt threshold. Defaults to 5.
+#' @param window_minutes Lookback window, in minutes. Defaults to 60.
+#' @return `TRUE` if rate-limited, `FALSE` otherwise.
+#' @export
+signup_is_rate_limited <- function(con, email,
+                                    max_requests = DEFAULT_SIGNUP_MAX_REQUESTS,
+                                    window_minutes = DEFAULT_SIGNUP_WINDOW_MINUTES) {
+  result <- DBI::dbGetQuery(
+    con,
+    "SELECT count(*) AS n FROM auth_events
+       WHERE email = $1 AND event_type = 'signup_attempt'
+         AND created_at > now() - make_interval(mins => $2)",
+    params = list(email, as.integer(window_minutes))
+  )
+  isTRUE(result$n[[1]] >= max_requests)
+}
+
 #' Minimum viable password-strength check
 #'
 #' Deliberately simple: a length floor is the cheapest check that rules out

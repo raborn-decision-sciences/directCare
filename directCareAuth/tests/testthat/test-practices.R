@@ -1,6 +1,40 @@
 # Unit tests for R/practices.R. All DB calls are mocked -- these never
 # touch a real Postgres instance.
 
+test_that("signup_is_rate_limited is FALSE below the attempt threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 4L),
+    .package = "DBI"
+  )
+
+  expect_false(signup_is_rate_limited("mock_con", "doc@example.com"))
+})
+
+test_that("signup_is_rate_limited is TRUE at or above the attempt threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 5L),
+    .package = "DBI"
+  )
+
+  expect_true(signup_is_rate_limited("mock_con", "doc@example.com"))
+})
+
+test_that("signup_is_rate_limited queries by email and the configured window", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(n = 0L)
+    },
+    .package = "DBI"
+  )
+
+  signup_is_rate_limited("mock_con", "doc@example.com", max_requests = 3, window_minutes = 30)
+
+  expect_match(captured$statement, "event_type = 'signup_attempt'")
+  expect_equal(captured$params, list("doc@example.com", 30L))
+})
+
 test_that("practice_find_by_email issues the expected query", {
   captured <- NULL
   local_mocked_bindings(

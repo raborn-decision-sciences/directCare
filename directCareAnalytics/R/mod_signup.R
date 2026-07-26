@@ -87,6 +87,21 @@ mod_signup_server <- function(id) {
 
       con <- directCareAuth::db_connect()
       on.exit(DBI::dbDisconnect(con), add = TRUE)
+
+      # Logged unconditionally, before the rate-limit check, so repeated
+      # attempts against the same email count toward the limit regardless
+      # of whether they ultimately succeed (matches mod_password_reset.R's
+      # signup_attempt/password_reset_requested logging convention).
+      directCareAuth::auth_event_log(con, event_type = "signup_attempt", email = email)
+
+      if (directCareAuth::signup_is_rate_limited(con, email)) {
+        signup_msg(tags$p(
+          class = "text-danger small mb-0",
+          "Too many signup attempts. Please try again later."
+        ))
+        return()
+      }
+
       result <- directCareAuth::practice_create(con, practice_name, email, password)
 
       if (isTRUE(result$ok)) {
