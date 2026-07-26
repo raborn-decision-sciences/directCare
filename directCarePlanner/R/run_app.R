@@ -60,6 +60,10 @@ run_app <- function(
       style = "text-align:center;margin-top:16px;",
       tags$a(href = "?signup=1", class = "small", "Don't have an account? Sign up"),
       tags$div(
+        style = "margin-top:4px;",
+        tags$a(href = "?reset=1", class = "small", "Forgot password?")
+      ),
+      tags$div(
         style = "opacity:0.6;margin-top:16px;",
         tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
       )
@@ -78,21 +82,26 @@ run_app <- function(
         query <- parseQueryString(request$QUERY_STRING)
         if (isTRUE(query$signup == "1")) {
           signup_ui(request)
+        } else if (isTRUE(query$reset == "1")) {
+          password_reset_ui(request)
         } else {
           secured_ui(request)
         }
       },
-      # No signup-mode branch needed here: secure_server()'s observers stay
-      # dormant for a signup session (its login-form inputs never exist
-      # client-side, since the UI above skipped rendering them), and
-      # mod_signup_server()'s own observers are likewise dormant outside a
-      # signup session (its inputs only exist in the DOM when signup_ui()
-      # was the chosen UI) -- so it's safe to always wire both up the same
-      # way, matching directCareAnalytics's demo-mode precedent.
+      # No signup-mode/reset-mode branch needed here: secure_server()'s
+      # observers stay dormant for a signup or reset session (its
+      # login-form inputs never exist client-side, since the UI above
+      # skipped rendering them), and mod_signup_server()'s/
+      # mod_password_reset_server()'s own observers are likewise dormant
+      # outside their respective sessions (their inputs only exist in the
+      # DOM when their own UI was the chosen one) -- so it's safe to
+      # always wire all three up the same way, matching
+      # directCareAnalytics's demo-mode precedent.
       server = function(input, output, session) {
         res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
         app_server(input, output, session, res_auth = res_auth)
         mod_signup_server("signup")
+        mod_password_reset_server("reset")
       },
       onStart = onStart,
       options = options,

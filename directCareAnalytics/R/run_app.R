@@ -74,6 +74,10 @@ run_app <- function(
         tags$a(href = "?signup=1", class = "small", "Don't have an account? Sign up")
       ),
       tags$div(
+        style = "margin-top:4px;",
+        tags$a(href = "?reset=1", class = "small", "Forgot password?")
+      ),
+      tags$div(
         style = "opacity:0.6;margin-top:16px;",
         tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
       )
@@ -93,24 +97,29 @@ run_app <- function(
           app_ui(request)
         } else if (isTRUE(query$signup == "1")) {
           signup_ui(request)
+        } else if (isTRUE(query$reset == "1")) {
+          password_reset_ui(request)
         } else {
           secured_ui(request)
         }
       },
-      # No demo-mode/signup-mode branch needed here: secure_server()'s
-      # observers stay dormant for a demo or signup session (its login-form
-      # inputs never exist client-side, since the UI above skipped
-      # rendering them), so it's safe to always wire it up the same way.
-      # mod_signup_server()'s own observers are likewise dormant outside a
-      # signup session, for the same reason (its inputs only exist in the
-      # DOM when signup_ui() was the chosen UI). app_server() detects demo
-      # mode itself, server-side, from session$clientData$url_search --
-      # session$request's QUERY_STRING reflects the websocket upgrade
-      # request, not the original page URL, so it can't be read here.
+      # No demo-mode/signup-mode/reset-mode branch needed here:
+      # secure_server()'s observers stay dormant for a demo, signup, or
+      # reset session (its login-form inputs never exist client-side,
+      # since the UI above skipped rendering them), so it's safe to always
+      # wire it up the same way. mod_signup_server()'s and
+      # mod_password_reset_server()'s own observers are likewise dormant
+      # outside their respective sessions, for the same reason (their
+      # inputs only exist in the DOM when their own UI was the chosen one).
+      # app_server() detects demo mode itself, server-side, from
+      # session$clientData$url_search -- session$request's QUERY_STRING
+      # reflects the websocket upgrade request, not the original page URL,
+      # so it can't be read here.
       server = function(input, output, session) {
         res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
         app_server(input, output, session, res_auth = res_auth)
         mod_signup_server("signup")
+        mod_password_reset_server("reset")
       },
       onStart = onStart,
       options = options,
