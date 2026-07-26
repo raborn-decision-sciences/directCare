@@ -5,8 +5,12 @@ services:
       dockerfile: directCareAnalytics/Dockerfile
     image: directcare/dca:latest
     restart: unless-stopped
-    ports:
-      - "3838:3838"
+    # No `ports:` here deliberately -- Caddy is the only intended entry
+    # point (it reaches this service over the internal Compose network at
+    # dca:3838, per the Caddyfile), so traffic gets TLS/HSTS. Publishing
+    # this directly to the host would let it be reached over plain HTTP,
+    # bypassing Caddy entirely. For local/CI testing without Caddy, layer
+    # docker-compose.ci.yml on top instead of adding ports here.
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -28,8 +32,7 @@ services:
       dockerfile: directCarePlanner/Dockerfile
     image: directcare/planner:latest
     restart: unless-stopped
-    ports:
-      - "3839:3838"
+    # Same reasoning as dca's `ports:` omission above.
     environment:
       DB_HOST: db
       DB_PORT: 5432
