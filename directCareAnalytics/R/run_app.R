@@ -14,6 +14,13 @@ run_app <- function(
   uiPattern = "/",
   ...
 ) {
+  # Sanitizes uncaught R error messages shown in the browser (raw file
+  # paths, package internals, query fragments) whenever GOLEM_CONFIG_ACTIVE
+  # /R_CONFIG_ACTIVE is "production" (see inst/golem-config.yml and
+  # docker-compose.yml, which sets this env var). Left off outside
+  # production so local development still sees real error messages.
+  options(shiny.sanitize.errors = get_golem_config("app_prod"))
+
   # Resource path must be registered before secure_app() wraps the UI --
   # golem_add_external_resources() (which normally does this) only runs
   # inside app_ui(), which shinymanager doesn't call until after a

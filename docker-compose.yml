@@ -12,6 +12,7 @@ services:
     # bypassing Caddy entirely. For local/CI testing without Caddy, layer
     # docker-compose.ci.yml on top instead of adding ports here.
     environment:
+      GOLEM_CONFIG_ACTIVE: production
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: directcare
@@ -34,6 +35,7 @@ services:
     restart: unless-stopped
     # Same reasoning as dca's `ports:` omission above.
     environment:
+      GOLEM_CONFIG_ACTIVE: production
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: directcare

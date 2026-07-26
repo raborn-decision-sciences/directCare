@@ -7,7 +7,13 @@ services:
   dca:
     ports:
       - "3838:3838"
+    # Override the base file's GOLEM_CONFIG_ACTIVE=production so CI/local
+    # runs show real R error messages instead of shiny's sanitized ones.
+    environment:
+      GOLEM_CONFIG_ACTIVE: default
 
   planner:
     ports:
       - "3939:3838"
+    environment:
+      GOLEM_CONFIG_ACTIVE: default
