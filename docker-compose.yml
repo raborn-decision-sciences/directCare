@@ -13,8 +13,12 @@ services:
       DB_NAME: directcare
       DB_USER: directcare
       DB_PASSWORD_FILE: /run/secrets/db_password
+      ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
+      FROM_EMAIL: noreply@directcareanalytics.com
+      APP_BASE_URL: https://app.directcareanalytics.com
     secrets:
       - db_password
+      - zeptomail_token
     depends_on:
       - db
 
@@ -32,8 +36,12 @@ services:
       DB_NAME: directcare
       DB_USER: directcare
       DB_PASSWORD_FILE: /run/secrets/db_password
+      ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
+      FROM_EMAIL: noreply@directcareanalytics.com
+      APP_BASE_URL: https://planner.directcareanalytics.com
     secrets:
       - db_password
+      - zeptomail_token
     depends_on:
       - db
 
@@ -67,3 +75,5 @@ volumes:
 secrets:
   db_password:
     file: ./secrets/db_password.txt
+  zeptomail_token:
+    file: ./secrets/zeptomail_token.txt

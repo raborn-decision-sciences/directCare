@@ -68,10 +68,14 @@ jobs:
       - name: Build app images
         run: docker compose build
 
-      - name: Generate ephemeral CI-only db password
+      - name: Generate ephemeral CI-only secrets
         run: |
           mkdir -p secrets
           openssl rand -base64 32 > secrets/db_password.txt
+          # Placeholder only -- CI never exercises the actual ZeptoMail send
+          # path (no email-sending E2E test), this just lets the containers
+          # boot without a missing-secret-file error.
+          echo "ci-placeholder-not-a-real-token" > secrets/zeptomail_token.txt
 
       - name: Start db, dca, planner (no caddy in CI)
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner
