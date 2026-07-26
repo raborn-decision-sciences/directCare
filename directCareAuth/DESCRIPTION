@@ -14,6 +14,8 @@ License: Apache License (>= 2) | file LICENSE
 Imports:
     bcrypt,
     DBI,
+    httr2,
+    openssl,
     RPostgres
 Suggests:
     testthat (>= 3.0.0),
