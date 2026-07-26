@@ -38,3 +38,10 @@ RUN R -e "install.packages(c( \
     'shinymanager', 'DBI', 'RPostgres', 'bcrypt', 'remotes', \
     'cicerone', 'later', 'httr2', 'openssl' \
   ), repos = 'https://packagemanager.posit.co/cran/__linux__/bookworm/latest')"
+
+# Non-root user for running the app (created here, switched to at the end of
+# each app's own Dockerfile, after all root-owned package installs). Package
+# installs and app source stay root-owned/read-only at runtime -- both apps
+# only ever write to R's tempdir() (world-writable /tmp), never to /app --
+# so a non-root process needs no extra chown to run correctly.
+RUN useradd --create-home --shell /bin/bash appuser

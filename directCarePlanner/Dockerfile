@@ -16,5 +16,7 @@ COPY directCarePlanner /app
 WORKDIR /app
 RUN R -e "install.packages('.', repos = NULL, type = 'source')"
 
+USER appuser
+
 EXPOSE 3838
 CMD ["R", "-e", "options('shiny.port'=3838,'shiny.host'='0.0.0.0'); directCarePlanner::run_app()"]
