@@ -5,7 +5,6 @@ test_that("monthly CSV upload produces validation badges", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_monthly())
 
@@ -20,7 +19,6 @@ test_that("monthly CSV upload populates the account mapping table", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_monthly())
 
@@ -34,7 +32,6 @@ test_that("weekly CSV upload produces validation badges", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_weekly())
 
@@ -47,7 +44,6 @@ test_that("Summary tab shows overhead data after monthly upload", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_monthly())
 
@@ -63,7 +59,6 @@ test_that("Summary tab shows 'No income data' placeholder when upload has no inc
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_expenses_only())
 
@@ -79,7 +74,6 @@ test_that("Projections tab renders break-even card after monthly upload", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   upload_csv(app, demo_csv_monthly())
 

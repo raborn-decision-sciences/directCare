@@ -16,19 +16,6 @@ launch_app <- function(width = 1400, height = 900, timeout = 15000) {
   )
 }
 
-# Fill the practice details inputs (Step 1) and wait for reactives to settle.
-fill_practice_details <- function(
-  app,
-  name = "Smoke Test Practice",
-  id = "smoke-test"
-) {
-  app$set_inputs(
-    `upload-practice_name` = name,
-    `upload-practice_id` = id
-  )
-  app$wait_for_idle()
-}
-
 # Choose the "Upload Bookkeeping Data" path and wait.
 choose_upload_path <- function(app) {
   app$click(selector = "#upload-btn_use_real")

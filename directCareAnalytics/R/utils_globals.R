@@ -43,6 +43,16 @@ NULL
   )
 }
 
+# Lower-cased, dash-separated slug. Used for the PDF report filename
+# (mod_projections.R) -- relocated here from mod_upload.R when the manual
+# Practice ID field (which this used to auto-derive) was removed in favor
+# of sourcing practice identity from res_auth.
+.slugify <- function(x) {
+  x <- tolower(trimws(x %||% ""))
+  x <- gsub("[^a-z0-9]+", "-", x)
+  gsub("^-+|-+$", "", x)
+}
+
 # App-wide dollar formatter — always two decimal places.
 fmt_dollar <- function(x, ...) scales::dollar(x, accuracy = 0.01, ...)
 fmt_dollar_format <- function(...) scales::dollar_format(accuracy = 0.01, ...)

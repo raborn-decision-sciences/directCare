@@ -1560,7 +1560,10 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     # -- Comprehensive PDF report handler -------------------------------------
     output$dl_report <- downloadHandler(
       filename = function() {
-        safe_name <- gsub("[^A-Za-z0-9_-]", "-", r$practice_id %||% "practice")
+        # Slugified practice_name, not practice_id -- practice_id is now
+        # just the DB's raw serial id (see app_server.R), which would make
+        # an ugly filename ("dpc-report-3-...") rather than a friendly one.
+        safe_name <- .slugify(r$practice_name %||% "practice")
         paste0(
           "dpc-report-",
           safe_name,

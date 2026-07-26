@@ -8,22 +8,10 @@ test_that("app loads with Upload tab active", {
   expect_equal(app$get_value(input = "main_nav"), "upload")
 })
 
-test_that("path choice is hidden until practice details are filled", {
+test_that("path choice cards appear on the Upload tab", {
   skip_on_cran()
   app <- launch_app()
   on.exit(app$stop())
-
-  # With empty fields, main_content should show the prompt, not choice cards
-  html <- app$get_html("#upload-main_content")
-  expect_false(grepl("btn_use_real", html))
-})
-
-test_that("path choice cards appear after filling practice details", {
-  skip_on_cran()
-  app <- launch_app()
-  on.exit(app$stop())
-
-  fill_practice_details(app)
 
   html <- app$get_html("#upload-main_content")
   expect_true(grepl("btn_use_real", html))
@@ -35,7 +23,6 @@ test_that("'Plan My Practice' navigates to the Edit tab", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_plan_path(app)
 
   expect_equal(app$get_value(input = "main_nav"), "edit")
@@ -46,7 +33,6 @@ test_that("'Upload Bookkeeping Data' reveals the upload controls", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
 
   html <- app$get_html("#upload-main_content")
@@ -59,7 +45,6 @@ test_that("Back button returns to path selection", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   app$click(selector = "#upload-btn_back")
   app$wait_for_idle()
@@ -73,7 +58,6 @@ test_that("'Enter Data Manually' navigates to the Edit tab", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_upload_path(app)
   app$click(selector = "#upload-btn_manual_entry")
   app$wait_for_idle()

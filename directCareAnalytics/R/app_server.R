@@ -30,11 +30,11 @@ app_server <- function(input, output, session, res_auth = NULL) {
   })
 
   # -- Account menu: login email + logout, top-right of the navbar ----------
-  # Shows the login email rather than practice_name: practice_name is
-  # editable in-app (the Practice Name field on the Upload tab) but
-  # res_auth is captured once at login and never re-syncs with that edit,
-  # so displaying it here would go stale. Revisit once there's a proper
-  # account/profile page reading live from the practices table.
+  # Shows the login email rather than practice_name -- just a display
+  # preference (email is the unambiguous login identifier); practice_name
+  # itself is fully live now (sourced from res_auth below, and kept in sync
+  # by the Account Settings modal's write-back), not stale in the way it
+  # would have been back when it was a separately-typed in-app field.
   #
   # id = ".shinymanager_logout" is not a namespacing choice -- it's the
   # exact input id shinymanager::secure_server() listens for internally
@@ -254,8 +254,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # Tab 2 may modify categories or append manual rows; Tab 3 consumes the
   # final result for forecasting and report generation.
   r <- reactiveValues(
-    # Practice metadata
-    practice_id = NULL, # character \u2014 future: sourced from auth session
+    # Practice metadata -- both sourced from res_auth below, not user input
+    practice_id = NULL, # character(DB serial id) \u2014 internal row-tagging value only, never shown/edited
     practice_name = NULL, # character \u2014 display label for reports
     panel_size = NULL, # numeric \u2014 current DPC panel size (members)
     membership_fee = NULL, # numeric \u2014 weighted avg monthly membership fee per member ($)
@@ -289,16 +289,35 @@ app_server <- function(input, output, session, res_auth = NULL) {
     dark_mode = "light"
   )
 
+  # -- Source practice identity from the logged-in account ---------------------
+  # Single source of truth, replacing the old in-app Practice Name/ID
+  # re-entry card (mod_upload.R) -- no persisted user-facing "ID" survives;
+  # r$practice_id is now just the DB's own serial practices.id, used
+  # internally to tag ingested rows (see mod_upload.R's ingest_*() calls),
+  # never shown or editable. An observe() (not a one-time assignment) is
+  # required here, not optional: res_auth's fields don't exist yet at the
+  # moment app_server() starts running -- shinymanager populates them
+  # asynchronously, once its own internal token check resolves after
+  # login -- so this needs a reactive dependency on res_auth$practice_name/
+  # practice_id to correctly re-fire once they actually appear. Demo
+  # sessions never populate res_auth (no real login occurs), so this
+  # observer harmlessly no-ops for them and .load_demo_data() below is the
+  # only thing that ever sets r$practice_name/practice_id in that case.
+  observe({
+    req(res_auth)
+    r$practice_name <- res_auth$practice_name
+    r$practice_id <- if (is.null(res_auth$practice_id)) {
+      NULL
+    } else {
+      as.character(res_auth$practice_id)
+    }
+  })
+
   # Fires once, only for demo sessions. Populates `r` the same way a real
   # GnuCash CSV upload would (.load_demo_data(), utils_demo.R), then lands
   # on the Edit tab, matching mod_upload.R's own post-upload destination --
   # so a demo session looks exactly like "I just uploaded a CSV," not a
-  # special-cased shortcut. Practice Name/ID are also pushed into the
-  # Upload tab's own inputs (not just `r`) so that, if a demo user later
-  # clicks Start Over, the preserved identity is visible there too, not
-  # just held silently in `r` -- Start Over's modal promises "your practice
-  # name and ID will be kept," and leaving the Upload tab's own inputs
-  # blank would make that promise look broken.
+  # special-cased shortcut.
   #
   # Deliberately not ignoreInit = TRUE: the observe() above (which sets
   # demo_mode(TRUE)) runs in the same initial flush as this observer's own
@@ -314,14 +333,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
   observeEvent(demo_mode(), {
     req(demo_mode())
     .load_demo_data(r)
-    # onFlushed's callback runs outside any reactive context -- reading `r`
-    # (reactiveValues) inside it needs isolate(), same as reading a
-    # reactive value from a plain callback anywhere else.
-    practice_name <- isolate(r$practice_name)
-    practice_id <- isolate(r$practice_id)
     session$onFlushed(function() {
-      updateTextInput(session, "upload-practice_name", value = practice_name)
-      updateTextInput(session, "upload-practice_id", value = practice_id)
       updateNavbarPage(session, "main_nav", selected = "edit")
     }, once = TRUE)
   })
@@ -345,7 +357,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
           "This will clear all loaded data and return you to the workflow selection screen."
         ),
         p(
-          tags$strong("Your practice name and ID will be kept,"),
+          tags$strong("Your practice name will be kept,"),
           " but all uploaded or generated financial data will be removed."
         ),
         footer = tagList(

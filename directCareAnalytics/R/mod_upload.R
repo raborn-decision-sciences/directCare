@@ -1,34 +1,8 @@
-# Add the `readonly` HTML attribute to a textInput()'s underlying <input>
-# element. Unlike `disabled`, a readonly field's value is still submitted
-# via Shiny's JS binding, so the auto-generated Practice ID keeps updating
-# and syncing to the server while the user can't type into it directly.
-.readonly_input <- function(input_tag) {
-  input_tag$children[[2]]$attribs$readonly <- "readonly"
-  input_tag
-}
-
-# Add `autocomplete="off"` to a textInput()'s underlying <input> element.
-# Without this, browsers bleed the just-typed shinymanager login email into
-# the first plain text field on the page after auth -- no server-side code
-# ties Practice Name to session/auth data, so this is browser-level
-# autofill, not an app bug.
-.no_autocomplete_input <- function(input_tag) {
-  input_tag$children[[2]]$attribs$autocomplete <- "off"
-  input_tag
-}
-
-# Lower-cased, dash-separated slug derived from the Practice Name, used as
-# the default (and only, for now) Practice ID.
-.slugify <- function(x) {
-  x <- tolower(trimws(x %||% ""))
-  x <- gsub("[^a-z0-9]+", "-", x)
-  gsub("^-+|-+$", "", x)
-}
-
 #' Upload Module UI
 #'
-#' Tab 1 -- Two-step onboarding: practice identity, then path choice
-#' (upload real bookkeeping data or open the practice planning estimator).
+#' Tab 1 -- Path choice (upload real bookkeeping data or open the practice
+#' planning estimator). Practice identity is sourced from the logged-in
+#' account (see app_server.R) rather than re-entered here.
 #'
 #' @param id Module namespace ID.
 #' @noRd
@@ -36,43 +10,11 @@ mod_upload_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
-    # -- Step 1: Practice identity (always visible) -------------------------
-    card(
-      card_header(bs_icon("building"), " Practice Details"),
-      card_body(
-        layout_columns(
-          col_widths = c(6, 6),
-          .no_autocomplete_input(textInput(
-            ns("practice_name"),
-            label = tagList(
-              tags$span(class = "text-danger", "*"),
-              " Practice Name"
-            ),
-            placeholder = "e.g. Riverside Direct Care"
-          )),
-          .readonly_input(textInput(
-            ns("practice_id"),
-            label = tagList(
-              tags$span(class = "text-danger", "*"),
-              " Practice ID",
-              tooltip(
-                bs_icon("info-circle", title = "About Practice ID"),
-                paste0(
-                  "An example unique identifier for this practice, ",
-                  "generated automatically from the Practice Name. ",
-                  "This will be used to link your practice to your ",
-                  "account in a future release."
-                )
-              )
-            ),
-            placeholder = "e.g. riverside-dpc"
-          ))
-        ),
-        uiOutput(ns("upload_validation_msg"))
-      )
-    ),
+    # Plain, non-editable label -- practice_name is authoritative from
+    # res_auth now (set once in app_server.R), not a field on this page.
+    uiOutput(ns("practice_name_display")),
 
-    # -- Step 2: Path choice or upload flow (dynamic) -----------------------
+    # -- Path choice or upload flow (dynamic) --------------------------------
     uiOutput(ns("main_content")),
 
     # -- Next button (shown once data is loaded via the upload path) ----------
@@ -121,58 +63,19 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
       ignoreInit = TRUE
     )
 
-    # -- Auto-derive Practice ID from Practice Name -------------------------
-    # The field is readonly (see .readonly_input()), so this is the only way
-    # its value ever changes. Debounced so the ID (and details_ok(), which
-    # auto-advances the page) doesn't update after every keystroke.
-    practice_name_debounced <- reactive(input$practice_name) |>
-      debounce(1500)
-
-    observeEvent(practice_name_debounced(), {
-      updateTextInput(
-        session,
-        "practice_id",
-        value = .slugify(practice_name_debounced())
-      )
-    })
-
-    # -- Required-field validation ------------------------------------------
-    details_ok <- reactive({
-      name_ok <- nzchar(trimws(input$practice_name %||% ""))
-      id_ok <- nzchar(trimws(input$practice_id %||% ""))
-      name_ok && id_ok
-    })
-
-    output$upload_validation_msg <- renderUI({
-      if (details_ok()) {
-        return(NULL)
-      }
-      missing <- c(
-        if (!nzchar(trimws(input$practice_name %||% ""))) "Practice Name",
-        if (!nzchar(trimws(input$practice_id %||% ""))) "Practice ID"
-      )
+    # Plain, non-editable display of the account's practice name -- see
+    # mod_upload_ui()'s own comment for why this replaced the old in-app
+    # Practice Name/ID re-entry card.
+    output$practice_name_display <- renderUI({
+      req(r$practice_name)
       tags$p(
-        class = "text-danger small mb-0 mt-1",
-        bs_icon("exclamation-circle"),
-        paste("Required:", paste(missing, collapse = " and "))
+        class = "text-muted mb-3",
+        bs_icon("building"), " ", r$practice_name
       )
     })
 
     # -- Main content area --------------------------------------------------
     output$main_content <- renderUI({
-      if (!details_ok()) {
-        return(
-          div(
-            class = "text-center text-muted py-5",
-            bs_icon("arrow-up-circle", size = "2rem"),
-            tags$p(
-              class = "mt-2 mb-0",
-              "Enter your Practice Name and Practice ID above to continue."
-            )
-          )
-        )
-      }
-
       path <- path_chosen()
 
       if (is.null(path)) {
@@ -408,14 +311,8 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     })
 
     # -- Helpers ------------------------------------------------------------
-    commit_practice_identity <- function() {
-      r$practice_id <- trimws(input$practice_id)
-      r$practice_name <- trimws(input$practice_name)
-    }
-
     # Initialise the empty transaction tibble and navigate to the Edit tab.
     go_to_manual_entry <- function() {
-      commit_practice_identity()
       r$transactions <- tibble::tibble(
         practice_id = character(0),
         date = as.Date(character(0)),
@@ -468,7 +365,6 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     # Initialise empty transaction tibble for generic CSV paths (no row-level
     # transaction data -- edit tab shows the "no transactions" card instead).
     init_generic_state <- function() {
-      commit_practice_identity()
       if (is.null(r$transactions)) {
         r$transactions <- tibble::tibble(
           practice_id = character(0),
@@ -488,7 +384,6 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
 
     # -- Path selection handlers --------------------------------------------
     observeEvent(input$btn_use_real, {
-      commit_practice_identity()
       path_chosen("upload")
     })
 
@@ -497,7 +392,6 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     })
 
     observeEvent(input$btn_use_calculator, {
-      commit_practice_identity()
       path_chosen("calculator")
     })
 

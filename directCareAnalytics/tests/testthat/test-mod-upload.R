@@ -23,11 +23,14 @@ make_file_input <- function(path) {
   list(datapath = path, name = basename(path))
 }
 
-# Shared empty-r factory
+# Shared empty-r factory. practice_id/practice_name are pre-seeded (not NULL)
+# since app_server.R -- not this module -- is what sources them from
+# res_auth now; this module only *reads* them (e.g. tagging ingested rows
+# with practice_id).
 empty_r <- function() {
   shiny::reactiveValues(
-    practice_id = NULL,
-    practice_name = NULL,
+    practice_id = "test-practice",
+    practice_name = "Test Practice",
     panel_size = NULL,
     membership_fee = NULL,
     transactions = NULL,
@@ -39,52 +42,10 @@ empty_r <- function() {
   )
 }
 
-test_that("details_ok is FALSE when inputs are empty", {
+test_that("btn_use_real sets path_chosen to 'upload'", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "", practice_id = "")
-    expect_false(details_ok())
-  })
-})
-
-test_that("details_ok is FALSE when only one field is filled", {
-  r <- empty_r()
-  testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "")
-    expect_false(details_ok())
-
-    session$setInputs(practice_name = "", practice_id = "river-dpc")
-    expect_false(details_ok())
-  })
-})
-
-test_that("details_ok is TRUE when both fields are filled", {
-  r <- empty_r()
-  testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
-    expect_true(details_ok())
-  })
-})
-
-test_that("details_ok trims whitespace before checking", {
-  r <- empty_r()
-  testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "   ", practice_id = "   ")
-    expect_false(details_ok())
-  })
-})
-
-test_that("btn_use_real stores practice identity and sets path to 'upload'", {
-  r <- empty_r()
-  testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(
-      practice_name = "  River DPC  ",
-      practice_id = "  river-dpc  "
-    )
     session$setInputs(btn_use_real = 1)
-
-    expect_equal(r$practice_id, "river-dpc")
-    expect_equal(r$practice_name, "River DPC")
     expect_equal(path_chosen(), "upload")
   })
 })
@@ -92,7 +53,6 @@ test_that("btn_use_real stores practice identity and sets path to 'upload'", {
 test_that("btn_back resets path_chosen to NULL", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     expect_equal(path_chosen(), "upload")
 
@@ -104,7 +64,6 @@ test_that("btn_back resets path_chosen to NULL", {
 test_that("go_to_manual_entry initialises all r slots with 0-row tibbles", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_plan = 1)
 
     expect_s3_class(r$transactions, "data.frame")
@@ -120,7 +79,6 @@ test_that("go_to_manual_entry initialises all r slots with 0-row tibbles", {
 test_that("go_to_manual_entry tibbles have correct column names", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_plan = 1)
 
     expect_true(all(
@@ -148,7 +106,7 @@ test_that("go_to_manual_entry tibbles have correct column names", {
 test_that("btn_manual_entry shows the entry form without immediately modifying r", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "A", practice_id = "a", btn_use_real = 1)
+    session$setInputs(btn_use_real = 1)
     session$setInputs(btn_manual_entry = 1)
     # r$transactions remains NULL until the user submits the manual entry form
     expect_null(r$transactions)
@@ -216,7 +174,6 @@ test_that("r$reset_signal clears path_chosen and loaded flags", {
   r <- empty_r()
   r$reset_signal <- 0L
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
 
     r$reset_signal <- r$reset_signal + 1L
@@ -235,7 +192,6 @@ test_that("r$reset_signal clears path_chosen and loaded flags", {
 test_that("btn_upload with software=other populates r from a combined CSV", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -261,7 +217,6 @@ test_that("btn_upload with software=other populates r from a combined CSV", {
 test_that("btn_upload with software=other initialises a 0-row transactions tibble", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -280,31 +235,6 @@ test_that("btn_upload with software=other initialises a 0-row transactions tibbl
   })
 })
 
-test_that("btn_upload stores practice identity before processing", {
-  r <- empty_r()
-  testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(
-      practice_name = "  River DPC  ",
-      practice_id = "  river-dpc  "
-    )
-    session$setInputs(btn_use_real = 1)
-    session$setInputs(
-      software = "other",
-      file_arrangement = "combined",
-      csv_file = make_file_input(sample_transactions_csv),
-      col_date = "date",
-      col_amount = "amount",
-      col_type = "type",
-      overhead_pattern = "expense",
-      income_pattern = "income"
-    )
-    session$setInputs(btn_upload = 1)
-
-    expect_equal(r$practice_id, "river-dpc")
-    expect_equal(r$practice_name, "River DPC")
-  })
-})
-
 test_that("btn_upload with a bad file leaves r unchanged and does not throw", {
   r <- empty_r()
   tmp <- tempfile(fileext = ".csv")
@@ -312,7 +242,6 @@ test_that("btn_upload with a bad file leaves r unchanged and does not throw", {
   on.exit(unlink(tmp))
 
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -340,7 +269,6 @@ test_that("btn_upload with a bad file leaves r unchanged and does not throw", {
 test_that("btn_load_overhead populates r$overhead_monthly and sets loaded$overhead", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -361,7 +289,6 @@ test_that("btn_load_overhead populates r$overhead_monthly and sets loaded$overhe
 test_that("btn_load_overhead does not touch r$income_monthly", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -379,7 +306,6 @@ test_that("btn_load_overhead does not touch r$income_monthly", {
 test_that("btn_load_overhead initialises a 0-row transactions tibble", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -402,7 +328,6 @@ test_that("btn_load_overhead with a bad file leaves r unchanged and does not thr
   on.exit(unlink(tmp))
 
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -425,7 +350,6 @@ test_that("btn_load_overhead with a bad file leaves r unchanged and does not thr
 test_that("btn_load_income populates r$income_monthly and sets loaded$income", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -446,7 +370,6 @@ test_that("btn_load_income populates r$income_monthly and sets loaded$income", {
 test_that("btn_load_income does not touch r$overhead_monthly", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -464,7 +387,6 @@ test_that("btn_load_income does not touch r$overhead_monthly", {
 test_that("btn_load_income initialises a 0-row transactions tibble", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -487,7 +409,6 @@ test_that("btn_load_income with a bad file leaves r unchanged and does not throw
   on.exit(unlink(tmp))
 
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -510,7 +431,6 @@ test_that("btn_load_income with a bad file leaves r unchanged and does not throw
 test_that("loading overhead then income yields both summaries without either overwriting the other", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
     session$setInputs(
       software = "other",
@@ -540,7 +460,6 @@ test_that("loading overhead then income yields both summaries without either ove
 test_that("init_generic_state does not overwrite an already-initialised transactions tibble", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {
-    session$setInputs(practice_name = "River DPC", practice_id = "river-dpc")
     session$setInputs(btn_use_real = 1)
 
     # Load overhead first — triggers init_generic_state, sets r$transactions
@@ -564,39 +483,4 @@ test_that("init_generic_state does not overwrite an already-initialised transact
 
     expect_identical(r$transactions, first_ptr)
   })
-})
-
-# ── Practice ID auto-derived from Practice Name ─────────────────────────────
-
-test_that(".slugify lower-cases and dash-separates a practice name", {
-  expect_equal(.slugify("Riverside Direct Care"), "riverside-direct-care")
-})
-
-test_that(".slugify collapses punctuation and repeated separators", {
-  expect_equal(
-    .slugify("O'Brien's  Family--Health!!"),
-    "o-brien-s-family-health"
-  )
-})
-
-test_that(".slugify trims leading/trailing dashes", {
-  expect_equal(.slugify("  --Riverside DPC--  "), "riverside-dpc")
-})
-
-test_that(".slugify returns an empty string for NULL or blank input", {
-  expect_equal(.slugify(NULL), "")
-  expect_equal(.slugify("   "), "")
-})
-
-# Note: the observeEvent(input$practice_name, ...) wiring that calls
-# updateTextInput() to set practice_id isn't verifiable via testServer()
-# directly -- updateTextInput() doesn't round-trip back into input$practice_id
-# without a live client (there is no browser here to echo the update back).
-# .slugify() above covers the actual conversion logic; the wiring itself is a
-# one-line observeEvent() confirmed working manually in the browser.
-
-test_that("practice_id is readonly in the rendered UI", {
-  ui <- mod_upload_ui("upload")
-  html <- as.character(ui)
-  expect_true(grepl('id="upload-practice_id"[^>]*readonly', html))
 })

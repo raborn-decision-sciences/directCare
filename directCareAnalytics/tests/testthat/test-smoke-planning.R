@@ -5,7 +5,6 @@ test_that("Quick Estimator form renders on the Edit tab after choosing Plan path
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_plan_path(app)
 
   html <- app$get_html("#edit-content")
@@ -18,7 +17,6 @@ test_that("Generate button produces a Scenario Ready card", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app, name = "River DPC", id = "river-dpc")
   choose_plan_path(app)
 
   app$set_inputs(
@@ -41,7 +39,6 @@ test_that("'Go to Projections' navigates to the Projections tab", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_plan_path(app)
 
   app$set_inputs(
@@ -64,7 +61,6 @@ test_that("Revise Estimates repopulates form with previous values", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_plan_path(app)
 
   app$set_inputs(
@@ -89,7 +85,6 @@ test_that("Projections tab renders after Quick Estimator scenario", {
   app <- launch_app()
   on.exit(app$stop())
 
-  fill_practice_details(app)
   choose_plan_path(app)
 
   app$set_inputs(
