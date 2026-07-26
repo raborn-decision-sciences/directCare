@@ -472,7 +472,16 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
         NA_real_
       }
 
-      tagList(
+      # A plain tagList() here (rather than a wrapping div) is a uiOutput()
+      # whose only children are themselves already sized elements would be
+      # fine, but Shiny renders uiOutput()'s own container with
+      # `display: contents` -- per spec that permanently reports a zero-size
+      # getBoundingClientRect(), which is invisible to driver.js's
+      # canHighlight() check (same root cause already documented for
+      # `projections-method` in utils_tours.R). Wrapping in a real div gives
+      # the guided tour's last step a stable, sized element to target.
+      tags$div(
+        id = ns("results_box"),
         # -- KPI row ----------------------------------------------------------
         layout_column_wrap(
           width = "200px",

@@ -491,6 +491,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
       }
       uiOutput(ns("csv_edit_ui"))
     })
+    outputOptions(output, "content", suspendWhenHidden = FALSE)
 
     # -- Aggregate manual-entry message card ----------------------------------
     # Shown when r$overhead_monthly is populated but r$scenario_inputs is NULL
@@ -894,6 +895,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           # -- Right: account re-map + add transactions -----------------------
           tagList(
             card(
+              id = ns("remap_card"),
               card_header(bs_icon("arrow-repeat"), " Bulk Re-map Account"),
               card_body(
                 p(

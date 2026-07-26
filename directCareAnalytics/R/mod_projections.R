@@ -232,6 +232,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         )
       )
     })
+    outputOptions(output, "content", suspendWhenHidden = FALSE)
 
     # -- Color-coded method selector -------------------------------------------
     # Renders a radioButtons where each label has a colored dot indicating
@@ -278,6 +279,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         selected = isolate(input$method) %||% "linear"
       )
     })
+    outputOptions(output, "method_selector", suspendWhenHidden = FALSE)
 
     # -- Method hint (plain-language guidance shown below the method selector) ---
     output$method_hint <- renderUI({

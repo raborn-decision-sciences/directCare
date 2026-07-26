@@ -355,6 +355,16 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
         is_refund = logical(0)
       )
       r$validation <- list()
+      # Also clear any manual-period-summary / Quick Estimator scenario state
+      # left over from a previous workflow (a real CSV upload, demo mode's
+      # preload, or an earlier manual entry) -- otherwise mod_edit.R's
+      # `!is.null(r$overhead_monthly) && is.null(r$scenario_inputs)` check
+      # mistakes that leftover data for "manual periods already entered" and
+      # shows the read-only summary card instead of the actual Quick
+      # Estimator form.
+      r$overhead_monthly <- NULL
+      r$income_monthly <- NULL
+      r$scenario_inputs <- NULL
       updateNavbarPage(
         parent_session %||% session,
         "main_nav",

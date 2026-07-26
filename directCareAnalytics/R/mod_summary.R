@@ -306,6 +306,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
         )
       )
     })
+    outputOptions(output, "content", suspendWhenHidden = FALSE)
 
     #  Helpers: period column & frequency
     is_weekly <- reactive({

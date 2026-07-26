@@ -503,16 +503,43 @@ app_server <- function(input, output, session, res_auth = NULL) {
     current_chapter(guide)
   }
 
+  # Tears down whichever chapter is currently on-screen (if any). Safe to
+  # call even when nothing is current (no-op). Always called from inside a
+  # later::later() callback, never synchronously from within the observer
+  # that also triggers the click's own "real" app behavior (a tab switch, a
+  # data-clearing helper, etc.), so its own overlay/popover isn't still
+  # mounted and tracking its highlight position while that heavier work
+  # runs -- see the "Plan My Practice" section below for the actual bug
+  # this class of collision caused and where it was really fixed.
+  .tour_reset_current <- function() {
+    prev <- isolate(current_chapter())
+    if (!is.null(prev)) {
+      prev$reset(session)
+      current_chapter(NULL)
+    }
+  }
+
   # Switch to the named tour's next chapter, but only if `tour_name` is the
   # one currently running, and only after a short delay (see comment above)
-  # so the chapter's elements have actually rendered.
-  .tour_advance <- function(tour_name, guide) {
+  # so the chapter's elements have actually rendered. `delay` is overridable
+  # per call site: most transitions are pure UI (a tab switch, a static form)
+  # and finish well within the 3s default, but the Projections "Run the
+  # forecast" transition also has to wait on real eventReactive() model
+  # fitting (breakeven/revenue/target) plus the download button's own
+  # renderUI before its target elements exist -- confirmed empirically to
+  # sometimes still be mid-render at 3s, silently dropping or entirely
+  # failing that chapter switch (driver.js's canHighlight() glossary again:
+  # no console warning either way). A longer delay there is the same blunt,
+  # standard-for-this-app fix as the fixed delay itself, just sized for a
+  # heavier transition.
+  .tour_advance <- function(tour_name, guide, delay = 3) {
     if (!identical(active_tour(), tour_name)) {
       return(invisible())
     }
     later::later(function() {
+      .tour_reset_current()
       .tour_switch(guide)
-    }, delay = 3)
+    }, delay = delay)
   }
 
   # Launching a tour: the Help modal (and its "Take the guided tour"
@@ -591,12 +618,32 @@ app_server <- function(input, output, session, res_auth = NULL) {
   #
   # The pre-fill is folded into the same later::later() delay .tour_advance()
   # uses elsewhere, so it happens once the form exists and right before the
-  # tour switches to the chapter pointing at it.
+  # tour switches to the chapter pointing at it. This click also races
+  # go_to_manual_entry() (mod_upload.R) clearing six reactive values
+  # (r$transactions/overhead/income/overhead_monthly/income_monthly/
+  # scenario_inputs) -- a much wider invalidation fan-out (Summary,
+  # Projections, and Edit all depend on some of those) than a plain tab
+  # switch elsewhere in this file.
+  #
+  # The actual root cause of this chapter switch failing outright (not just
+  # a single dropped step, but cicerone/driver.js throwing "There are no
+  # steps defined to iterate" and never recovering even given 90+s) was
+  # mod_edit.R's `output$content` staying suspended server-side after
+  # go_to_manual_entry()'s updateNavbarPage() call -- Shiny's client/server
+  # handshake for "this tab is now visible" never completed, so the Quick
+  # Estimator form this chapter targets never rendered at all. Fixed at the
+  # source via `outputOptions(output, "content", suspendWhenHidden = FALSE)`
+  # in mod_edit.R (and the same for mod_summary.R/mod_projections.R, which
+  # have the identical top-level content gate and hit the same failure mode
+  # reaching Projections). The extra delay and up-front guide_p1 teardown
+  # here are a secondary safety margin for the heavier invalidation this one
+  # click triggers, not the fix for the hard failure itself.
   observeEvent(
     input[["upload-btn_use_plan"]],
     {
       if (identical(active_tour(), "plan")) {
         later::later(function() {
+          .tour_reset_current()
           updateNumericInput(session, "edit-est_rent", value = .tour_demo_overhead$rent)
           updateNumericInput(session, "edit-est_payroll", value = .tour_demo_overhead$payroll)
           updateNumericInput(session, "edit-est_ehr", value = .tour_demo_overhead$ehr)
@@ -613,7 +660,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
           updateNumericInput(session, "edit-est_followups_mo", value = .tour_demo_ffs$followups_mo)
           updateNumericInput(session, "edit-est_other_income", value = .tour_demo_ffs$other_income)
           .tour_switch(guide_p2)
-        }, delay = 3)
+        }, delay = 4)
       }
     },
     ignoreInit = TRUE
@@ -638,6 +685,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
     {
       if (identical(active_tour(), "calculator")) {
         later::later(function() {
+          .tour_reset_current()
           updateNumericInput(
             session,
             "upload-calculator-monthly_overhead",
@@ -670,8 +718,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
   observeEvent(
     input[["projections-btn_run"]],
     {
-      .tour_advance("historical", guide_proj2)
-      .tour_advance("plan", guide_proj2)
+      .tour_advance("historical", guide_proj2, delay = 6)
+      .tour_advance("plan", guide_proj2, delay = 6)
     },
     ignoreInit = TRUE
   )

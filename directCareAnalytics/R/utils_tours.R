@@ -191,7 +191,7 @@
     position = "right"
   )
   guide$step(
-    el = "edit-remap_account",
+    el = "edit-remap_card",
     title = "Bulk re-map (optional)",
     description = paste0(
       "If a whole account was mis-mapped, re-assign every transaction for ",
@@ -463,7 +463,7 @@
     position = "right"
   )
   guide$step(
-    el = "upload-calculator-results_ui",
+    el = "upload-calculator-results_box",
     title = "Your results",
     description = paste0(
       "Break-even and income-target scenarios update instantly as you ",
