@@ -13,11 +13,6 @@
 mod_plan_inputs_ui <- function(id) {
   ns <- NS(id)
 
-  state_choices <- c(
-    "(auto-detect)" = "",
-    stats::setNames(c(datasets::state.abb, "DC"), c(datasets::state.name, "District of Columbia"))
-  )
-
   tagList(
     layout_columns(
       col_widths = c(6, 6),
@@ -27,19 +22,8 @@ mod_plan_inputs_ui <- function(id) {
         card_header(bsicons::bs_icon("geo-alt"), " Location"),
         card_body(
           htmltools::tagQuery(
-            textInput(ns("practice_name"), "Practice Name (optional)", placeholder = "e.g. Riverside Direct Care")
-          )$find("input")$addAttrs(autocomplete = "off")$allTags(),
-          htmltools::tagQuery(
-            textInput(ns("location"), "ZIP code or county name", value = "30309")
-          )$find("input")$addAttrs(autocomplete = "off")$allTags(),
-          # dropdownParent = "body" detaches the dropdown from this card's DOM
-          # subtree so bslib's fillable-card `overflow: auto` doesn't clip it.
-          selectizeInput(
-            ns("state"),
-            "State (to disambiguate a county name)",
-            choices = state_choices,
-            options = list(dropdownParent = "body")
-          )
+            textInput(ns("zip"), "ZIP code", value = "30309")
+          )$find("input")$addAttrs(autocomplete = "off")$allTags()
         )
       ),
       card(
@@ -238,14 +222,20 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
     })
 
     observeEvent(input$submit, {
-      location <- trimws(input$location)
-      if (!nzchar(location)) {
-        showNotification("Enter a ZIP code or county name.", type = "error", duration = 8)
+      zip <- trimws(input$zip)
+      if (!grepl("^[0-9]{5}$", zip)) {
+        showNotification("Enter a 5-digit ZIP code.", type = "error", duration = 8)
         return(invisible(NULL))
       }
-      state <- if (nzchar(input$state)) input$state else NULL
 
-      market_context <- run_plan(directCarePlanR::build_market_context(location, state = state))
+      # No `state` arg -- directCarePlanR::build_market_context()/
+      # resolve_geography() only ever consult it to disambiguate an
+      # ambiguous *county name*, which this ZIP-only field no longer
+      # accepts; a 5-digit ZIP is always sufficient on its own. The
+      # underlying package function keeps its more generic
+      # location/state parameters, since it's a shared, non-user-facing
+      # calculation layer -- only this Shiny-facing input narrowed.
+      market_context <- run_plan(directCarePlanR::build_market_context(zip))
       if (is.null(market_context)) {
         return(invisible(NULL))
       }
@@ -309,12 +299,9 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         capital = directCarePlanR::interpret_capital(startup_costs, personal_runway)
       )
 
-      practice_name_input <- trimws(input$practice_name %||% "")
-      r$practice_name <- if (nzchar(practice_name_input)) {
-        practice_name_input
-      } else {
-        paste0(market_context$geography$county_name, ", ", market_context$geography$state_abb, " Practice")
-      }
+      # r$practice_name is not set here -- it's sourced once from
+      # res_auth in app_server.R (the logged-in account's practice name),
+      # not re-derived per submission.
       r$horizon_months <- input$horizon_months
       r$market_context <- market_context
       r$revenue <- revenue

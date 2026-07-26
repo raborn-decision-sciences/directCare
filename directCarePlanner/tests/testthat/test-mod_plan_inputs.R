@@ -8,8 +8,7 @@ test_that("submitting a valid plan populates shared state and navigates to Resul
 
   testServer(mod_plan_inputs_server, args = list(r = r), {
     session$setInputs(
-      location = "30309",
-      state = "",
+      zip = "30309",
       include_membership = TRUE,
       panel_size = 300,
       fee = 100,
@@ -59,8 +58,7 @@ test_that("itemized overhead, single-total startup costs, and itemized runway al
 
   testServer(mod_plan_inputs_server, args = list(r = r), {
     session$setInputs(
-      location = "30309",
-      state = "",
+      zip = "30309",
       include_membership = TRUE,
       panel_size = 300,
       fee = 100,
@@ -100,23 +98,32 @@ test_that("itemized overhead, single-total startup costs, and itemized runway al
   })
 })
 
-test_that("an empty location shows an error notification and leaves state untouched", {
+test_that("a blank ZIP shows an error notification and leaves state untouched", {
   r <- reactiveValues(market_context = NULL)
 
   testServer(mod_plan_inputs_server, args = list(r = r), {
-    session$setInputs(location = "   ")
+    session$setInputs(zip = "   ")
     session$setInputs(submit = 1)
     expect_null(r$market_context)
   })
 })
 
-test_that("an unresolvable location leaves state untouched", {
+test_that("a non-5-digit ZIP shows an error notification and leaves state untouched", {
+  r <- reactiveValues(market_context = NULL)
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    session$setInputs(zip = "abc")
+    session$setInputs(submit = 1)
+    expect_null(r$market_context)
+  })
+})
+
+test_that("an unresolvable ZIP leaves state untouched", {
   r <- reactiveValues(market_context = NULL)
 
   testServer(mod_plan_inputs_server, args = list(r = r), {
     session$setInputs(
-      location = "00000",
-      state = "",
+      zip = "00000",
       include_membership = TRUE,
       panel_size = 300,
       fee = 100,

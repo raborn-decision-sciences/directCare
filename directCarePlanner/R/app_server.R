@@ -11,11 +11,11 @@
 #' @noRd
 app_server <- function(input, output, session, res_auth = NULL) {
   # -- Account menu: login email + logout, top-right of the navbar ----------
-  # Shows the login email rather than practice_name: practice_name is
-  # editable in-app (the optional Practice Name field on Plan Inputs) but
-  # res_auth is captured once at login and never re-syncs with that edit,
-  # so displaying it here would go stale. Revisit once there's a proper
-  # account/profile page reading live from the practices table.
+  # Shows the login email rather than practice_name -- just a display
+  # preference (email is the unambiguous login identifier); practice_name
+  # itself is fully live now (sourced from res_auth below, and kept in sync
+  # by the Account Settings modal's write-back), not stale in the way it
+  # would have been back when it was a separately-typed in-app field.
   #
   # id = ".shinymanager_logout" is not a namespacing choice -- it's the
   # exact input id shinymanager::secure_server() listens for internally
@@ -201,7 +201,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # abstraction -- modules read/write fields directly, matching
   # directCareAnalytics's convention.
   r <- reactiveValues(
-    practice_name = NULL,
+    practice_name = NULL, # sourced from res_auth below, not by mod_plan_inputs
     horizon_months = NULL,
     market_context = NULL, # dcPlanR_market_context, from build_market_context()
     revenue = NULL, # dcPlanR_revenue, from calc_mixed_revenue()
@@ -214,6 +214,22 @@ app_server <- function(input, output, session, res_auth = NULL) {
     # app_server.R for the full explanation of why this is needed.
     dark_mode = "light"
   )
+
+  # -- Source practice identity from the logged-in account ---------------------
+  # Single source of truth, replacing the old optional in-app Practice Name
+  # field (mod_plan_inputs.R). An observe() (not a one-time assignment) is
+  # required here, not optional: res_auth's fields don't exist yet at the
+  # moment app_server() starts running -- shinymanager populates them
+  # asynchronously, once its own internal token check resolves after login
+  # -- so this needs a reactive dependency on res_auth$practice_name to
+  # correctly re-fire once it actually appears. Matches
+  # directCareAnalytics's identical pattern (which also sources
+  # practice_id -- this app has no such field, since it never tags rows
+  # with one the way DCA's data-ingest pipeline does).
+  observe({
+    req(res_auth)
+    r$practice_name <- res_auth$practice_name
+  })
 
   mod_plan_inputs_server("plan_inputs", r, parent_session = session)
   mod_results_server("results", r, parent_session = session)
