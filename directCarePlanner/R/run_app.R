@@ -29,59 +29,70 @@ run_app <- function(
   # fighting shinymanager's internal id/CSS to remove the element itself.
   shinymanager::set_labels(language = "en", "Please authenticate" = "")
 
+  secured_ui <- shinymanager::secure_app(
+    app_ui,
+    theme = rds_theme(),
+    # The default floating logout button is disabled here; app_server()
+    # renders a Logout link in the navbar instead (see account_menu).
+    fab_position = "none",
+    head_auth = tagList(
+      # golem_add_external_resources() sets the browser-tab favicon, but
+      # it only runs inside app_ui(), which shinymanager doesn't call
+      # until after login -- without this, the login page falls back to
+      # a default/generic tab icon instead of matching the app.
+      tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
+      # Same dark-mode CSS variable overrides as rds_theme_dark(), baked
+      # in statically here rather than relying on
+      # session$setCurrentTheme() -- see .dark_mode_css_rules()'s own
+      # roxygen comment for why.
+      tags$style(HTML(.dark_mode_css_rules()))
+    ),
+    # Reuses the same input id as app_ui()'s navbar toggle -- the two are
+    # never in the DOM at once (shinymanager shows exactly one of the login
+    # form / authenticated app per session), and app_server()'s existing
+    # observeEvent(input$dark_mode, ...) already runs regardless of auth
+    # state (it's the same Shiny session throughout; app_server() starts
+    # executing immediately, well before any login completes), so no extra
+    # server-side wiring is needed here -- picking a mode on the login page
+    # carries straight through to the authenticated app.
+    tags_top = .auth_page_chrome("Direct Care Practice Launch Planner"),
+    tags_bottom = tags$div(
+      style = "text-align:center;margin-top:16px;",
+      tags$a(href = "?signup=1", class = "small", "Don't have an account? Sign up"),
+      tags$div(
+        style = "opacity:0.6;margin-top:16px;",
+        tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
+      )
+    )
+  )
+
   with_golem_options(
     app = shinyApp(
-      ui = shinymanager::secure_app(
-        app_ui,
-        theme = rds_theme(),
-        # The default floating logout button is disabled here; app_server()
-        # renders a Logout link in the navbar instead (see account_menu).
-        fab_position = "none",
-        head_auth = tagList(
-          # golem_add_external_resources() sets the browser-tab favicon, but
-          # it only runs inside app_ui(), which shinymanager doesn't call
-          # until after login -- without this, the login page falls back to
-          # a default/generic tab icon instead of matching the app.
-          tags$link(rel = "icon", type = "image/svg+xml", href = "www/favicon.svg"),
-          # Same dark-mode CSS variable overrides as rds_theme_dark(), baked
-          # in statically here rather than relying on
-          # session$setCurrentTheme() -- see .dark_mode_css_rules()'s own
-          # roxygen comment for why.
-          tags$style(HTML(.dark_mode_css_rules()))
-        ),
-        tags_top = tags$div(
-          style = "text-align:center;position:relative;",
-          # Reuses the same input id as app_ui()'s navbar toggle -- the two
-          # are never in the DOM at once (shinymanager shows exactly one of
-          # the login form / authenticated app per session), and
-          # app_server()'s existing observeEvent(input$dark_mode, ...)
-          # already runs regardless of auth state (it's the same Shiny
-          # session throughout; app_server() starts executing immediately,
-          # well before any login completes), so no extra server-side
-          # wiring is needed here -- picking a mode on the login page
-          # carries straight through to the authenticated app.
-          tags$div(
-            style = "position:absolute;top:0;right:0;",
-            input_dark_mode(id = "dark_mode")
-          ),
-          tags$img(src = "www/favicon.svg", height = "48px", alt = "RDS"),
-          tags$h4(
-            # var(--bs-emphasis-color), not a literal hex: the page
-            # background (unlike the navbar) correctly follows the theme,
-            # so a hardcoded light-navy color would go dark-on-dark once
-            # dark mode is picked.
-            style = "margin-top:8px;font-weight:600;color:var(--bs-emphasis-color);",
-            "Direct Care Practice Launch Planner"
-          )
-        ),
-        tags_bottom = tags$div(
-          style = "text-align:center;opacity:0.6;margin-top:16px;",
-          tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
-        )
-      ),
+      # secure_app()'s return value is itself a function(request) (Shiny
+      # calls any function `ui` per-session with the originating request) --
+      # branching here, before delegating to it, lets `?signup=1` skip the
+      # login gate entirely and go straight to signup_ui(), rather than
+      # fighting shinymanager's internal auth-token routing to add a bypass
+      # there. Matches directCareAnalytics's `?demo=1` precedent.
+      ui = function(request) {
+        query <- parseQueryString(request$QUERY_STRING)
+        if (isTRUE(query$signup == "1")) {
+          signup_ui(request)
+        } else {
+          secured_ui(request)
+        }
+      },
+      # No signup-mode branch needed here: secure_server()'s observers stay
+      # dormant for a signup session (its login-form inputs never exist
+      # client-side, since the UI above skipped rendering them), and
+      # mod_signup_server()'s own observers are likewise dormant outside a
+      # signup session (its inputs only exist in the DOM when signup_ui()
+      # was the chosen UI) -- so it's safe to always wire both up the same
+      # way, matching directCareAnalytics's demo-mode precedent.
       server = function(input, output, session) {
         res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
         app_server(input, output, session, res_auth = res_auth)
+        mod_signup_server("signup")
       },
       onStart = onStart,
       options = options,

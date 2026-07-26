@@ -53,35 +53,25 @@ run_app <- function(
       # -- see .dark_mode_css_rules()'s own roxygen comment for why.
       tags$style(HTML(.dark_mode_css_rules()))
     ),
-    tags_top = tags$div(
-      style = "text-align:center;position:relative;",
-      # Reuses the same input id as app_ui()'s navbar toggle -- the two are
-      # never in the DOM at once (shinymanager shows exactly one of the
-      # login form / authenticated app per session), and app_server()'s
-      # existing observeEvent(input$dark_mode, ...) already runs regardless
-      # of auth state (it's the same Shiny session throughout; app_server()
-      # starts executing immediately, well before any login completes), so
-      # no extra server-side wiring is needed here -- picking a mode on the
-      # login page carries straight through to the authenticated app.
-      tags$div(
-        style = "position:absolute;top:0;right:0;",
-        input_dark_mode(id = "dark_mode")
-      ),
-      tags$img(src = "www/favicon.svg", height = "48px", alt = "RDS"),
-      tags$h4(
-        # var(--bs-emphasis-color), not a literal hex: the page background
-        # (unlike the navbar) correctly follows the theme, so a hardcoded
-        # light-navy color would go dark-on-dark once dark mode is picked.
-        style = "margin-top:8px;font-weight:600;color:var(--bs-emphasis-color);",
-        "Direct Care Analytics"
-      )
-    ),
+    # Reuses the same input id as app_ui()'s navbar toggle -- the two are
+    # never in the DOM at once (shinymanager shows exactly one of the login
+    # form / authenticated app per session), and app_server()'s existing
+    # observeEvent(input$dark_mode, ...) already runs regardless of auth
+    # state (it's the same Shiny session throughout; app_server() starts
+    # executing immediately, well before any login completes), so no extra
+    # server-side wiring is needed here -- picking a mode on the login page
+    # carries straight through to the authenticated app.
+    tags_top = .auth_page_chrome("Direct Care Analytics"),
     tags_bottom = tags$div(
       style = "text-align:center;margin-top:16px;",
       tags$a(
         href = "?demo=1",
         class = "btn btn-outline-primary btn-sm",
         tagList(bs_icon("play-circle"), " Try the demo")
+      ),
+      tags$div(
+        style = "margin-top:12px;",
+        tags$a(href = "?signup=1", class = "small", "Don't have an account? Sign up")
       ),
       tags$div(
         style = "opacity:0.6;margin-top:16px;",
@@ -101,20 +91,26 @@ run_app <- function(
         query <- parseQueryString(request$QUERY_STRING)
         if (isTRUE(query$demo == "1")) {
           app_ui(request)
+        } else if (isTRUE(query$signup == "1")) {
+          signup_ui(request)
         } else {
           secured_ui(request)
         }
       },
-      # No demo-mode branch needed here: secure_server()'s observers stay
-      # dormant for a demo session (its login-form inputs never exist
-      # client-side, since the UI above skipped rendering them), so it's
-      # safe to always wire it up the same way. app_server() detects demo
+      # No demo-mode/signup-mode branch needed here: secure_server()'s
+      # observers stay dormant for a demo or signup session (its login-form
+      # inputs never exist client-side, since the UI above skipped
+      # rendering them), so it's safe to always wire it up the same way.
+      # mod_signup_server()'s own observers are likewise dormant outside a
+      # signup session, for the same reason (its inputs only exist in the
+      # DOM when signup_ui() was the chosen UI). app_server() detects demo
       # mode itself, server-side, from session$clientData$url_search --
       # session$request's QUERY_STRING reflects the websocket upgrade
       # request, not the original page URL, so it can't be read here.
       server = function(input, output, session) {
         res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
         app_server(input, output, session, res_auth = res_auth)
+        mod_signup_server("signup")
       },
       onStart = onStart,
       options = options,
