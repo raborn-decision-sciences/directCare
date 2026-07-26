@@ -111,7 +111,7 @@ interpret_breakeven <- function(
   confidence_level = 0.95
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
-    paste0(practice_name, " ")
+    paste0(htmltools::htmlEscape(practice_name), " ")
   } else {
     ""
   }
@@ -378,7 +378,7 @@ interpret_revenue <- function(
   confidence_level = 0.95
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
-    paste0(practice_name, " ")
+    paste0(htmltools::htmlEscape(practice_name), " ")
   } else {
     ""
   }
@@ -524,7 +524,7 @@ interpret_target <- function(
   membership_tiers = NULL
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
-    paste0(practice_name, " ")
+    paste0(htmltools::htmlEscape(practice_name), " ")
   } else {
     ""
   }
