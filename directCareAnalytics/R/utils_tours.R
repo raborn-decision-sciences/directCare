@@ -114,15 +114,6 @@
   # Upload tab, initial path-selection cards.
   guide <- .tour_guide("tour_h1")
   guide$step(
-    el = "upload-practice_name",
-    title = "Start here",
-    description = paste0(
-      "Enter your practice's name -- a Practice ID is generated for you ",
-      "automatically. Both are required before you can pick a workflow below."
-    ),
-    position = "bottom"
-  )
-  guide$step(
     el = "upload-btn_use_real",
     title = "Use Real Data",
     description = paste0(
@@ -258,15 +249,6 @@
 .build_tour_p1 <- function() {
   # Upload tab, initial path-selection cards.
   guide <- .tour_guide("tour_p1")
-  guide$step(
-    el = "upload-practice_name",
-    title = "Start here",
-    description = paste0(
-      "Enter your practice's name -- a Practice ID is generated for you ",
-      "automatically. Both are required before you can pick a workflow below."
-    ),
-    position = "bottom"
-  )
   guide$step(
     el = "upload-btn_use_plan",
     title = "Plan My Practice",
@@ -432,15 +414,6 @@
 .build_tour_c1 <- function() {
   # Upload tab, initial path-selection cards.
   guide <- .tour_guide("tour_c1")
-  guide$step(
-    el = "upload-practice_name",
-    title = "Start here",
-    description = paste0(
-      "Enter your practice's name -- a Practice ID is generated for you ",
-      "automatically. Both are required before you can pick a workflow below."
-    ),
-    position = "bottom"
-  )
   guide$step(
     el = "upload-btn_use_calculator",
     title = "Quick Calculator",

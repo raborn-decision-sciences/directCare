@@ -491,20 +491,33 @@ app_server <- function(input, output, session, res_auth = NULL) {
     }, delay = 3)
   }
 
-  observeEvent(input$launch_tour_historical, {
+  # Launching a tour: the Help modal (and its "Take the guided tour"
+  # buttons) is reachable from every tab via the persistent navbar icon,
+  # not just from Upload -- so a tour launched mid-workflow needs to land
+  # back on Upload itself first, same as any other chapter switch that
+  # depends on a tab's content actually being visible. Reuses the exact
+  # delay/timing rationale .tour_advance() already documents: driver.js's
+  # canHighlight() silently refuses to highlight a still-hidden
+  # (display:none) or zero-size element, which is exactly what every
+  # chapter-1 target would be if cicerone tried to init() before the tab
+  # switch has actually taken effect client-side.
+  .tour_launch <- function(tour_name, guide) {
     removeModal()
-    active_tour("historical")
-    .tour_switch(guide_h1)
+    active_tour(tour_name)
+    updateNavbarPage(session, "main_nav", selected = "upload")
+    later::later(function() {
+      .tour_switch(guide)
+    }, delay = 3)
+  }
+
+  observeEvent(input$launch_tour_historical, {
+    .tour_launch("historical", guide_h1)
   })
   observeEvent(input$launch_tour_plan, {
-    removeModal()
-    active_tour("plan")
-    .tour_switch(guide_p1)
+    .tour_launch("plan", guide_p1)
   })
   observeEvent(input$launch_tour_calculator, {
-    removeModal()
-    active_tour("calculator")
-    .tour_switch(guide_c1)
+    .tour_launch("calculator", guide_c1)
   })
 
   # -- Historical Data: h1 (Upload cards) -> h2 (upload form) -> h3 (mapping
@@ -656,8 +669,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
         tags$h6(class = "fw-bold mt-2", "Choose a workflow"),
         tags$p(
           class = "small text-muted mb-3",
-          "Enter your practice name and ID at the top of the page, then pick",
-          " the workflow that fits your situation."
+          "Pick the workflow that fits your situation."
         ),
         tags$div(
           class = "row g-3 mb-3",
@@ -790,7 +802,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
           class = "small mb-3",
           tags$li(
             tags$strong("Upload tab \u2014"),
-            " enter your practice name and ID, then either upload a GnuCash CSV",
+            " either upload a GnuCash CSV",
             " or click \u201cEnter Data Manually\u201d to type in period totals."
           ),
           tags$li(
@@ -823,7 +835,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
           class = "small mb-3",
           tags$li(
             tags$strong("Upload tab \u2014"),
-            " enter your practice name and ID, then click \u201cPlan My Practice\u201d."
+            " click \u201cPlan My Practice\u201d."
           ),
           tags$li(
             tags$strong("Quick Estimator \u2014"),
@@ -854,7 +866,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
           class = "small mb-3",
           tags$li(
             tags$strong("Upload tab \u2014"),
-            " enter your practice name and ID, then click \u201cQuick Calculator\u201d."
+            " click \u201cQuick Calculator\u201d."
           ),
           tags$li(
             tags$strong("Calculator \u2014"),
