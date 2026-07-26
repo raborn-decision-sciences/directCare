@@ -29,6 +29,30 @@ app_server <- function(input, output, session, res_auth = NULL) {
     }
   })
 
+  # -- "Try the Demo" navbar link -------------------------------------------
+  # Reachable from every tab (not just the login page) so a mid-workflow
+  # user can try the demo without hand-editing the URL. Opens `?demo=1` in
+  # a brand-new browser tab (target = "_blank") rather than navigating the
+  # current one -- a new tab is a brand-new Shiny session with its own `r`
+  # state, so the real user's in-progress data is never touched, with none
+  # of the save/restore complexity swapping the *current* session's data
+  # would need. Plain hyperlink, no server-side click handler required.
+  output$demo_nav_item <- renderUI({
+    if (demo_mode()) {
+      return(NULL)
+    }
+    tags$a(
+      bs_icon("play-circle", title = "Try the Demo"),
+      " Try the Demo",
+      href = "?demo=1",
+      target = "_blank",
+      rel = "noopener",
+      title = "Try the Demo",
+      class = "nav-link"
+    )
+  })
+  outputOptions(output, "demo_nav_item", suspendWhenHidden = FALSE)
+
   # -- Account menu: login email + logout, top-right of the navbar ----------
   # Shows the login email rather than practice_name -- just a display
   # preference (email is the unambiguous login identifier); practice_name

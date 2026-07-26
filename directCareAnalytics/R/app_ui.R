@@ -67,6 +67,10 @@ app_ui <- function(request) {
           onclick = "Shiny.setInputValue('help_click', Math.random(), {priority: 'event'}); return false;"
         )
       ),
+      # Hidden in demo mode itself (via server-side renderUI) -- the
+      # account menu already shows a Demo Mode badge + Exit Demo there, so
+      # a second "try the demo" link would be redundant.
+      nav_item(uiOutput("demo_nav_item", inline = TRUE)),
       # mode left unset (not "light"): bslib's <bslib-input-dark-mode>
       # already checks window.matchMedia("(prefers-color-scheme: dark)")
       # itself whenever no mode is explicitly set on the element, live
