@@ -264,6 +264,22 @@ code {
   gap: 1.1rem;
 }
 
+.tour-nav-footer-extra {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding-left: 1rem;
+  border-left: 1px solid var(--rds-border);
+}
+
+/* When there's no back/forward pair, .tour-nav-footer-buttons is empty and
+   margin-left: auto on -extra already pushes it to the right on its own --
+   this only matters when both groups are present. */
+.tour-nav-footer-buttons:empty {
+  display: none;
+}
+
 .tour-nav-step {
   display: flex;
   align-items: center;

@@ -14,7 +14,7 @@ scenario_load_forecast(con, id)
 \value{
 \code{list(label = , source_filename = , bundle = )}, or \code{NULL} if no
 row matches \code{id}. \code{bundle} is the exact list originally passed to
-\code{\link[=scenario_save_forecast]{scenario_save_forecast()}}, reconstructed via \code{readRDS()}.
+\code{\link[=scenario_save_forecast]{scenario_save_forecast()}}, reconstructed via \code{unserialize()}.
 }
 \description{
 Load one saved DCA full-forecast scenario snapshot

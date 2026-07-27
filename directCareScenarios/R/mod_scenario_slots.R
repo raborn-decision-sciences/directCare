@@ -1,0 +1,345 @@
+# -- Shared Save/Load scenario-slot Shiny module -----------------------------
+#
+# One implementation shared by all three call sites (Launch Planner results,
+# DCA Quick Calculator, DCA Projections) rather than three near-duplicate
+# ~150-line blocks -- the save/overwrite-picker/load modal flow and the
+# "viewing a saved scenario" banner are identical everywhere; only *what* to
+# save and *how* to apply a load differ, and those are pushed out to the
+# host app via plain callback functions.
+#
+# Host apps stay fully in control of anything scenario-specific:
+#   - get_inputs_for_save() / get_bundle_for_save(): what to persist.
+#   - on_load(value): apply a loaded scenario to the host's own reactive
+#     state (typically a batch of updateXInput() calls). For hosts with
+#     dynamic/growable sub-inputs (DCA Calculator's overhead sources and
+#     tiers, Projections' membership tiers and planned events), on_load()
+#     is expected to do its own two-phase dance internally -- set the
+#     relevant count reactiveVal(s) first, then apply per-field values
+#     inside session$onFlushed(once = TRUE) once the resulting renderUI()
+#     has actually re-rendered with the right number of fields. The shared
+#     module itself doesn't need to know about any of that; it just calls
+#     on_load() once.
+#
+# The "viewing saved scenario" banner clears itself automatically once the
+# user makes a real edit -- not via a suppress-then-timeout flag (this
+# app's own tour-transition code hit exactly that race once already: an
+# onFlushed(once = TRUE) fired before the *second* flush, the one carrying
+# the client's echoed input-changed events, actually landed), but by
+# diffing get_dirty_signal()'s current value against a snapshot taken from
+# what was just loaded. Since get_dirty_signal() is a host-supplied closure
+# that reads the host's own input$xxx values, calling it from inside this
+# module's own observe() still correctly establishes a reactive dependency
+# on those inputs (Shiny reactivity depends on where a value is *read*, not
+# where the closure was *defined*) -- so the comparison re-runs whenever
+# anything relevant changes, with no timing assumptions baked in at all:
+# right after a load, the live values and the snapshot are equal by
+# construction; a real edit makes them diverge, which is exactly the signal
+# needed.
+
+#' Save/Load scenario-slot action buttons
+#'
+#' Drop into any tab's own action bar (e.g. a `.tour_nav_footer()` extra
+#' slot, or a bespoke bottom row) -- deliberately no styling opinions beyond
+#' `bsicons::bs_icon()` on each button, so it reads consistently wherever
+#' it's placed without fighting the host app's own layout/CSS.
+#'
+#' @param id Module namespace ID.
+#' @export
+mod_scenario_slots_ui <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::tagList(
+    shiny::actionButton(
+      ns("save_click"),
+      shiny::tagList(bsicons::bs_icon("save"), " Save Scenario"),
+      class = "btn-outline-secondary"
+    ),
+    shiny::actionButton(
+      ns("load_click"),
+      shiny::tagList(bsicons::bs_icon("folder2-open"), " Load Scenario"),
+      class = "btn-outline-secondary"
+    )
+  )
+}
+
+#' "Viewing saved scenario" banner
+#'
+#' @param id Module namespace ID -- must match the corresponding
+#'   [mod_scenario_slots_server()] call.
+#' @export
+mod_scenario_banner_ui <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::uiOutput(ns("banner"))
+}
+
+#' @noRd
+.fmt_scenario_updated_at <- function(x) {
+  format(as.POSIXct(x, tz = "UTC"), "%b %d, %Y %I:%M %p")
+}
+
+#' @noRd
+.scenario_slot_choice_names <- function(slots) {
+  lapply(seq_len(nrow(slots)), function(i) {
+    shiny::tags$span(
+      shiny::tags$strong(slots$label[i]),
+      " — updated ", .fmt_scenario_updated_at(slots$updated_at[i])
+    )
+  })
+}
+
+#' Save/Load scenario-slot server logic
+#'
+#' Owns the Save/Load modals (including the overwrite-slot picker once a
+#' save would exceed the 3-slot cap or collide with an existing label) and
+#' the "viewing saved scenario" banner state -- see the file-level comment
+#' above for the full design.
+#'
+#' @param id Module namespace ID.
+#' @param table One of `"plan_scenarios"`, `"dca_calculator_scenarios"`,
+#'   `"dca_forecast_scenarios"`.
+#' @param get_con A zero-arg function returning a fresh, open `DBI`
+#'   connection for each action (opened and closed within a single
+#'   observer, matching this app's existing `db_connect()`/`on.exit()`
+#'   convention -- never held open across the module's lifetime).
+#' @param practice_id A zero-arg function (e.g. `function() r$practice_id`)
+#'   returning the current practice's id.
+#' @param get_inputs_for_save For the two JSONB tables: a zero-arg function
+#'   returning the plain R list to save. Ignored when `is_forecast = TRUE`.
+#' @param get_bundle_for_save For `dca_forecast_scenarios` only: a zero-arg
+#'   function returning the full input+results bundle list (see
+#'   `SAVED_SCENARIOS.md`). Required when `is_forecast = TRUE`.
+#' @param get_source_filename For `dca_forecast_scenarios` only: a zero-arg
+#'   function returning the originating upload's filename, or `NULL`.
+#' @param get_dirty_signal A zero-arg function returning a lightweight,
+#'   `identical()`-comparable snapshot of whatever should trigger
+#'   auto-clearing the banner on a real edit -- for the two JSONB tables,
+#'   typically the same value as `get_inputs_for_save()`; for
+#'   `dca_forecast_scenarios`, a lighter subset (the Projections tab's own
+#'   current input settings, not the full transactions/results bundle).
+#' @param on_load A one-arg function called with the loaded scenario's
+#'   `inputs` (JSONB tables) or `bundle` (forecast table) once the user
+#'   picks one to load -- see the file-level comment above for the
+#'   two-phase-load expectation for hosts with dynamic sub-inputs.
+#' @param extract_dirty_signal A one-arg function applied to whatever was
+#'   just passed to `on_load()`, producing the snapshot compared against
+#'   `get_dirty_signal()`'s live readings. Defaults to the identity
+#'   function (correct for the two JSONB tables, where the full loaded
+#'   `inputs` list already matches `get_dirty_signal()`'s shape).
+#' @param is_forecast `TRUE` for `dca_forecast_scenarios`, `FALSE`
+#'   (default) for the two JSONB tables.
+#' @return `list(loaded_label = <reactive>)`.
+#' @export
+mod_scenario_slots_server <- function(id, table, get_con, practice_id,
+                                       get_inputs_for_save = NULL,
+                                       get_bundle_for_save = NULL,
+                                       get_source_filename = NULL,
+                                       get_dirty_signal,
+                                       on_load,
+                                       extract_dirty_signal = function(x) x,
+                                       is_forecast = FALSE) {
+  shiny::moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+
+    loaded_label <- shiny::reactiveVal(NULL)
+    loaded_snapshot <- shiny::reactiveVal(NULL)
+    picker_slots <- shiny::reactiveVal(NULL)
+
+    # Keeps the overwrite-picker's label field in sync with whichever slot
+    # is currently selected -- defaults to that slot's own current label
+    # (SAVED_SCENARIOS.md: "just overwrite" needs no typing), not whatever
+    # the user originally typed in the failed plain-save attempt that got
+    # them here. Registered once at module init (not inside the observer
+    # that opens the modal) so repeated save attempts don't accumulate
+    # duplicate observers.
+    shiny::observeEvent(input$overwrite_choice, {
+      slots <- picker_slots()
+      shiny::req(slots)
+      idx <- match(input$overwrite_choice, as.character(slots$id))
+      if (!is.na(idx)) {
+        shiny::updateTextInput(session, "overwrite_label", value = slots$label[idx])
+      }
+    })
+
+    output$banner <- shiny::renderUI({
+      label <- loaded_label()
+      if (is.null(label)) {
+        return(NULL)
+      }
+      shiny::tags$div(
+        class = "alert alert-info d-flex justify-content-between align-items-center py-2 px-3 mb-3",
+        shiny::tags$span(
+          bsicons::bs_icon("bookmark-check"), " Viewing saved scenario: ",
+          shiny::tags$strong(label)
+        ),
+        shiny::actionLink(ns("dismiss_banner"), "Return to live session", class = "small")
+      )
+    })
+
+    shiny::observeEvent(input$dismiss_banner, {
+      loaded_label(NULL)
+    })
+
+    # Auto-clear the banner on a real edit -- see the file-level comment
+    # for why this is a value diff, not a suppress-then-timeout flag.
+    shiny::observe({
+      current <- get_dirty_signal()
+      snap <- shiny::isolate(loaded_snapshot())
+      if (!is.null(snap) && !is.null(shiny::isolate(loaded_label())) && !identical(current, snap)) {
+        loaded_label(NULL)
+        loaded_snapshot(NULL)
+      }
+    })
+
+    # -- Save flow ----------------------------------------------------------
+    shiny::observeEvent(input$save_click, {
+      shiny::showModal(shiny::modalDialog(
+        title = "Save Scenario",
+        shiny::textInput(ns("save_label"), "Label", placeholder = "e.g. Optimistic"),
+        footer = shiny::tagList(
+          shiny::modalButton("Cancel"),
+          shiny::actionButton(ns("save_confirm"), "Save", class = "btn-primary")
+        )
+      ))
+    })
+
+    .do_save <- function(label, overwrite_id = NULL) {
+      con <- get_con()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+
+      if (is_forecast) {
+        scenario_save_forecast(
+          con, practice_id(), label, get_bundle_for_save(),
+          source_filename = if (is.null(get_source_filename)) NULL else get_source_filename(),
+          overwrite_id = overwrite_id
+        )
+      } else {
+        scenario_save_json(con, table, practice_id(), label, get_inputs_for_save(), overwrite_id = overwrite_id)
+      }
+    }
+
+    shiny::observeEvent(input$save_confirm, {
+      label <- trimws(if (is.null(input$save_label)) "" else input$save_label)
+      if (nchar(label) == 0) {
+        shiny::showNotification("Enter a label before saving.", type = "warning")
+        return()
+      }
+
+      result <- .do_save(label)
+      if (result$ok) {
+        shiny::removeModal()
+        shiny::showNotification(paste0("Saved as \"", label, "\"."), type = "message")
+        return()
+      }
+
+      con <- get_con()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      slots <- scenario_list(con, table, practice_id())
+      picker_slots(slots)
+
+      # label_collision: default to the slot that already owns this exact
+      # label -- obviously the one meant. cap_reached: no such signal
+      # exists, so default to the first (most-recently-updated, per
+      # scenario_list()'s own ORDER BY) slot instead.
+      default_idx <- if (identical(result$reason, "label_collision")) {
+        match(label, slots$label)
+      } else {
+        1L
+      }
+      if (is.na(default_idx)) {
+        default_idx <- 1L
+      }
+
+      shiny::showModal(shiny::modalDialog(
+        title = "Choose a slot to overwrite",
+        shiny::tags$p(
+          class = "text-muted small",
+          if (identical(result$reason, "cap_reached")) {
+            "You already have 3 saved scenarios here. Pick one to overwrite."
+          } else {
+            paste0("\"", label, "\" is already in use. Pick a slot to overwrite, or rename it below.")
+          }
+        ),
+        shiny::radioButtons(
+          ns("overwrite_choice"), NULL,
+          choiceNames = .scenario_slot_choice_names(slots),
+          choiceValues = slots$id,
+          selected = slots$id[default_idx]
+        ),
+        shiny::textInput(ns("overwrite_label"), "Label", value = slots$label[default_idx]),
+        footer = shiny::tagList(
+          shiny::modalButton("Cancel"),
+          shiny::actionButton(ns("overwrite_confirm"), "Overwrite", class = "btn-primary")
+        )
+      ))
+    })
+
+    shiny::observeEvent(input$overwrite_confirm, {
+      shiny::req(input$overwrite_choice)
+      new_label <- trimws(if (is.null(input$overwrite_label)) "" else input$overwrite_label)
+      if (nchar(new_label) == 0) {
+        shiny::showNotification("Enter a label before saving.", type = "warning")
+        return()
+      }
+
+      result <- .do_save(new_label, overwrite_id = as.integer(input$overwrite_choice))
+      if (result$ok) {
+        shiny::removeModal()
+        shiny::showNotification(paste0("Saved as \"", new_label, "\"."), type = "message")
+      }
+    })
+
+    # -- Load flow ------------------------------------------------------------
+    shiny::observeEvent(input$load_click, {
+      con <- get_con()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      slots <- scenario_list(con, table, practice_id())
+
+      if (nrow(slots) == 0) {
+        shiny::showModal(shiny::modalDialog(
+          title = "Load Scenario",
+          shiny::tags$p(class = "text-muted", "No saved scenarios yet -- use Save Scenario first."),
+          footer = shiny::modalButton("Close")
+        ))
+        return()
+      }
+
+      shiny::showModal(shiny::modalDialog(
+        title = "Load Scenario",
+        shiny::radioButtons(
+          ns("load_choice"), NULL,
+          choiceNames = .scenario_slot_choice_names(slots),
+          choiceValues = slots$id
+        ),
+        footer = shiny::tagList(
+          shiny::modalButton("Cancel"),
+          shiny::actionButton(ns("load_confirm"), "Load", class = "btn-primary")
+        )
+      ))
+    })
+
+    shiny::observeEvent(input$load_confirm, {
+      shiny::req(input$load_choice)
+      con <- get_con()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+
+      loaded <- if (is_forecast) {
+        scenario_load_forecast(con, as.integer(input$load_choice))
+      } else {
+        scenario_load_json(con, table, as.integer(input$load_choice))
+      }
+
+      shiny::removeModal()
+
+      if (is.null(loaded)) {
+        shiny::showNotification("That scenario no longer exists.", type = "error")
+        return()
+      }
+
+      loaded_value <- if (is_forecast) loaded$bundle else loaded$inputs
+      on_load(loaded_value)
+      loaded_snapshot(extract_dirty_signal(loaded_value))
+      loaded_label(loaded$label)
+    })
+
+    list(loaded_label = shiny::reactive(loaded_label()))
+  })
+}

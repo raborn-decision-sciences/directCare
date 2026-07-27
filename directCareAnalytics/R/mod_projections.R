@@ -23,6 +23,165 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
+    # -- Saved scenario slots (dca_forecast_scenarios) -------------------------
+    # Raw per-row field lists (not overhead_events_df()/fee_events_df()
+    # below, which drop tier_idx/new_fee once reduced to a computed
+    # revenue_delta) -- these are what let a loaded scenario's Planned
+    # Overhead Events / Planned Fee Changes UI actually re-render with the
+    # same rows, not just feed the already-baked-in adjusted results.
+    overhead_events_raw <- reactive({
+      n <- n_overhead_events()
+      if (n == 0L) {
+        return(list())
+      }
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("ov_event_label_", i)]],
+          start_date = input[[paste0("ov_event_start_", i)]],
+          cost = input[[paste0("ov_event_cost_", i)]]
+        )
+      })
+    })
+
+    fee_events_raw <- reactive({
+      n <- n_fee_events()
+      if (n == 0L) {
+        return(list())
+      }
+      lapply(seq_len(n), function(i) {
+        list(
+          tier_idx = input[[paste0("fee_event_tier_", i)]],
+          start_date = input[[paste0("fee_event_start_", i)]],
+          new_fee = input[[paste0("fee_event_new_fee_", i)]]
+        )
+      })
+    })
+
+    # Deliberately excludes overhead_custom/target_income (both
+    # conditionally rendered -- only exist once overhead_model == "custom"
+    # / forecast_type == "target") from the dirty-check signal: comparing a
+    # currently-NULL conditional field against a loaded snapshot's real
+    # value would make the "viewing saved scenario" banner disappear
+    # immediately after loading, before the user has touched anything, any
+    # time the loaded scenario's mode differs from whatever's currently
+    # selected. Both fields are still saved and restored in full via
+    # get_bundle_for_save()/on_load() below -- only the auto-clear-on-edit
+    # comparison skips them.
+    scenario_dirty_signal <- function() {
+      list(
+        method = input$method,
+        horizon = input$horizon,
+        confidence = input$confidence,
+        income_growth = input$income_growth,
+        overhead_model = input$overhead_model,
+        overhead_growth = input$overhead_growth,
+        membership_tiers = proj_tiers_list(),
+        overhead_events = overhead_events_raw(),
+        fee_events = fee_events_raw()
+      )
+    }
+
+    scenario_slots <- directCareScenarios::mod_scenario_slots_server(
+      "scenario",
+      table = "dca_forecast_scenarios",
+      get_con = directCareAuth::db_connect,
+      practice_id = function() r$practice_id,
+      get_bundle_for_save = function() {
+        list(
+          transactions = r$transactions,
+          overhead_monthly = r$overhead_monthly,
+          income_monthly = r$income_monthly,
+          inputs = list(
+            method = input$method,
+            horizon = input$horizon,
+            confidence = input$confidence,
+            income_growth = input$income_growth,
+            overhead_model = input$overhead_model,
+            overhead_growth = input$overhead_growth,
+            overhead_custom = input$overhead_custom,
+            target_income = input$target_income,
+            membership_tiers = proj_tiers_list(),
+            overhead_events = overhead_events_raw(),
+            fee_events = fee_events_raw()
+          ),
+          results = list(
+            breakeven = .safe_result(breakeven_result()),
+            revenue = .safe_result(revenue_result()),
+            target = .safe_result(target_result()),
+            adj_breakeven = .safe_result(adj_breakeven()),
+            adj_revenue = .safe_result(adj_revenue()),
+            adj_target = .safe_result(adj_target())
+          )
+        )
+      },
+      # r$source_filename doesn't exist yet -- nothing currently tracks the
+      # originating upload's filename on shared state. reactiveValues
+      # returns NULL for an unset field, which is exactly the schema's own
+      # "NULL for a manual-entry-only session" case, so this is a correct
+      # (if always-NULL for now) value, not a bug -- wiring up real
+      # filename tracking in mod_upload.R is a small, separate follow-on.
+      get_source_filename = function() r$source_filename,
+      get_dirty_signal = scenario_dirty_signal,
+      extract_dirty_signal = function(bundle) {
+        inputs <- bundle$inputs
+        list(
+          method = inputs$method, horizon = inputs$horizon,
+          confidence = inputs$confidence, income_growth = inputs$income_growth,
+          overhead_model = inputs$overhead_model, overhead_growth = inputs$overhead_growth,
+          membership_tiers = inputs$membership_tiers,
+          overhead_events = inputs$overhead_events, fee_events = inputs$fee_events
+        )
+      },
+      on_load = function(bundle) {
+        inputs <- bundle$inputs
+        updateSelectInput(session, "method", selected = inputs$method)
+        updateSliderInput(session, "horizon", value = inputs$horizon)
+        updateSliderInput(session, "confidence", value = inputs$confidence)
+        updateSliderInput(session, "income_growth", value = inputs$income_growth)
+        updateSelectInput(session, "overhead_model", selected = inputs$overhead_model)
+        updateSliderInput(session, "overhead_growth", value = inputs$overhead_growth)
+
+        proj_n_tiers(max(1L, length(inputs$membership_tiers)))
+        n_overhead_events(length(inputs$overhead_events))
+        n_fee_events(length(inputs$fee_events))
+
+        # Two-phase: the tier/event field counts just set above only take
+        # effect once their renderUI()s re-render with that many rows --
+        # applying per-row values has to wait for that, or updateXInput()
+        # would target ids that don't exist in the DOM yet. Unlike the
+        # tour's own cross-*tab* transitions, this is a same-tab renderUI()
+        # refresh, which reliably completes within one flush, so a plain
+        # onFlushed(once = TRUE) (no polling/delay) is sufficient here.
+        session$onFlushed(function() {
+          if (!is.null(inputs$overhead_custom)) {
+            updateNumericInput(session, "overhead_custom", value = inputs$overhead_custom)
+          }
+          if (!is.null(inputs$target_income)) {
+            updateNumericInput(session, "target_income", value = inputs$target_income)
+          }
+          tiers <- inputs$membership_tiers
+          for (i in seq_along(tiers)) {
+            updateTextInput(session, paste0("proj_tier_label_", i), value = tiers[[i]]$label)
+            updateNumericInput(session, paste0("proj_tier_members_", i), value = tiers[[i]]$members)
+            updateNumericInput(session, paste0("proj_tier_fee_", i), value = tiers[[i]]$fee)
+          }
+          ov_events <- inputs$overhead_events
+          for (i in seq_along(ov_events)) {
+            updateTextInput(session, paste0("ov_event_label_", i), value = ov_events[[i]]$label)
+            updateSelectInput(session, paste0("ov_event_start_", i), selected = ov_events[[i]]$start_date)
+            updateNumericInput(session, paste0("ov_event_cost_", i), value = ov_events[[i]]$cost)
+          }
+          fee_events <- inputs$fee_events
+          for (i in seq_along(fee_events)) {
+            updateSelectInput(session, paste0("fee_event_tier_", i), selected = as.character(fee_events[[i]]$tier_idx))
+            updateSelectInput(session, paste0("fee_event_start_", i), selected = fee_events[[i]]$start_date)
+            updateNumericInput(session, paste0("fee_event_new_fee_", i), value = fee_events[[i]]$new_fee)
+          }
+        }, once = TRUE)
+      },
+      is_forecast = TRUE
+    )
+
     # -- Gate: require uploaded data ------------------------------------------
     output$content <- renderUI({
       has_data <- !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
@@ -218,6 +377,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         ),
 
         # -- Main area: forecast sub-tabs -----------------------------------
+        directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
         navset_card_underline(
           id = ns("forecast_type"),
           nav_panel(
@@ -242,7 +402,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             ns("btn_back_to_summary"),
             tagList(bs_icon("arrow-left"), " Back to Summary"),
             class = "btn-outline-secondary"
-          )
+          ),
+          extra = directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
         )
       )
     })

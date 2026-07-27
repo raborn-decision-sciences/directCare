@@ -195,6 +195,11 @@ scenario_save_forecast <- function(con, practice_id, label, bundle,
   # bug here) -- serialize() + memCompress() is the correct way to get
   # xz-compressed bytes in memory without going through a real file.
   payload <- memCompress(serialize(bundle, connection = NULL), type = "xz")
+  # DBI parameter binding needs SQL NULL spelled as NA (here NA_character_),
+  # not a literal R NULL -- passing NULL directly fails at bind time with
+  # "Parameter N does not have length 1" (confirmed empirically; a real R
+  # NULL is zero-length, not a length-1 "absent value" the way NA is).
+  source_filename <- if (is.null(source_filename)) NA_character_ else source_filename
 
   if (!is.null(overwrite_id)) {
     DBI::dbExecute(

@@ -3,17 +3,21 @@ Title: Shared Saved-Scenario Persistence for directCare Apps
 Version: 0.0.0.9000
 Authors@R:
     person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
-Description: Shared database access layer for saving, listing, and loading
-    named scenario slots (3 per practice, per feature area) in the shared
-    Postgres database used by both directCareAnalytics and directCarePlanner
-    -- Launch Planner plan inputs, DCA Quick Calculator inputs, and DCA's
-    full Upload -> Projections forecast snapshots. Consumers pass an
-    already-open DBI connection (see directCareAuth::db_connect()) to every
-    exported function.
+Description: Shared database access layer, and a shared Save/Load Shiny
+    module, for named scenario slots (3 per practice, per feature area) in
+    the shared Postgres database used by both directCareAnalytics and
+    directCarePlanner -- Launch Planner plan inputs, DCA Quick Calculator
+    inputs, and DCA's full Upload -> Projections forecast snapshots. The
+    database functions take an already-open DBI connection (see
+    directCareAuth::db_connect()); the mod_scenario_slots_*() Shiny module
+    owns the Save/Load modals and banner, driven by host-app callbacks for
+    anything scenario-specific.
 License: Apache License (>= 2) | file LICENSE
 Imports:
+    bsicons,
     DBI,
-    jsonlite
+    jsonlite,
+    shiny
 Suggests:
     testthat (>= 3.0.0),
     withr

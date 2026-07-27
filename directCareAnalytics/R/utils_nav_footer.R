@@ -31,8 +31,12 @@
 #'   Edit -> Summary -> Projections sequence.
 #' @param back An `actionButton()` (or `NULL`) for the backward action.
 #' @param forward An `actionButton()` (or `NULL`) for the forward action.
+#' @param extra Additional content (e.g. `mod_scenario_slots_ui()`'s Save/
+#'   Load buttons) rendered between the step indicator and Back/Next --
+#'   its own visually distinct group, not mixed into the Back/Next
+#'   button group itself.
 #' @noRd
-.tour_nav_footer <- function(current_step, back = NULL, forward = NULL) {
+.tour_nav_footer <- function(current_step, back = NULL, forward = NULL, extra = NULL) {
   tags$div(
     class = "tour-nav-footer",
     tags$div(
@@ -53,6 +57,9 @@
         )
       })
     ),
+    if (!is.null(extra)) {
+      tags$div(class = "tour-nav-footer-extra", extra)
+    },
     tags$div(
       class = "tour-nav-footer-buttons",
       back,
