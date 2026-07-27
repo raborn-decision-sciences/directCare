@@ -29,15 +29,21 @@ RUN curl -fsSL "https://github.com/typst/typst/releases/download/v${TYPST_VERSIO
 # Shared R packages used by both apps (and their internal core packages).
 # Posit Package Manager serves prebuilt binaries for Debian bookworm (the
 # rocker/r-ver:4.4.0 base OS), avoiding a from-source CRAN compile that
-# would otherwise take 10+ minutes per rebuild. No renv.lock in this repo,
-# so versions float to whatever the snapshot serves at build time.
+# would otherwise take 10+ minutes per rebuild.
+#
+# Pinned to a fixed daily snapshot (not `latest`) so a rebuild months from
+# now can't silently pick up a broken/vulnerable release of any of these --
+# no renv.lock in this repo, so this date is the only version pin that
+# exists. Bump PPM_SNAPSHOT_DATE deliberately (not automatically) when
+# there's a real reason to take newer versions.
+ARG PPM_SNAPSHOT_DATE=2026-07-19
 RUN R -e "install.packages(c( \
     'shiny', 'golem', 'bslib', 'bsicons', 'config', 'DT', 'ggplot2', \
     'scales', 'thematic', 'dplyr', 'tibble', 'tidyr', 'rlang', \
     'jsonlite', 'htmltools', 'pkgload', 'forecast', 'lubridate', 'readr', \
     'shinymanager', 'DBI', 'RPostgres', 'bcrypt', 'remotes', \
     'cicerone', 'later', 'httr2', 'openssl' \
-  ), repos = 'https://packagemanager.posit.co/cran/__linux__/bookworm/latest')"
+  ), repos = 'https://packagemanager.posit.co/cran/__linux__/bookworm/${PPM_SNAPSHOT_DATE}')"
 
 # Non-root user for running the app (created here, switched to at the end of
 # each app's own Dockerfile, after all root-owned package installs). Package
