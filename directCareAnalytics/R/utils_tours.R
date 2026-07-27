@@ -201,6 +201,16 @@
     position = "left"
   )
   guide$step(
+    el = "edit-add_txn_card",
+    title = "Add transactions by hand (optional)",
+    description = paste0(
+      "Missing something from your export? Add a single overhead or income ",
+      "row here, or enter a whole month/week's totals at once with ",
+      "<strong>Add period summary</strong>."
+    ),
+    position = "left"
+  )
+  guide$step(
     el = "edit-btn_next_to_summary",
     title = "Continue",
     description = "Once your categories look right, click here for Summary.",
@@ -227,6 +237,18 @@
     el = "summary-inc_plot",
     title = "Revenue trend",
     description = "The same view for revenue, broken down by income source.",
+    position = "bottom"
+  )
+  guide$step(
+    el = "summary-inc_chart_type",
+    title = "Bar or pie, full data or by period",
+    description = paste0(
+      "Both cards have matching controls: switch between a bar chart and a ",
+      "pie chart, and (in pie view) between the full data range and a single ",
+      "period. Toggle <strong>By category</strong> / ",
+      "<strong>By source</strong> to see one line item at a time instead of ",
+      "the combined trend."
+    ),
     position = "bottom"
   )
   guide$step(
@@ -364,6 +386,51 @@
     description = paste0(
       "Linear is the simplest and most transparent. ETS and ARIMA can ",
       "capture trend and seasonality better with more history."
+    ),
+    position = "right"
+  )
+  # Each of the next four steps targets a real input/button, not the
+  # uiOutput() wrapper div around it -- see the note above .build_tour_proj1
+  # about zero-size `display: contents` wrappers silently failing to
+  # highlight.
+  guide$step(
+    el = "projections-income_growth",
+    title = "Optional: assume income growth",
+    description = paste0(
+      "Apply a yearly growth rate on top of the fitted trend if you expect ",
+      "revenue to grow (or shrink) faster than your history alone suggests. ",
+      "Leave at 0% to project the trend unchanged."
+    ),
+    position = "right"
+  )
+  guide$step(
+    el = "projections-overhead_model_wrap",
+    title = "Optional: project overhead differently",
+    description = paste0(
+      "By default overhead follows its own fitted trend. Switch this to a ",
+      "flat historical/recent average -- or a custom monthly value -- if you ",
+      "expect overhead to hold steady instead of continuing its trend."
+    ),
+    position = "right"
+  )
+  guide$step(
+    el = "projections-proj_btn_add_tier",
+    title = "Optional: membership tiers",
+    description = paste0(
+      "Enter your membership tiers here to unlock member-count projections ",
+      "alongside the financial forecast. Skip this if member counts aren't ",
+      "relevant to what you're projecting."
+    ),
+    position = "right"
+  )
+  guide$step(
+    el = "projections-btn_add_overhead_event",
+    title = "Optional: planned overhead changes",
+    description = paste0(
+      "Add a one-time planned cost increase -- hiring staff, a new office -- ",
+      "that kicks in at a specific point in the forecast. Use ",
+      "<strong>Add Fee Change</strong> just below for planned membership fee ",
+      "changes the same way."
     ),
     position = "right"
   )

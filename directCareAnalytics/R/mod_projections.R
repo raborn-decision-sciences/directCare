@@ -109,24 +109,33 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             value = 0,
             step = 0.5
           ),
-          selectInput(
-            ns("overhead_model"),
-            "Overhead projection",
-            choices = list(
-              "Statistical" = c(
-                "Fitted trend (+ growth %)" = "trend"
+          # Wrapped in an explicit id: selectInput()'s own inputId lands on
+          # the native <select>, which selectize.js hides (display: none)
+          # and replaces with a sibling .selectize-control div -- the same
+          # hidden-select gotcha already hit (and fixed) for
+          # edit-remap_account. Tour steps target this wrapper, not
+          # ns("overhead_model") itself.
+          tags$div(
+            id = ns("overhead_model_wrap"),
+            selectInput(
+              ns("overhead_model"),
+              "Overhead projection",
+              choices = list(
+                "Statistical" = c(
+                  "Fitted trend (+ growth %)" = "trend"
+                ),
+                "Flat -- data-driven" = c(
+                  "Historical average" = "avg_full",
+                  "Recent average (last 6 mo)" = "avg_recent",
+                  "Historical maximum (stress test)" = "max_full",
+                  "Recent maximum (last 6 mo)" = "max_recent"
+                ),
+                "Flat -- manual" = c(
+                  "Custom monthly value" = "custom"
+                )
               ),
-              "Flat -- data-driven" = c(
-                "Historical average" = "avg_full",
-                "Recent average (last 6 mo)" = "avg_recent",
-                "Historical maximum (stress test)" = "max_full",
-                "Recent maximum (last 6 mo)" = "max_recent"
-              ),
-              "Flat -- manual" = c(
-                "Custom monthly value" = "custom"
-              )
-            ),
-            selected = "trend"
+              selected = "trend"
+            )
           ),
           uiOutput(ns("overhead_model_controls")),
           hr(),

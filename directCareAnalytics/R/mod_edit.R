@@ -969,6 +969,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             ),
 
             card(
+              id = ns("add_txn_card"),
               card_header(bs_icon("plus-circle"), " Add Transactions"),
               card_body(
                 accordion(
