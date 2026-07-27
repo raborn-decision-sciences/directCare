@@ -10,6 +10,7 @@ mod_calculator_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
+    directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
     layout_columns(
       col_widths = c(5, 7),
 
@@ -110,12 +111,13 @@ mod_calculator_ui <- function(id) {
     ),
 
     div(
-      class = "d-flex justify-content-start mt-3",
+      class = "d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2",
       actionButton(
         ns("btn_back"),
         tagList(bs_icon("arrow-left"), " Back"),
         class = "btn-outline-secondary"
-      )
+      ),
+      directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
     )
   )
 }
@@ -136,6 +138,100 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
       v <- x %||% 0
       if (length(v) != 1L || !is.finite(v)) 0 else v
     }
+
+    # -- Saved scenario slots (dca_calculator_scenarios) -----------------------
+    # Raw per-row lists built directly from input[[...]], not the various
+    # *_total()/other_income_total() reactives below -- those are already
+    # reduced to sums and can't be used to re-render the same rows on load.
+    calc_overhead_items <- function() {
+      n <- n_ovhd_items()
+      if (n == 0L) {
+        return(list())
+      }
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("ovhd_item_label_", i)]],
+          amount = input[[paste0("ovhd_item_amount_", i)]]
+        )
+      })
+    }
+    calc_tiers <- function() {
+      n <- n_tiers()
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("tier_label_", i)]],
+          members = input[[paste0("tier_members_", i)]],
+          fee = input[[paste0("tier_fee_", i)]]
+        )
+      })
+    }
+    calc_income_items <- function() {
+      n <- n_income_items()
+      if (n == 0L) {
+        return(list())
+      }
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("inc_item_label_", i)]],
+          amount = input[[paste0("inc_item_amount_", i)]]
+        )
+      })
+    }
+
+    calc_inputs_for_save <- function() {
+      list(
+        ovhd_multi = isTRUE(input$ovhd_multi),
+        monthly_overhead = input$monthly_overhead,
+        overhead_items = calc_overhead_items(),
+        tiers = calc_tiers(),
+        income_items = calc_income_items(),
+        target_income = input$target_income
+      )
+    }
+
+    directCareScenarios::mod_scenario_slots_server(
+      "scenario",
+      table = "dca_calculator_scenarios",
+      get_con = directCareAuth::db_connect,
+      practice_id = function() r$practice_id,
+      get_inputs_for_save = calc_inputs_for_save,
+      get_dirty_signal = calc_inputs_for_save,
+      on_load = function(inputs) {
+        updateCheckboxInput(session, "ovhd_multi", value = isTRUE(inputs$ovhd_multi))
+        n_ovhd_items(max(1L, length(inputs$overhead_items)))
+        n_tiers(max(1L, length(inputs$tiers)))
+        n_income_items(length(inputs$income_items))
+
+        # Two-phase: field counts above only take effect once their
+        # renderUI()s re-render with that many rows; a same-tab refresh
+        # reliably completes within one flush (no polling/delay needed,
+        # unlike a cross-tab transition).
+        session$onFlushed(function() {
+          if (!isTRUE(inputs$ovhd_multi) && !is.null(inputs$monthly_overhead)) {
+            updateNumericInput(session, "monthly_overhead", value = inputs$monthly_overhead)
+          }
+          ov_items <- inputs$overhead_items
+          for (i in seq_along(ov_items)) {
+            updateTextInput(session, paste0("ovhd_item_label_", i), value = ov_items[[i]]$label)
+            updateNumericInput(session, paste0("ovhd_item_amount_", i), value = ov_items[[i]]$amount)
+          }
+          tiers <- inputs$tiers
+          for (i in seq_along(tiers)) {
+            updateTextInput(session, paste0("tier_label_", i), value = tiers[[i]]$label)
+            updateNumericInput(session, paste0("tier_members_", i), value = tiers[[i]]$members)
+            updateNumericInput(session, paste0("tier_fee_", i), value = tiers[[i]]$fee)
+          }
+          inc_items <- inputs$income_items
+          for (i in seq_along(inc_items)) {
+            updateTextInput(session, paste0("inc_item_label_", i), value = inc_items[[i]]$label)
+            updateNumericInput(session, paste0("inc_item_amount_", i), value = inc_items[[i]]$amount)
+          }
+          if (!is.null(inputs$target_income)) {
+            updateNumericInput(session, "target_income", value = inputs$target_income)
+          }
+        }, once = TRUE)
+      }
+    )
 
     # -- Dynamic overhead-source UI ----------------------------------------------
     n_ovhd_items <- reactiveVal(1L)

@@ -21,20 +21,75 @@
 #     on_load() once.
 #
 # The "viewing saved scenario" banner clears itself automatically once the
-# user makes a real edit -- not via a suppress-then-timeout flag (this
-# app's own tour-transition code hit exactly that race once already: an
-# onFlushed(once = TRUE) fired before the *second* flush, the one carrying
-# the client's echoed input-changed events, actually landed), but by
-# diffing get_dirty_signal()'s current value against a snapshot taken from
-# what was just loaded. Since get_dirty_signal() is a host-supplied closure
-# that reads the host's own input$xxx values, calling it from inside this
-# module's own observe() still correctly establishes a reactive dependency
-# on those inputs (Shiny reactivity depends on where a value is *read*, not
-# where the closure was *defined*) -- so the comparison re-runs whenever
-# anything relevant changes, with no timing assumptions baked in at all:
-# right after a load, the live values and the snapshot are equal by
-# construction; a real edit makes them diverge, which is exactly the signal
-# needed.
+# user makes a real edit -- by diffing get_dirty_signal()'s current value
+# against a snapshot taken from what was just loaded, not by tracking a
+# separate "is this dirty" flag. Since get_dirty_signal() is a host-supplied
+# closure that reads the host's own input$xxx values, calling it from
+# inside this module's own reactive still correctly establishes a
+# dependency on those inputs (Shiny reactivity depends on where a value is
+# *read*, not where the closure was *defined*).
+#
+# The comparison itself is debounced (600ms), not run on every raw change --
+# a two-phase on_load() (see above) sets row counts immediately and defers
+# field values to its own session$onFlushed(), so get_dirty_signal() passes
+# through a real, but transient, mismatched state (right row count, still-
+# default field values) before the deferred values land and the client
+# echoes them back. Confirmed empirically: without debouncing, the banner
+# vanished immediately on every load that had any dynamic sub-inputs
+# (DCA Calculator's tiers, Projections' membership tiers/events), even
+# though the fields themselves went on to populate correctly moments later.
+# Debouncing coalesces a load's whole settling burst into one comparison
+# after it quiets down, without needing to know exactly when "done" is --
+# a load's several changes all land within milliseconds of each other, well
+# inside the debounce window, while a genuine user edit is an isolated
+# event the debounced reactive reports on its own shortly after. This is a
+# different kind of timing dependency than the guessed multi-second
+# Shiny-render delays this app's tour code moved away from elsewhere: it's
+# coalescing a known-simultaneous burst of related changes, not guessing
+# how long an unrelated render takes.
+#
+# The comparison itself uses isTRUE(all.equal(...)) on *normalized*
+# (.normalize_for_diff(), below) values, not identical() on the raw ones --
+# two separate bugs, both only visible once actually round-tripped through
+# a real Postgres jsonb column (neither showed up in scenarios.R's mocked
+# DBI tests, which never touch a real database):
+#   1. Scalars come back as R integer where they went in as double
+#      (jsonlite::fromJSON() decodes whole numbers as integer) --
+#      identical() treats 8000L and 8000 as unequal. all.equal() ignores
+#      the class difference while still catching a genuine value change.
+#   2. Postgres's jsonb type (unlike plain json) does not preserve object
+#      key order -- it stores keys in its own canonical internal order and
+#      reconstructs them that way on read, regardless of the order they
+#      were inserted in. Both identical() and, less obviously,
+#      all.equal() compare named lists *positionally*, not by matching
+#      names first (confirmed: all.equal(list(a=1,b=2), list(b=2,a=1))
+#      reports a mismatch) -- so a value saved as
+#      list(ovhd_multi=, monthly_overhead=, ...) came back from Postgres
+#      as list(tiers=, ovhd_multi=, income_items=, ...), comparing
+#      unrelated fields against each other. .normalize_for_diff()
+#      recursively sorts every *named* list by name before comparing
+#      (leaving unnamed lists -- e.g. the `tiers` array itself, where row
+#      order is meaningful UI state -- untouched).
+# This was the harder pair of bugs to isolate: symptom #2 in particular
+# looked exactly like a timing race (debouncing was added first, which
+# correctly fixed the transient-mismatch problem described above but left
+# this one in place) until direct before/after inspection of a real
+# save+load round trip against Postgres showed the actual field names on
+# each side, not the timing, were still misaligned.
+
+#' @noRd
+.normalize_for_diff <- function(x) {
+  if (is.list(x)) {
+    x <- lapply(x, .normalize_for_diff)
+    nm <- names(x)
+    if (!is.null(nm) && all(nzchar(nm))) {
+      x <- x[order(nm)]
+    }
+    x
+  } else {
+    x
+  }
+}
 
 #' Save/Load scenario-slot action buttons
 #'
@@ -178,16 +233,33 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
       loaded_label(NULL)
     })
 
-    # Auto-clear the banner on a real edit -- see the file-level comment
-    # for why this is a value diff, not a suppress-then-timeout flag.
-    shiny::observe({
-      current <- get_dirty_signal()
-      snap <- shiny::isolate(loaded_snapshot())
-      if (!is.null(snap) && !is.null(shiny::isolate(loaded_label())) && !identical(current, snap)) {
+    # Auto-clear the banner on a real edit -- a value diff (see the
+    # file-level comment), not a suppress-then-timeout flag, but debounced:
+    # a two-phase on_load() (dynamic sub-inputs -- membership tiers,
+    # overhead/fee events, calculator tiers/sources) sets row *counts*
+    # immediately and defers *values* to its own session$onFlushed(), which
+    # means get_dirty_signal() briefly reads a real, but transient,
+    # mismatched state (right row count, still-default field values) before
+    # the deferred update lands and the client echoes it back -- confirmed
+    # empirically: without debouncing, the banner vanished immediately on
+    # every load with dynamic sub-inputs, even though the fields themselves
+    # went on to populate correctly a moment later. Debouncing coalesces
+    # that whole settling burst into one comparison after it quiets down,
+    # without needing to know exactly when "done" is -- a load's several
+    # changes all land within milliseconds of each other, well inside the
+    # debounce window, while a genuine user edit is an isolated event that
+    # the debounced reactive reports on its own shortly after.
+    dirty_signal <- shiny::reactive(get_dirty_signal())
+    dirty_signal_debounced <- shiny::debounce(dirty_signal, millis = 600)
+
+    shiny::observeEvent(dirty_signal_debounced(), {
+      current <- .normalize_for_diff(dirty_signal_debounced())
+      snap <- .normalize_for_diff(shiny::isolate(loaded_snapshot()))
+      if (!is.null(snap) && !is.null(shiny::isolate(loaded_label())) && !isTRUE(all.equal(current, snap))) {
         loaded_label(NULL)
         loaded_snapshot(NULL)
       }
-    })
+    }, ignoreInit = TRUE)
 
     # -- Save flow ----------------------------------------------------------
     shiny::observeEvent(input$save_click, {
