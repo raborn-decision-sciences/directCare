@@ -39,10 +39,20 @@ mod_upload_ui <- function(id) {
 #' @param id Module namespace ID.
 #' @param r Shared `reactiveValues` object from `app_server`.
 #' @param parent_session The top-level Shiny session for cross-tab navigation.
+#' @param demo_mode Reactive (`reactiveVal`) from `app_server`, `TRUE` for a
+#'   demo session. `NULL` (the default) is treated as always-`FALSE`, for
+#'   test harnesses that don't set up demo mode at all.
+#' @return A list of reactives for `app_server` to observe: `tour_historical_click`,
+#'   `tour_plan_click`, `tour_calculator_click` -- one per landing-page
+#'   "Take the tour" link (see `.tour_launch()` callers in `app_server.R`).
 #' @noRd
-mod_upload_server <- function(id, r, parent_session = NULL) {
+mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+
+    # Normalize a missing demo_mode (test harnesses) to an always-FALSE
+    # reactive, so `demo_mode()` is always safe to call below.
+    demo_mode <- demo_mode %||% reactiveVal(FALSE)
 
     # Which path the user has chosen: NULL | "upload" | "manual"
     path_chosen <- reactiveVal(NULL)
@@ -104,6 +114,11 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 "Use Bookkeeping Data",
                 icon = bs_icon("upload"),
                 class = "btn-primary w-100"
+              ),
+              actionLink(
+                ns("tour_historical"),
+                tagList(bs_icon("play-circle"), " Take the tour"),
+                class = "d-block text-center small text-muted mt-2"
               )
             )
           ),
@@ -129,6 +144,11 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 "Start Planning",
                 icon = bs_icon("pencil"),
                 class = "btn-outline-primary w-100"
+              ),
+              actionLink(
+                ns("tour_plan"),
+                tagList(bs_icon("play-circle"), " Take the tour"),
+                class = "d-block text-center small text-muted mt-2"
               )
             )
           ),
@@ -154,6 +174,11 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
                 "Open Calculator",
                 icon = bs_icon("calculator"),
                 class = "btn-outline-secondary w-100"
+              ),
+              actionLink(
+                ns("tour_calculator"),
+                tagList(bs_icon("play-circle"), " Take the tour"),
+                class = "d-block text-center small text-muted mt-2"
               )
             )
           )
@@ -393,8 +418,34 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
     }
 
     # -- Path selection handlers --------------------------------------------
+    # In demo mode, "Use Real Data" skips the file-input mechanics entirely
+    # -- there's no real bookkeeping file to browse for, so loading the
+    # bundled sample transactions directly and landing on Edit (mirroring
+    # what a real upload's own "Next" button already does) is both simpler
+    # and closes off the file-input/manual-entry paths as a side effect,
+    # since path_chosen("upload") -- the only place either of those render
+    # -- is never reached for a demo session. See utils_demo.R's
+    # .load_demo_data() and app_server.R's demo-mode-aware tour-advance
+    # right after this input's id for the tour-side half of this change.
     observeEvent(input$btn_use_real, {
-      path_chosen("upload")
+      if (isTRUE(demo_mode())) {
+        .load_demo_data(r)
+        # Explains the skip explicitly -- without this, clicking "Use
+        # Bookkeeping Data" and landing directly on Review & Edit (no file
+        # picker in between) reads as a bug rather than a deliberate demo
+        # shortcut.
+        showNotification(
+          paste0(
+            "Demo mode: loaded sample bookkeeping data for you — ",
+            "browsing your own file isn't available in demo mode."
+          ),
+          type = "message",
+          duration = 6
+        )
+        updateNavbarPage(parent_session %||% session, "main_nav", selected = "edit")
+      } else {
+        path_chosen("upload")
+      }
     })
 
     observeEvent(input$btn_use_plan, {
@@ -864,6 +915,18 @@ mod_upload_server <- function(id, r, parent_session = NULL) {
           selection = "none"
         )
     })
+
+    # -- Landing-page tour links: returned for app_server.R to observe -------
+    # (in addition to the existing Help-modal tour buttons) -- app_server.R
+    # owns .tour_launch()/the guide objects, not this module, so these are
+    # plain click-count reactives for the caller to react to, matching the
+    # existing calculator_result()/manual_result() sub-module return pattern
+    # already used elsewhere in this file.
+    list(
+      tour_historical_click = reactive(input$tour_historical),
+      tour_plan_click = reactive(input$tour_plan),
+      tour_calculator_click = reactive(input$tour_calculator)
+    )
   })
 }
 

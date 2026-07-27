@@ -337,11 +337,16 @@ app_server <- function(input, output, session, res_auth = NULL) {
     }
   })
 
-  # Fires once, only for demo sessions. Populates `r` the same way a real
-  # GnuCash CSV upload would (.load_demo_data(), utils_demo.R), then lands
-  # on the Edit tab, matching mod_upload.R's own post-upload destination --
-  # so a demo session looks exactly like "I just uploaded a CSV," not a
-  # special-cased shortcut.
+  # Fires once, only for demo sessions. Sets only the demo practice's
+  # identity (name/id) -- NOT its sample transactions -- so the landing
+  # page shows a practice name immediately, but the session otherwise lands
+  # on the Upload tab's normal workflow-selection screen (the default first
+  # tab) exactly like a brand-new real account would, rather than jumping
+  # straight past it. Historical Data's sample transactions are loaded
+  # later, only if the user actually clicks "Use Real Data"
+  # (mod_upload.R's `btn_use_real` handler) -- mirroring how Plan My
+  # Practice/Quick Calculator already only populate their own data once
+  # their own button is clicked, not eagerly here.
   #
   # Deliberately not ignoreInit = TRUE: the observe() above (which sets
   # demo_mode(TRUE)) runs in the same initial flush as this observer's own
@@ -356,10 +361,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # ordering.
   observeEvent(demo_mode(), {
     req(demo_mode())
-    .load_demo_data(r)
-    session$onFlushed(function() {
-      updateNavbarPage(session, "main_nav", selected = "edit")
-    }, once = TRUE)
+    .load_demo_identity(r)
   })
 
   # -- Brand-click: return to Upload tab (navigation only, no data reset) -------
@@ -573,9 +575,22 @@ app_server <- function(input, output, session, res_auth = NULL) {
 
   # -- Historical Data: h1 (Upload cards) -> h2 (upload form) -> h3 (mapping
   # results) -> h4 (Review & Edit) -> h5 (Summary) -> shared Projections tail.
+  #
+  # In demo mode, clicking "Use Real Data" skips the file-input mechanics
+  # entirely -- mod_upload.R's `btn_use_real` handler loads the bundled
+  # sample transactions directly and jumps to the Edit tab (see that
+  # handler's own comment) -- so h2 (file input) and h3 (mapping results)
+  # never render for a demo session; jump straight to h4 instead, matching
+  # what actually happens on screen.
   observeEvent(
     input[["upload-btn_use_real"]],
-    .tour_advance("historical", guide_h2),
+    {
+      if (isTRUE(demo_mode())) {
+        .tour_advance("historical", guide_h4)
+      } else {
+        .tour_advance("historical", guide_h2)
+      }
+    },
     ignoreInit = TRUE
   )
   # Both of h2's steps (csv_file, btn_upload) coexist in the same static
@@ -965,7 +980,35 @@ app_server <- function(input, output, session, res_auth = NULL) {
   )
 
   # -- Module wiring ----------------------------------------------------------
-  mod_upload_server("upload", r, parent_session = session)
+  upload_result <- mod_upload_server(
+    "upload",
+    r,
+    parent_session = session,
+    demo_mode = demo_mode
+  )
+
+  # Tour links on the landing page's own 3 cards (see mod_upload.R), in
+  # addition to the existing Help-modal buttons above -- same .tour_launch()
+  # either way.
+  observeEvent(
+    upload_result$tour_historical_click(),
+    .tour_launch("historical", guide_h1),
+    ignoreInit = TRUE,
+    ignoreNULL = TRUE
+  )
+  observeEvent(
+    upload_result$tour_plan_click(),
+    .tour_launch("plan", guide_p1),
+    ignoreInit = TRUE,
+    ignoreNULL = TRUE
+  )
+  observeEvent(
+    upload_result$tour_calculator_click(),
+    .tour_launch("calculator", guide_c1),
+    ignoreInit = TRUE,
+    ignoreNULL = TRUE
+  )
+
   mod_edit_server("edit", r, parent_session = session)
   mod_summary_server("summary", r, parent_session = session)
   mod_projections_server("projections", r, parent_session = session)

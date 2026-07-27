@@ -5,13 +5,27 @@
 # (ingest -> filter/normalize -> summarize) exactly, so demo sessions exercise
 # the real data pipeline rather than a hand-built stub.
 
+#' Set the demo practice's identity, independent of any workflow data
+#'
+#' Split out from `.load_demo_data()` so the landing page can show a
+#' practice name immediately when a demo session starts, without also
+#' eagerly loading the Historical Data workflow's sample transactions --
+#' those are now only loaded once the user actually engages that specific
+#' workflow (see `mod_upload.R`'s `btn_use_real` handler).
+#'
+#' @param r Shared `reactiveValues` object from `app_server()`.
+#' @noRd
+.load_demo_identity <- function(r) {
+  r$practice_id <- "riverside-demo"
+  r$practice_name <- "Riverside Direct Care (Demo)"
+}
+
 #' Populate shared state with the bundled demo dataset
 #'
 #' @param r Shared `reactiveValues` object from `app_server()`.
 #' @noRd
 .load_demo_data <- function(r) {
-  r$practice_id <- "riverside-demo"
-  r$practice_name <- "Riverside Direct Care (Demo)"
+  .load_demo_identity(r)
 
   csv_path <- system.file(
     "extdata",
