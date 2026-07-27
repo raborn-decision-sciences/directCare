@@ -14,6 +14,7 @@ mod_plan_inputs_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
+    directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
     layout_columns(
       col_widths = c(6, 6),
       fill = FALSE,
@@ -147,7 +148,8 @@ mod_plan_inputs_ui <- function(id) {
       )
     ),
     div(
-      class = "d-flex justify-content-end mt-3 mb-4",
+      class = "d-flex justify-content-between align-items-center mt-3 mb-4 flex-wrap gap-2",
+      directCareScenarios::mod_scenario_slots_ui(ns("scenario")),
       input_task_button(ns("submit"), "Build My Plan", icon = bsicons::bs_icon("arrow-right-circle"))
     ),
     .branded_footer()
@@ -173,21 +175,54 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       if (length(v) != 1L || !is.finite(v)) 0 else v
     }
 
-    overhead_total_r <- reactive({
-      if (identical(input$overhead_mode, "single")) {
-        .nn0(input$overhead_monthly)
+    # Pulled out of overhead_total_r()/runway_total_r() so .build_plan() can
+    # also call them against a plain list (a just-loaded scenario's saved
+    # inputs) instead of the live `input` -- see .build_plan()'s `values`
+    # argument below for why that distinction matters.
+    .overhead_total_from <- function(vals) {
+      if (identical(vals$overhead_mode, "single")) {
+        .nn0(vals$overhead_monthly)
       } else {
         sum(
           c(
-            .nn0(input$overhead_rent),
-            .nn0(input$overhead_staff),
-            .nn0(input$overhead_ehr),
-            .nn0(input$overhead_malpractice),
-            .nn0(input$overhead_supplies),
-            .nn0(input$overhead_other)
+            .nn0(vals$overhead_rent),
+            .nn0(vals$overhead_staff),
+            .nn0(vals$overhead_ehr),
+            .nn0(vals$overhead_malpractice),
+            .nn0(vals$overhead_supplies),
+            .nn0(vals$overhead_other)
           )
         )
       }
+    }
+    .runway_total_from <- function(vals) {
+      if (identical(vals$runway_mode, "single")) {
+        .nn0(vals$monthly_expenses)
+      } else {
+        sum(
+          c(
+            .nn0(vals$runway_housing),
+            .nn0(vals$runway_utilities),
+            .nn0(vals$runway_food),
+            .nn0(vals$runway_insurance),
+            .nn0(vals$runway_debt),
+            .nn0(vals$runway_other)
+          )
+        )
+      }
+    }
+
+    overhead_total_r <- reactive({
+      .overhead_total_from(list(
+        overhead_mode = input$overhead_mode,
+        overhead_monthly = input$overhead_monthly,
+        overhead_rent = input$overhead_rent,
+        overhead_staff = input$overhead_staff,
+        overhead_ehr = input$overhead_ehr,
+        overhead_malpractice = input$overhead_malpractice,
+        overhead_supplies = input$overhead_supplies,
+        overhead_other = input$overhead_other
+      ))
     })
 
     output$overhead_total_ui <- renderUI({
@@ -198,20 +233,16 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
     })
 
     runway_total_r <- reactive({
-      if (identical(input$runway_mode, "single")) {
-        .nn0(input$monthly_expenses)
-      } else {
-        sum(
-          c(
-            .nn0(input$runway_housing),
-            .nn0(input$runway_utilities),
-            .nn0(input$runway_food),
-            .nn0(input$runway_insurance),
-            .nn0(input$runway_debt),
-            .nn0(input$runway_other)
-          )
-        )
-      }
+      .runway_total_from(list(
+        runway_mode = input$runway_mode,
+        monthly_expenses = input$monthly_expenses,
+        runway_housing = input$runway_housing,
+        runway_utilities = input$runway_utilities,
+        runway_food = input$runway_food,
+        runway_insurance = input$runway_insurance,
+        runway_debt = input$runway_debt,
+        runway_other = input$runway_other
+      ))
     })
 
     output$runway_total_ui <- renderUI({
@@ -221,8 +252,28 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       )
     })
 
-    observeEvent(input$submit, {
-      zip <- trimws(input$zip)
+    # Extracted from the submit button's own observer so a loaded scenario
+    # (see the saved-scenario wiring below) can re-run the exact same
+    # pipeline against its restored inputs, without duplicating this logic.
+    # Planner scenarios save inputs only, not a results snapshot (unlike
+    # DCA's forecast scenarios) -- see SAVED_SCENARIOS.md -- so loading one
+    # always means "recompute from these inputs," exactly what this
+    # function already does for a live submission.
+    #
+    # `values`, when supplied, is a plain named list (the exact shape
+    # plan_inputs_for_save() produces) used instead of reading `input$x`.
+    # This is what a scenario load passes in -- reading `input$x` right
+    # after update*Input() calls would race the client: those calls only
+    # take effect once the browser echoes the new value back over the
+    # websocket, and session$onFlushed() fires on the *server's* own flush,
+    # well before that round trip completes (confirmed live: without this,
+    # a loaded scenario silently recomputed against the stale/default
+    # input values instead of the ones just loaded). Passing the freshly
+    # loaded list directly sidesteps the race instead of racing it.
+    .build_plan <- function(switch_tab = TRUE, values = NULL) {
+      iv <- function(name) if (!is.null(values)) values[[name]] else input[[name]]
+
+      zip <- trimws(iv("zip"))
       if (!grepl("^[0-9]{5}$", zip)) {
         showNotification("Enter a 5-digit ZIP code.", type = "error", duration = 8)
         return(invisible(NULL))
@@ -240,54 +291,56 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         return(invisible(NULL))
       }
 
-      membership_args <- if (isTRUE(input$include_membership)) {
+      membership_args <- if (isTRUE(iv("include_membership"))) {
         list(
-          panel_size = input$panel_size,
-          fee = input$fee,
-          ramp_months = input$ramp_months,
-          ramp_shape = input$ramp_shape
+          panel_size = iv("panel_size"),
+          fee = iv("fee"),
+          ramp_months = iv("ramp_months"),
+          ramp_shape = iv("ramp_shape")
         )
       }
-      fee_args <- if (isTRUE(input$include_fee)) {
+      fee_args <- if (isTRUE(iv("include_fee"))) {
         list(
-          visit_volume = input$visit_volume,
-          new_visit_fee = input$new_visit_fee,
-          follow_up_fee = input$follow_up_fee,
-          new_visit_pct = input$new_visit_pct / 100
+          visit_volume = iv("visit_volume"),
+          new_visit_fee = iv("new_visit_fee"),
+          follow_up_fee = iv("follow_up_fee"),
+          new_visit_pct = iv("new_visit_pct") / 100
         )
       }
 
       revenue <- run_plan(
-        directCarePlanR::calc_mixed_revenue(membership_args, fee_args, horizon_months = input$horizon_months)
+        directCarePlanR::calc_mixed_revenue(membership_args, fee_args, horizon_months = iv("horizon_months"))
       )
       if (is.null(revenue)) {
         return(invisible(NULL))
       }
 
+      overhead_monthly <- if (!is.null(values)) .overhead_total_from(values) else overhead_total_r()
       assumptions <- list(
         membership_args = membership_args,
         fee_args = fee_args,
-        overhead_monthly = overhead_total_r(),
-        overhead_growth_rate = input$overhead_growth_rate / 100
+        overhead_monthly = overhead_monthly,
+        overhead_growth_rate = iv("overhead_growth_rate") / 100
       )
-      projections <- run_plan(directCarePlanR::project_scenarios(assumptions, horizon_months = input$horizon_months))
+      projections <- run_plan(directCarePlanR::project_scenarios(assumptions, horizon_months = iv("horizon_months")))
       if (is.null(projections)) {
         return(invisible(NULL))
       }
 
-      startup_costs <- if (identical(input$startup_mode, "single")) {
-        run_plan(directCarePlanR::calc_startup_costs(c(total = input$cost_total)))
+      startup_costs <- if (identical(iv("startup_mode"), "single")) {
+        run_plan(directCarePlanR::calc_startup_costs(c(total = iv("cost_total"))))
       } else {
         run_plan(directCarePlanR::calc_startup_costs(c(
-          ehr_setup = input$cost_ehr,
-          equipment = input$cost_equipment,
-          licensing = input$cost_licensing,
-          marketing = input$cost_marketing,
-          other = input$cost_other
+          ehr_setup = iv("cost_ehr"),
+          equipment = iv("cost_equipment"),
+          licensing = iv("cost_licensing"),
+          marketing = iv("cost_marketing"),
+          other = iv("cost_other")
         )))
       }
+      runway_monthly <- if (!is.null(values)) .runway_total_from(values) else runway_total_r()
       personal_runway <- run_plan(
-        directCarePlanR::calc_personal_runway(runway_total_r(), input$months_coverage)
+        directCarePlanR::calc_personal_runway(runway_monthly, iv("months_coverage"))
       )
       if (is.null(startup_costs) || is.null(personal_runway)) {
         return(invisible(NULL))
@@ -302,14 +355,126 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       # r$practice_name is not set here -- it's sourced once from
       # res_auth in app_server.R (the logged-in account's practice name),
       # not re-derived per submission.
-      r$horizon_months <- input$horizon_months
+      r$horizon_months <- iv("horizon_months")
       r$market_context <- market_context
       r$revenue <- revenue
       r$projections <- projections
       r$capital <- list(startup_costs = startup_costs, personal_runway = personal_runway)
       r$interpretations <- interpretations
 
-      updateNavbarPage(parent_session %||% session, "main_nav", selected = "results")
+      if (switch_tab) {
+        updateNavbarPage(parent_session %||% session, "main_nav", selected = "results")
+      }
+    }
+
+    observeEvent(input$submit, {
+      .build_plan()
     })
+
+    # -- Saved scenario slots (plan_scenarios) ---------------------------------
+    plan_inputs_for_save <- function() {
+      list(
+        zip = input$zip,
+        overhead_mode = input$overhead_mode,
+        overhead_monthly = input$overhead_monthly,
+        overhead_rent = input$overhead_rent,
+        overhead_staff = input$overhead_staff,
+        overhead_ehr = input$overhead_ehr,
+        overhead_malpractice = input$overhead_malpractice,
+        overhead_supplies = input$overhead_supplies,
+        overhead_other = input$overhead_other,
+        include_membership = isTRUE(input$include_membership),
+        panel_size = input$panel_size,
+        fee = input$fee,
+        ramp_months = input$ramp_months,
+        ramp_shape = input$ramp_shape,
+        include_fee = isTRUE(input$include_fee),
+        visit_volume = input$visit_volume,
+        new_visit_fee = input$new_visit_fee,
+        follow_up_fee = input$follow_up_fee,
+        new_visit_pct = input$new_visit_pct,
+        startup_mode = input$startup_mode,
+        cost_total = input$cost_total,
+        cost_ehr = input$cost_ehr,
+        cost_equipment = input$cost_equipment,
+        cost_licensing = input$cost_licensing,
+        cost_marketing = input$cost_marketing,
+        cost_other = input$cost_other,
+        runway_mode = input$runway_mode,
+        monthly_expenses = input$monthly_expenses,
+        runway_housing = input$runway_housing,
+        runway_utilities = input$runway_utilities,
+        runway_food = input$runway_food,
+        runway_insurance = input$runway_insurance,
+        runway_debt = input$runway_debt,
+        runway_other = input$runway_other,
+        months_coverage = input$months_coverage,
+        horizon_months = input$horizon_months,
+        overhead_growth_rate = input$overhead_growth_rate
+      )
+    }
+
+    directCareScenarios::mod_scenario_slots_server(
+      "scenario",
+      table = "plan_scenarios",
+      get_con = directCareAuth::db_connect,
+      practice_id = function() r$practice_id,
+      get_inputs_for_save = plan_inputs_for_save,
+      get_dirty_signal = plan_inputs_for_save,
+      on_load = function(inputs) {
+        updateTextInput(session, "zip", value = inputs$zip)
+        updateRadioButtons(session, "overhead_mode", selected = inputs$overhead_mode)
+        updateNumericInput(session, "overhead_monthly", value = inputs$overhead_monthly)
+        updateNumericInput(session, "overhead_rent", value = inputs$overhead_rent)
+        updateNumericInput(session, "overhead_staff", value = inputs$overhead_staff)
+        updateNumericInput(session, "overhead_ehr", value = inputs$overhead_ehr)
+        updateNumericInput(session, "overhead_malpractice", value = inputs$overhead_malpractice)
+        updateNumericInput(session, "overhead_supplies", value = inputs$overhead_supplies)
+        updateNumericInput(session, "overhead_other", value = inputs$overhead_other)
+        updateCheckboxInput(session, "include_membership", value = isTRUE(inputs$include_membership))
+        updateNumericInput(session, "panel_size", value = inputs$panel_size)
+        updateNumericInput(session, "fee", value = inputs$fee)
+        updateNumericInput(session, "ramp_months", value = inputs$ramp_months)
+        updateSelectInput(session, "ramp_shape", selected = inputs$ramp_shape)
+        updateCheckboxInput(session, "include_fee", value = isTRUE(inputs$include_fee))
+        updateNumericInput(session, "visit_volume", value = inputs$visit_volume)
+        updateNumericInput(session, "new_visit_fee", value = inputs$new_visit_fee)
+        updateNumericInput(session, "follow_up_fee", value = inputs$follow_up_fee)
+        updateNumericInput(session, "new_visit_pct", value = inputs$new_visit_pct)
+        updateRadioButtons(session, "startup_mode", selected = inputs$startup_mode)
+        updateNumericInput(session, "cost_total", value = inputs$cost_total)
+        updateNumericInput(session, "cost_ehr", value = inputs$cost_ehr)
+        updateNumericInput(session, "cost_equipment", value = inputs$cost_equipment)
+        updateNumericInput(session, "cost_licensing", value = inputs$cost_licensing)
+        updateNumericInput(session, "cost_marketing", value = inputs$cost_marketing)
+        updateNumericInput(session, "cost_other", value = inputs$cost_other)
+        updateRadioButtons(session, "runway_mode", selected = inputs$runway_mode)
+        updateNumericInput(session, "monthly_expenses", value = inputs$monthly_expenses)
+        updateNumericInput(session, "runway_housing", value = inputs$runway_housing)
+        updateNumericInput(session, "runway_utilities", value = inputs$runway_utilities)
+        updateNumericInput(session, "runway_food", value = inputs$runway_food)
+        updateNumericInput(session, "runway_insurance", value = inputs$runway_insurance)
+        updateNumericInput(session, "runway_debt", value = inputs$runway_debt)
+        updateNumericInput(session, "runway_other", value = inputs$runway_other)
+        updateNumericInput(session, "months_coverage", value = inputs$months_coverage)
+        updateNumericInput(session, "horizon_months", value = inputs$horizon_months)
+        updateNumericInput(session, "overhead_growth_rate", value = inputs$overhead_growth_rate)
+
+        # The update*Input() calls above are for visual sync only (so the
+        # form reflects what was loaded) -- they do NOT feed the
+        # recompute below. `input$x` won't reflect any of them until the
+        # client echoes the new values back over the websocket, and
+        # there's no server-side hook (session$onFlushed() included) that
+        # waits for that round trip; it only fires once the server's own
+        # reactive flush completes. Waiting on it previously caused a
+        # loaded scenario to silently recompute against the stale/default
+        # input values instead of the ones just loaded (confirmed live:
+        # loading a saved "10001" ZIP still showed the default 30309's
+        # market context). Passing `inputs` straight into .build_plan()
+        # sidesteps the race entirely -- it's already the exact values
+        # that were just saved, no DOM round trip required.
+        .build_plan(switch_tab = FALSE, values = inputs)
+      }
+    )
   })
 }

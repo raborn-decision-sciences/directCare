@@ -202,6 +202,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # directCareAnalytics's convention.
   r <- reactiveValues(
     practice_name = NULL, # sourced from res_auth below, not by mod_plan_inputs
+    # Added for saved-scenario slots (plan_scenarios, keyed by practice_id
+    # like every other table in this schema) -- previously this app had no
+    # such field at all, since it never tags its own market_context/
+    # revenue/projections rows with one the way DCA's data-ingest pipeline
+    # does. Sourced from res_auth below, same as practice_name.
+    practice_id = NULL,
     horizon_months = NULL,
     market_context = NULL, # dcPlanR_market_context, from build_market_context()
     revenue = NULL, # dcPlanR_revenue, from calc_mixed_revenue()
@@ -223,12 +229,11 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # asynchronously, once its own internal token check resolves after login
   # -- so this needs a reactive dependency on res_auth$practice_name to
   # correctly re-fire once it actually appears. Matches
-  # directCareAnalytics's identical pattern (which also sources
-  # practice_id -- this app has no such field, since it never tags rows
-  # with one the way DCA's data-ingest pipeline does).
+  # directCareAnalytics's identical pattern.
   observe({
     req(res_auth)
     r$practice_name <- res_auth$practice_name
+    r$practice_id <- res_auth$practice_id
   })
 
   mod_plan_inputs_server("plan_inputs", r, parent_session = session)
