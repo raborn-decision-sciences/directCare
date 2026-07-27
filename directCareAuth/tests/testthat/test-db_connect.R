@@ -29,6 +29,7 @@ test_that("db_connect prefers DB_PASSWORD_FILE over DB_PASSWORD when set", {
   expect_equal(captured$port, 5433L)
   expect_equal(captured$dbname, "test-db")
   expect_equal(captured$user, "test-user")
+  expect_equal(captured$sslmode, "disable")
 })
 
 test_that("db_connect falls back to DB_PASSWORD and defaults when unset", {
