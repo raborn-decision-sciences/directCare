@@ -27,7 +27,8 @@ mod_upload_ui <- function(id) {
       tags$img(
         src = "www/logo-rds-alt.svg",
         height = "36px",
-        alt = "Raborn Decision Sciences"
+        alt = "Raborn Decision Sciences",
+        class = "footer-logo"
       )
     )
   )

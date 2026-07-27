@@ -221,3 +221,12 @@ code {
   background-color: var(--rds-white);
   color: #CBD5E1;
 }
+
+/* Upload tab's footer logo (mod_upload.R) is a fixed dark-navy SVG with no
+   dark-mode variant -- brightness(0) flattens it to solid black regardless
+   of its original colors, then invert(1) flips that to white, so it reads
+   as a soft light watermark against the dark background (parent div's own
+   opacity: 0.55 already keeps it subtle in both modes). */
+[data-bs-theme="dark"] .footer-logo {
+  filter: brightness(0) invert(1);
+}
