@@ -233,11 +233,14 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
               hr(),
               uiOutput(ns("upload_controls")),
               hr(),
-              actionButton(
-                ns("btn_back"),
-                "Back",
-                icon = bs_icon("arrow-left"),
-                class = "btn-outline-secondary btn-sm w-100"
+              .tour_nav_footer(
+                current_step = 1L,
+                back = actionButton(
+                  ns("btn_back"),
+                  "Back",
+                  icon = bs_icon("arrow-left"),
+                  class = "btn-outline-secondary"
+                )
               )
             )
           ),

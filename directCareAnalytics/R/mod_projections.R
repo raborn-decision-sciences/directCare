@@ -211,13 +211,10 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             icon = bsicons::bs_icon("play-fill"),
             class = "btn-primary w-100"
           ),
-          uiOutput(ns("download_ui")),
-          hr(),
-          actionButton(
-            ns("btn_back_to_summary"),
-            tagList(bs_icon("arrow-left"), " Back to Summary"),
-            class = "btn-outline-secondary w-100"
-          )
+          uiOutput(ns("download_ui"))
+          # Back navigation moves to the shared sticky footer below (see
+          # .tour_nav_footer()) -- kept out of the sidebar to avoid showing
+          # two Back controls at once.
         ),
 
         # -- Main area: forecast sub-tabs -----------------------------------
@@ -237,6 +234,14 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             "Income Target",
             value = "target",
             uiOutput(ns("target_ui"))
+          )
+        ),
+        .tour_nav_footer(
+          current_step = 4L,
+          back = actionButton(
+            ns("btn_back_to_summary"),
+            tagList(bs_icon("arrow-left"), " Back to Summary"),
+            class = "btn-outline-secondary"
           )
         )
       )

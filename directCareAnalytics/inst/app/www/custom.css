@@ -230,3 +230,72 @@ code {
 [data-bs-theme="dark"] .footer-logo {
   filter: brightness(0) invert(1);
 }
+
+/* ── Tab-navigation footer (Back/Next + step indicator) ─────────────────── */
+/* position: sticky (not fixed): each tab module renders its own copy of
+   this footer at the end of its own content (mod_upload.R/mod_edit.R/
+   mod_summary.R/mod_projections.R via .tour_nav_footer(), R/
+   utils_nav_footer.R) -- sticky keeps it pinned to the bottom of the
+   viewport while that content scrolls, without needing to reserve space
+   out of bslib's fill-height layout budget the way position: fixed would
+   (no padding-compensation hacks needed on Summary's expandable plots or
+   scrolling DT tables), and without competing for z-index against
+   full_screen card overlays -- those simply cover it while expanded, which
+   is fine since navigating tabs mid-full-screen-chart isn't an expected
+   use case. */
+.tour-nav-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 0.6rem 1rem;
+  background-color: var(--rds-white);
+  border-top: 1px solid var(--rds-border);
+  box-shadow: 0 -2px 8px rgba(23, 32, 51, 0.06);
+}
+
+.tour-nav-footer-steps {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.tour-nav-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--rds-gray);
+  opacity: 0.55;
+}
+
+.tour-nav-step-complete {
+  color: var(--rds-teal-dark);
+  opacity: 1;
+}
+
+.tour-nav-step-current {
+  color: var(--rds-navy);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.tour-nav-footer-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+[data-bs-theme="dark"] .tour-nav-footer {
+  background-color: var(--rds-white);
+  border-top-color: var(--rds-border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.35);
+}
+
+[data-bs-theme="dark"] .tour-nav-step-current {
+  color: #f8fafc;
+}

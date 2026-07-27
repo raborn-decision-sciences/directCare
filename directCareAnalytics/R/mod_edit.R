@@ -1077,16 +1077,16 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
             )
           )
         ),
-        div(
-          class = "d-flex justify-content-between mt-3",
-          actionButton(
+        .tour_nav_footer(
+          current_step = 2L,
+          back = actionButton(
             ns("btn_back_to_upload"),
             tagList(bs_icon("arrow-left"), " Back"),
             class = "btn-outline-secondary"
           ),
-          actionButton(
+          forward = actionButton(
             ns("btn_next_to_summary"),
-            tagList(bs_icon("bar-chart-line"), " Next: Summary"),
+            tagList(bs_icon("bar-chart-line"), " Next: Summary ", bs_icon("arrow-right")),
             class = "btn-primary"
           )
         )
