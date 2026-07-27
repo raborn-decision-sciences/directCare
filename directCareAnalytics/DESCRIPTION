@@ -18,6 +18,7 @@ Imports:
     DBI,
     directCareAuth,
     directCareForecastR,
+    directCareScenarios,
     dplyr,
     DT,
     ggplot2,
@@ -46,4 +47,5 @@ Encoding: UTF-8
 Config/roxygen2/version: 8.0.0
 Remotes:
     raborn-decision-sciences/directCare/directCareAuth,
-    raborn-decision-sciences/directCare/directCareForecastR
+    raborn-decision-sciences/directCare/directCareForecastR,
+    raborn-decision-sciences/directCare/directCareScenarios

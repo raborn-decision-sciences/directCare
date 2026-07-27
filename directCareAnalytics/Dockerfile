@@ -8,6 +8,10 @@ COPY directCareForecastR /tmp/directCareForecastR
 RUN R -e "install.packages('/tmp/directCareForecastR', repos = NULL, type = 'source')" \
     && rm -rf /tmp/directCareForecastR
 
+COPY directCareScenarios /tmp/directCareScenarios
+RUN R -e "install.packages('/tmp/directCareScenarios', repos = NULL, type = 'source')" \
+    && rm -rf /tmp/directCareScenarios
+
 COPY directCareAnalytics /app
 WORKDIR /app
 RUN R -e "install.packages('.', repos = NULL, type = 'source')"

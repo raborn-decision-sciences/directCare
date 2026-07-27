@@ -18,6 +18,7 @@ Imports:
     DBI,
     directCareAuth,
     directCarePlanR,
+    directCareScenarios,
     DT,
     ggplot2,
     golem (>= 0.5.1),
@@ -36,4 +37,5 @@ Config/roxygen2/version: 8.0.0
 Remotes:
     raborn-decision-sciences/directCare/directCareAuth,
     raborn-decision-sciences/directCare/directCareData,
-    raborn-decision-sciences/directCare/directCarePlanR
+    raborn-decision-sciences/directCare/directCarePlanR,
+    raborn-decision-sciences/directCare/directCareScenarios

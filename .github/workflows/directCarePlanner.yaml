@@ -1,11 +1,11 @@
-# Workflow for directCarePlanner: a Golem Shiny app that depends on two
-# sibling packages in this same monorepo, directCareData and
-# directCarePlanR, both declared via `Remotes:` GitHub references in
+# Workflow for directCarePlanner: a Golem Shiny app that depends on three
+# sibling packages in this same monorepo, directCareData, directCarePlanR,
+# and directCareScenarios, all declared via `Remotes:` GitHub references in
 # DESCRIPTION. As with directCarePlanR.yaml, `pak` (used internally by
 # r-lib/actions/setup-r-dependencies) cannot resolve a local sibling
 # package when solving "local::." -- same confirmed limitation, same
-# workaround: skip pak-based dependency resolution entirely. Install both
-# sibling packages locally via `R CMD INSTALL`, install
+# workaround: skip pak-based dependency resolution entirely. Install all
+# three sibling packages locally via `R CMD INSTALL`, install
 # directCarePlanner's own CRAN dependencies via plain `install.packages()`,
 # and run `rcmdcheck::rcmdcheck()` directly.
 #
@@ -16,10 +16,10 @@
 on:
   push:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   pull_request:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   workflow_dispatch: {}
 
 name: directCarePlanner.yaml
@@ -41,10 +41,11 @@ jobs:
         run: |
           Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble"))'
 
-      - name: Install local directCareData and directCarePlanR
+      - name: Install local directCareData, directCarePlanR, and directCareScenarios
         run: |
           R CMD INSTALL directCareData
           R CMD INSTALL directCarePlanR
+          R CMD INSTALL directCareScenarios
 
       - name: Install directCarePlanner's own dependencies
         run: |
