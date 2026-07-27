@@ -9,6 +9,7 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
     .package = "directCareAuth")
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) FALSE,
+    auth_is_locked_out_by_ip = function(con, ip) FALSE,
     practice_find_by_email = function(con, email) {
       data.frame(
         id = 1L,
@@ -25,7 +26,7 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
   local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
   local_mocked_bindings(checkpw = function(password, hash) TRUE, .package = "bcrypt")
 
-  result <- check_credentials_db("doc@example.com", "correct-password")
+  result <- check_credentials_db("doc@example.com", "correct-password", ip = "203.0.113.7")
 
   expect_true(result$result)
   expect_equal(result$user_info$practice_id, 1L)
@@ -34,12 +35,13 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
   expect_equal(result$user_info$address, "123 Main St")
 })
 
-test_that("check_credentials_db denies access on a wrong password and logs a failure", {
+test_that("check_credentials_db denies access on a wrong password and logs a failure with the ip", {
   local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   logged <- NULL
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) FALSE,
+    auth_is_locked_out_by_ip = function(con, ip) FALSE,
     practice_find_by_email = function(con, email) {
       data.frame(
         id = 1L, practice_name = "River DPC", email = "doc@example.com",
@@ -47,19 +49,21 @@ test_that("check_credentials_db denies access on a wrong password and logs a fai
         stringsAsFactors = FALSE
       )
     },
-    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA) {
-      logged <<- event_type
+    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA,
+                               ip_address = NA) {
+      logged <<- list(event_type = event_type, ip_address = ip_address)
     },
     .package = "directCareAuth"
   )
   local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
   local_mocked_bindings(checkpw = function(password, hash) FALSE, .package = "bcrypt")
 
-  result <- check_credentials_db("doc@example.com", "wrong-password")
+  result <- check_credentials_db("doc@example.com", "wrong-password", ip = "203.0.113.7")
 
   expect_false(result$result)
   expect_null(result$user_info)
-  expect_equal(logged, "login_failure")
+  expect_equal(logged$event_type, "login_failure")
+  expect_equal(logged$ip_address, "203.0.113.7")
 })
 
 test_that("check_credentials_db denies access for an unknown email without hashing", {
@@ -67,6 +71,7 @@ test_that("check_credentials_db denies access for an unknown email without hashi
     .package = "directCareAuth")
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) FALSE,
+    auth_is_locked_out_by_ip = function(con, ip) FALSE,
     practice_find_by_email = function(con, email) {
       data.frame(
         id = integer(0), practice_name = character(0), email = character(0),
@@ -89,14 +94,16 @@ test_that("check_credentials_db denies access for an unknown email without hashi
   expect_false(result$result)
 })
 
-test_that("check_credentials_db denies access when locked out, without querying the practice", {
+test_that("check_credentials_db denies access when locked out by email, without querying the practice", {
   local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   logged <- NULL
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) TRUE,
+    auth_is_locked_out_by_ip = function(con, ip) FALSE,
     practice_find_by_email = function(...) stop("practice_find_by_email() should not be called"),
-    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA) {
+    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA,
+                               ip_address = NA) {
       logged <<- event_type
     },
     .package = "directCareAuth"
@@ -107,4 +114,30 @@ test_that("check_credentials_db denies access when locked out, without querying 
 
   expect_false(result$result)
   expect_equal(logged, "login_locked_out")
+})
+
+test_that("check_credentials_db denies access when locked out by ip, without querying the practice", {
+  # The other half of the OR condition -- a spray attack across many
+  # emails from one IP, none of which individually trips the email-based
+  # lockout, should still be blocked.
+  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+    .package = "directCareAuth")
+  logged <- NULL
+  local_mocked_bindings(
+    auth_is_locked_out = function(con, email) FALSE,
+    auth_is_locked_out_by_ip = function(con, ip) TRUE,
+    practice_find_by_email = function(...) stop("practice_find_by_email() should not be called"),
+    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA,
+                               ip_address = NA) {
+      logged <<- list(event_type = event_type, ip_address = ip_address)
+    },
+    .package = "directCareAuth"
+  )
+  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+
+  result <- check_credentials_db("someone@example.com", "correct-password", ip = "203.0.113.7")
+
+  expect_false(result$result)
+  expect_equal(logged$event_type, "login_locked_out")
+  expect_equal(logged$ip_address, "203.0.113.7")
 })

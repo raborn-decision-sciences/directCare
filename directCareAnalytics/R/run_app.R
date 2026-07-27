@@ -123,7 +123,17 @@ run_app <- function(
       # reflects the websocket upgrade request, not the original page URL,
       # so it can't be read here.
       server = function(input, output, session) {
-        res_auth <- shinymanager::secure_server(check_credentials = check_credentials_db)
+        # Closure over `session` so check_credentials_db() can see the
+        # client IP for lockout purposes (see IP_LOGIN_LOCKOUT.md) --
+        # shinymanager calls this as a plain function(user, password), so
+        # capturing session via lexical scoping here is the only way to
+        # thread it through; check_credentials_db() itself has no session
+        # access.
+        res_auth <- shinymanager::secure_server(
+          check_credentials = function(user, password) {
+            check_credentials_db(user, password, ip = directCareAuth::extract_client_ip(session))
+          }
+        )
         app_server(input, output, session, res_auth = res_auth)
         mod_signup_server("signup")
         mod_password_reset_server("reset")

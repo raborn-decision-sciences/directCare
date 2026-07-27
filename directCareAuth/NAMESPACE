@@ -2,7 +2,9 @@
 
 export(auth_event_log)
 export(auth_is_locked_out)
+export(auth_is_locked_out_by_ip)
 export(db_connect)
+export(extract_client_ip)
 export(password_reset_consume)
 export(password_reset_is_rate_limited)
 export(password_reset_request)

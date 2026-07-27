@@ -9,7 +9,8 @@ auth_event_log(
   event_type,
   email = NA_character_,
   practice_id = NA_integer_,
-  detail = NA_character_
+  detail = NA_character_,
+  ip_address = NA_character_
 )
 }
 \arguments{
@@ -24,14 +25,20 @@ profile/password change looked up by \code{practice_id} only).}
 a failed login against an unrecognized email).}
 
 \item{detail}{Optional free-text detail.}
+
+\item{ip_address}{The client's IP, if known (see
+\code{\link[=extract_client_ip]{extract_client_ip()}}). Unset for events with no request context
+(e.g. a password change triggered from an already-authenticated
+session action, not a fresh login attempt).}
 }
 \value{
 \code{invisible(NULL)}.
 }
 \description{
-Backs both the login-lockout check (\code{\link[=auth_is_locked_out]{auth_is_locked_out()}}, which counts
-recent \code{"login_failure"} rows) and a plain audit trail of login/account
-activity. \code{event_type} is a free-form label; current callers use
-\code{"login_success"}, \code{"login_failure"}, \code{"login_locked_out"},
-\code{"password_change"}, and \code{"profile_update"}.
+Backs both the login-lockout checks (\code{\link[=auth_is_locked_out]{auth_is_locked_out()}} and
+\code{\link[=auth_is_locked_out_by_ip]{auth_is_locked_out_by_ip()}}, which count recent \code{"login_failure"} rows)
+and a plain audit trail of login/account activity. \code{event_type} is a
+free-form label; current callers use \code{"login_success"},
+\code{"login_failure"}, \code{"login_locked_out"}, \code{"password_change"}, and
+\code{"profile_update"}.
 }

@@ -17,7 +17,31 @@ test_that("auth_event_log inserts the given fields", {
   )
 
   expect_match(captured$statement, "INSERT INTO auth_events")
-  expect_equal(captured$params, list(1L, "doc@example.com", "login_success", NA_character_))
+  expect_equal(
+    captured$params,
+    list(1L, "doc@example.com", "login_success", NA_character_, NA_character_)
+  )
+})
+
+test_that("auth_event_log passes through a given ip_address", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbExecute = function(conn, statement, params) {
+      captured <<- params
+      1L
+    },
+    .package = "DBI"
+  )
+
+  auth_event_log(
+    "mock_con", event_type = "login_failure",
+    email = "doc@example.com", ip_address = "203.0.113.7"
+  )
+
+  expect_equal(
+    captured,
+    list(NA_integer_, "doc@example.com", "login_failure", NA_character_, "203.0.113.7")
+  )
 })
 
 test_that("auth_is_locked_out is FALSE below the failure threshold", {
@@ -51,4 +75,46 @@ test_that("auth_is_locked_out passes the configured window in minutes", {
   auth_is_locked_out("mock_con", "doc@example.com", max_attempts = 3, window_minutes = 30)
 
   expect_equal(captured, list("doc@example.com", 30L))
+})
+
+test_that("auth_is_locked_out_by_ip is FALSE when the IP is NA, without querying", {
+  local_mocked_bindings(
+    dbGetQuery = function(...) stop("dbGetQuery() should not be called for an NA IP"),
+    .package = "DBI"
+  )
+
+  expect_false(auth_is_locked_out_by_ip("mock_con", NA_character_))
+})
+
+test_that("auth_is_locked_out_by_ip is FALSE below the failure threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 19L),
+    .package = "DBI"
+  )
+
+  expect_false(auth_is_locked_out_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("auth_is_locked_out_by_ip is TRUE at or above the default 20-attempt threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 20L),
+    .package = "DBI"
+  )
+
+  expect_true(auth_is_locked_out_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("auth_is_locked_out_by_ip passes the ip and configured window", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- params
+      data.frame(n = 0L)
+    },
+    .package = "DBI"
+  )
+
+  auth_is_locked_out_by_ip("mock_con", "203.0.113.7", max_attempts = 10, window_minutes = 30)
+
+  expect_equal(captured, list("203.0.113.7", 30L))
 })
