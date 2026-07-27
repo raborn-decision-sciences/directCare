@@ -441,26 +441,20 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # shared chapters (Projections, reached by both the Historical Data and
   # Plan My Practice tours) to the right one.
   #
-  # A `later::later()` delay (not `session$onFlushed()`) gates every chapter
-  # switch: onFlushed only fires once, after the *current* reactive flush
-  # (e.g. the tab switch itself), but a tab's content here is a uiOutput()
-  # that Shiny suspends while hidden -- it only starts evaluating once the
-  # client reports the tab as visible, which lands in a *second*, later
-  # flush. onFlushed(once = TRUE) fired before that second flush completed,
-  # so the next chapter's `$init()` saw a DOM that still didn't have its
-  # target element (confirmed empirically: console logged "Element to
-  # highlight #edit-est_rent not found" immediately after clicking "Start
-  # Planning"). A 3-second delay clears that reliably; shorter delays (0.5s,
-  # 1s, 2s) worked for most transitions but silently failed reaching Projections
-  # specifically (its bslib::layout_sidebar() sidebar takes noticeably
-  # longer to finish its own JS-driven column-width layout pass than Edit's
-  # plain Quick Estimator form does) -- driver.js's own `canHighlight()`
-  # check (bundled driver.min.js) skips highlighting a still-zero-size
-  # element with *no* console warning at all, unlike the "not found"/"Invalid
-  # element" cases, which is what made that specific failure mode hard to
-  # tell apart from a logic bug. A fixed delay is blunter than tracking the
-  # exact flush properly, but is standard practice for this class of Shiny
-  # timing problem, and is imperceptible for a guided-tour transition.
+  # Every chapter switch is gated on a real client-side readiness signal, not
+  # a guessed delay: `.tour_wait_and_switch()` below asks the browser (via
+  # the `tourWaitForElement` custom message handler in app_ui.R) to poll for
+  # the next chapter's first target element actually having nonzero
+  # dimensions -- the same test driver.js's own `canHighlight()` uses
+  # internally to silently skip a still-hidden/zero-size element (originally
+  # discovered as an *earlier* bug here: `$init()` on a not-yet-rendered
+  # target failed with no console warning at all, which is what made that
+  # failure mode hard to tell apart from a logic bug). `session$onFlushed()`
+  # isn't a substitute for this: it only fires once, after the *current*
+  # reactive flush (e.g. the tab switch itself), but a tab's content here is
+  # a uiOutput() that Shiny suspends while hidden -- it only starts
+  # evaluating once the client reports the tab as visible, which lands in a
+  # *second*, later flush that onFlushed(once = TRUE) has already missed.
   active_tour <- reactiveVal(NULL) # NULL | "historical" | "plan" | "calculator"
   # Tracks whichever chapter guide is currently on-screen, purely so it can
   # be $reset() right before the next chapter takes over -- each chapter is
@@ -488,14 +482,17 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # Reset whichever chapter was previously on-screen (if any), then init +
   # start the new one at its own step 1.
   .tour_switch <- function(guide) {
-    # isolate() is required here: .tour_switch() is called from inside
-    # later::later() callbacks (via .tour_advance() and the prefill
-    # observers below), which run outside any reactive context -- reading
-    # a reactiveVal there without isolate() throws "Operation not allowed
-    # without an active reactive context" and crashes the whole R session
-    # (confirmed the hard way: the app process died mid-tour with exactly
-    # that error, which is what made the last leg of the Plan My Practice
-    # tour look like a UI/timing bug rather than a crash).
+    # isolate() is required here: .tour_switch() is called from inside the
+    # tour_element_ready observer below via .tour_wait_and_switch(), so a
+    # bare current_chapter() read would normally be fine there (it *is* a
+    # reactive context) -- but this function is also reachable from the
+    # prefill callbacks, which is history repeating a lesson learned the
+    # hard way earlier in this app's build: reading a reactiveVal without
+    # isolate() outside a reactive context throws "Operation not allowed
+    # without an active reactive context" and crashes the whole R session.
+    # Keeping the isolate() here unconditionally is cheap insurance against
+    # that regressing if this ever gets called from a non-reactive context
+    # again.
     prev <- isolate(current_chapter())
     if (!is.null(prev)) {
       prev$reset(session)
@@ -506,12 +503,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
   }
 
   # Tears down whichever chapter is currently on-screen (if any). Safe to
-  # call even when nothing is current (no-op). Always called from inside a
-  # later::later() callback, never synchronously from within the observer
-  # that also triggers the click's own "real" app behavior (a tab switch, a
-  # data-clearing helper, etc.), so its own overlay/popover isn't still
-  # mounted and tracking its highlight position while that heavier work
-  # runs -- see the "Plan My Practice" section below for the actual bug
+  # call even when nothing is current (no-op). Always called from the
+  # tour_element_ready observer below, never synchronously from within the
+  # observer that also triggers the click's own "real" app behavior (a tab
+  # switch, a data-clearing helper, etc.), so its own overlay/popover isn't
+  # still mounted and tracking its highlight position while that heavier
+  # work runs -- see the "Plan My Practice" section below for the actual bug
   # this class of collision caused and where it was really fixed.
   .tour_reset_current <- function() {
     prev <- isolate(current_chapter())
@@ -521,56 +518,119 @@ app_server <- function(input, output, session, res_auth = NULL) {
     }
   }
 
+  # -- Real element-readiness gate for chapter transitions --------------
+  # Replaces a fixed later::later(delay = N) guess (this app's original
+  # approach -- 3s default, 4s/3s for the Plan/Calculator pre-fills, 6s
+  # reaching Projections specifically, all empirically tuned against
+  # driver.js's canHighlight() silently refusing to highlight a still-
+  # zero-size element with no console warning) with an actual signal from
+  # the browser: `tourWaitForElement` (registered in app_ui.R) polls the
+  # DOM for the next chapter's first target element to have real
+  # (nonzero) dimensions -- the same test canHighlight() itself uses --
+  # and reports back via `input$tour_element_ready` once it does (or once
+  # a generous attempt cap is hit, as a bounded last resort rather than an
+  # indefinite hang). `.tour_pending` tracks the single outstanding wait so
+  # a stale response can't resurrect an abandoned switch (e.g. the user
+  # closes the tour, or fires a second transition, before the first one's
+  # element ever appears).
+  .tour_pending <- reactiveVal(NULL) # NULL | list(token=, guide=, prefill=)
+
+  # `ready_el` (defaults to `first_el`) is the element actually polled for
+  # readiness -- almost always the same as the chapter's first highlighted
+  # step, but not always a *reliable signal*: the Projections "Run the
+  # forecast" transition targets `projections-forecast_type` as its first
+  # step (the results tab container), but that container -- and its
+  # nonzero size -- already exists before Run Forecast is even clicked
+  # (it's part of the tab's static layout, gated only on data being
+  # uploaded, not on a forecast having been run). Polling that element
+  # would report "ready" instantly, before the real eventReactive() model
+  # fitting this transition actually needs to wait on. `projections-
+  # dl_report` (the download button, `uiOutput()`-rendered only once any
+  # forecast result exists) is the real proxy for "the forecast actually
+  # finished" -- see the `.tour_advance("historical", guide_proj2, ...)`
+  # call site below.
+  .tour_wait_and_switch <- function(guide, first_el, prefill = NULL, ready_el = NULL) {
+    if (is.null(ready_el)) {
+      ready_el <- first_el
+    }
+    token <- paste0(guide$id, "-", format(as.numeric(Sys.time()), digits = 15))
+    .tour_pending(list(token = token, guide = guide, prefill = prefill))
+    session$sendCustomMessage(
+      "tourWaitForElement",
+      list(id = ready_el, token = token)
+    )
+  }
+
+  observeEvent(input$tour_element_ready, {
+    pending <- isolate(.tour_pending())
+    ev <- input$tour_element_ready
+    if (is.null(pending) || !identical(ev$token, pending$token)) {
+      return()
+    }
+    .tour_pending(NULL)
+    # Tearing down a *previous* chapter's driver.js instance and starting a
+    # *different* chapter's instance back-to-back (both in the same message
+    # batch) races driver.js's own popover hide/show CSS transition: the new
+    # chapter's highlight box jumps to the right element, but the popover's
+    # title/description text is left showing the outgoing chapter's step --
+    # confirmed by inspecting driver.min.js directly, which hard-codes a
+    # 300ms `animationTimeout` for this transition (and confirmed that
+    # disabling animation entirely, the obvious-looking fix, is worse: it
+    # makes driver.js detach the popover DOM node and never reattach it,
+    # breaking even *plain in-chapter* Next clicks that have nothing to do
+    # with this reset/switch pairing at all). A short, fixed pause here is
+    # fundamentally different from the guessed multi-second Shiny-render
+    # delays this readiness gate replaces -- it's sized off a hard-coded
+    # constant in a third-party library's own source, not a guess at how
+    # long Shiny takes to render, and only applies when there's a previous
+    # chapter's animation to actually wait out.
+    had_prev <- !is.null(isolate(current_chapter()))
+    .tour_reset_current()
+    if (!is.null(pending$prefill)) {
+      pending$prefill()
+    }
+    if (had_prev) {
+      later::later(function() {
+        .tour_switch(pending$guide)
+      }, delay = 0.35)
+    } else {
+      .tour_switch(pending$guide)
+    }
+  })
+
   # Switch to the named tour's next chapter, but only if `tour_name` is the
-  # one currently running, and only after a short delay (see comment above)
-  # so the chapter's elements have actually rendered. `delay` is overridable
-  # per call site: most transitions are pure UI (a tab switch, a static form)
-  # and finish well within the 3s default, but the Projections "Run the
-  # forecast" transition also has to wait on real eventReactive() model
-  # fitting (breakeven/revenue/target) plus the download button's own
-  # renderUI before its target elements exist -- confirmed empirically to
-  # sometimes still be mid-render at 3s, silently dropping or entirely
-  # failing that chapter switch (driver.js's canHighlight() glossary again:
-  # no console warning either way). A longer delay there is the same blunt,
-  # standard-for-this-app fix as the fixed delay itself, just sized for a
-  # heavier transition.
-  .tour_advance <- function(tour_name, guide, delay = 3) {
+  # one currently running -- gated on `first_el` actually being ready (see
+  # above) rather than a guessed delay.
+  .tour_advance <- function(tour_name, guide, first_el, ready_el = NULL) {
     if (!identical(active_tour(), tour_name)) {
       return(invisible())
     }
-    later::later(function() {
-      .tour_reset_current()
-      .tour_switch(guide)
-    }, delay = delay)
+    .tour_wait_and_switch(guide, first_el, ready_el = ready_el)
   }
 
   # Launching a tour: the Help modal (and its "Take the guided tour"
   # buttons) is reachable from every tab via the persistent navbar icon,
   # not just from Upload -- so a tour launched mid-workflow needs to land
   # back on Upload itself first, same as any other chapter switch that
-  # depends on a tab's content actually being visible. Reuses the exact
-  # delay/timing rationale .tour_advance() already documents: driver.js's
-  # canHighlight() silently refuses to highlight a still-hidden
-  # (display:none) or zero-size element, which is exactly what every
-  # chapter-1 target would be if cicerone tried to init() before the tab
-  # switch has actually taken effect client-side.
-  .tour_launch <- function(tour_name, guide) {
+  # depends on a tab's content actually being visible. The readiness gate
+  # covers this the same way: the wait starts immediately, but won't
+  # resolve until the Upload tab has actually finished switching client-side
+  # and `first_el` genuinely exists.
+  .tour_launch <- function(tour_name, guide, first_el) {
     removeModal()
     active_tour(tour_name)
     updateNavbarPage(session, "main_nav", selected = "upload")
-    later::later(function() {
-      .tour_switch(guide)
-    }, delay = 3)
+    .tour_wait_and_switch(guide, first_el)
   }
 
   observeEvent(input$launch_tour_historical, {
-    .tour_launch("historical", guide_h1)
+    .tour_launch("historical", guide_h1, "upload-btn_use_real")
   })
   observeEvent(input$launch_tour_plan, {
-    .tour_launch("plan", guide_p1)
+    .tour_launch("plan", guide_p1, "upload-btn_use_plan")
   })
   observeEvent(input$launch_tour_calculator, {
-    .tour_launch("calculator", guide_c1)
+    .tour_launch("calculator", guide_c1, "upload-btn_use_calculator")
   })
 
   # -- Historical Data: h1 (Upload cards) -> h2 (upload form) -> h3 (mapping
@@ -586,9 +646,9 @@ app_server <- function(input, output, session, res_auth = NULL) {
     input[["upload-btn_use_real"]],
     {
       if (isTRUE(demo_mode())) {
-        .tour_advance("historical", guide_h4)
+        .tour_advance("historical", guide_h4, "edit-edit_table")
       } else {
-        .tour_advance("historical", guide_h2)
+        .tour_advance("historical", guide_h2, "upload-csv_file")
       }
     },
     ignoreInit = TRUE
@@ -608,22 +668,22 @@ app_server <- function(input, output, session, res_auth = NULL) {
   )
   observeEvent(
     input[["upload-btn_upload"]],
-    .tour_advance("historical", guide_h3),
+    .tour_advance("historical", guide_h3, "upload-mapping_table"),
     ignoreInit = TRUE
   )
   observeEvent(
     input[["upload-btn_next_to_edit"]],
-    .tour_advance("historical", guide_h4),
+    .tour_advance("historical", guide_h4, "edit-edit_table"),
     ignoreInit = TRUE
   )
   observeEvent(
     input[["edit-btn_next_to_summary"]],
-    .tour_advance("historical", guide_h5),
+    .tour_advance("historical", guide_h5, "summary-ovhd_plot"),
     ignoreInit = TRUE
   )
   observeEvent(
     input[["summary-btn_next_to_projections"]],
-    .tour_advance("historical", guide_proj1),
+    .tour_advance("historical", guide_proj1, "projections-method"),
     ignoreInit = TRUE
   )
 
@@ -631,34 +691,33 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # filled with demo-derived example values -- see R/utils_tours.R) -> p3
   # ("Scenario Ready") -> shared Projections tail.
   #
-  # The pre-fill is folded into the same later::later() delay .tour_advance()
-  # uses elsewhere, so it happens once the form exists and right before the
-  # tour switches to the chapter pointing at it. This click also races
-  # go_to_manual_entry() (mod_upload.R) clearing six reactive values
-  # (r$transactions/overhead/income/overhead_monthly/income_monthly/
-  # scenario_inputs) -- a much wider invalidation fan-out (Summary,
-  # Projections, and Edit all depend on some of those) than a plain tab
-  # switch elsewhere in this file.
+  # The pre-fill is folded into the same readiness-gated switch
+  # .tour_advance() uses elsewhere (as a `prefill` callback -- see
+  # .tour_wait_and_switch() above), so it runs once the form actually exists
+  # and right before the tour switches to the chapter pointing at it. This
+  # click also races go_to_manual_entry() (mod_upload.R) clearing six
+  # reactive values (r$transactions/overhead/income/overhead_monthly/
+  # income_monthly/scenario_inputs) -- a much wider invalidation fan-out
+  # (Summary, Projections, and Edit all depend on some of those) than a
+  # plain tab switch elsewhere in this file.
   #
-  # The actual root cause of this chapter switch failing outright (not just
-  # a single dropped step, but cicerone/driver.js throwing "There are no
-  # steps defined to iterate" and never recovering even given 90+s) was
-  # mod_edit.R's `output$content` staying suspended server-side after
+  # This chapter switch used to fail outright (not just a single dropped
+  # step, but cicerone/driver.js throwing "There are no steps defined to
+  # iterate" and never recovering even given 90+s) because of a *separate*
+  # bug: mod_edit.R's `output$content` stayed suspended server-side after
   # go_to_manual_entry()'s updateNavbarPage() call -- Shiny's client/server
   # handshake for "this tab is now visible" never completed, so the Quick
   # Estimator form this chapter targets never rendered at all. Fixed at the
   # source via `outputOptions(output, "content", suspendWhenHidden = FALSE)`
   # in mod_edit.R (and the same for mod_summary.R/mod_projections.R, which
   # have the identical top-level content gate and hit the same failure mode
-  # reaching Projections). The extra delay and up-front guide_p1 teardown
-  # here are a secondary safety margin for the heavier invalidation this one
-  # click triggers, not the fix for the hard failure itself.
+  # reaching Projections) -- unrelated to, and unaffected by, the
+  # fixed-delay-vs-readiness-gate question this section otherwise concerns.
   observeEvent(
     input[["upload-btn_use_plan"]],
     {
       if (identical(active_tour(), "plan")) {
-        later::later(function() {
-          .tour_reset_current()
+        .tour_wait_and_switch(guide_p2, "edit-est_rent", prefill = function() {
           updateNumericInput(session, "edit-est_rent", value = .tour_demo_overhead$rent)
           updateNumericInput(session, "edit-est_payroll", value = .tour_demo_overhead$payroll)
           updateNumericInput(session, "edit-est_ehr", value = .tour_demo_overhead$ehr)
@@ -674,20 +733,19 @@ app_server <- function(input, output, session, res_auth = NULL) {
           updateNumericInput(session, "edit-est_followup_fee", value = .tour_demo_ffs$followup_fee)
           updateNumericInput(session, "edit-est_followups_mo", value = .tour_demo_ffs$followups_mo)
           updateNumericInput(session, "edit-est_other_income", value = .tour_demo_ffs$other_income)
-          .tour_switch(guide_p2)
-        }, delay = 4)
+        })
       }
     },
     ignoreInit = TRUE
   )
   observeEvent(
     input[["edit-btn_generate"]],
-    .tour_advance("plan", guide_p3),
+    .tour_advance("plan", guide_p3, "edit-btn_go_projections"),
     ignoreInit = TRUE
   )
   observeEvent(
     input[["edit-btn_go_projections"]],
-    .tour_advance("plan", guide_proj1),
+    .tour_advance("plan", guide_proj1, "projections-method"),
     ignoreInit = TRUE
   )
 
@@ -699,30 +757,32 @@ app_server <- function(input, output, session, res_auth = NULL) {
     input[["upload-btn_use_calculator"]],
     {
       if (identical(active_tour(), "calculator")) {
-        later::later(function() {
-          .tour_reset_current()
-          updateNumericInput(
-            session,
-            "upload-calculator-monthly_overhead",
-            value = .tour_demo_calc_overhead
-          )
-          updateTextInput(
-            session,
-            "upload-calculator-tier_label_1",
-            value = .tour_demo_tier$label
-          )
-          updateNumericInput(
-            session,
-            "upload-calculator-tier_members_1",
-            value = .tour_demo_tier$members
-          )
-          updateNumericInput(
-            session,
-            "upload-calculator-tier_fee_1",
-            value = .tour_demo_tier$fee
-          )
-          .tour_switch(guide_c2)
-        }, delay = 3)
+        .tour_wait_and_switch(
+          guide_c2,
+          "upload-calculator-monthly_overhead",
+          prefill = function() {
+            updateNumericInput(
+              session,
+              "upload-calculator-monthly_overhead",
+              value = .tour_demo_calc_overhead
+            )
+            updateTextInput(
+              session,
+              "upload-calculator-tier_label_1",
+              value = .tour_demo_tier$label
+            )
+            updateNumericInput(
+              session,
+              "upload-calculator-tier_members_1",
+              value = .tour_demo_tier$members
+            )
+            updateNumericInput(
+              session,
+              "upload-calculator-tier_fee_1",
+              value = .tour_demo_tier$fee
+            )
+          }
+        )
       }
     },
     ignoreInit = TRUE
@@ -730,11 +790,31 @@ app_server <- function(input, output, session, res_auth = NULL) {
 
   # -- Shared tail: both Historical Data and Plan My Practice reach
   # Projections (guide_proj1, wired above) and finish the same way here.
+  # This transition used to need a longer fixed delay (6s vs. the 3s
+  # default) than any other in the app -- Run Forecast triggers real
+  # eventReactive() model fitting (breakeven/revenue/target) plus the
+  # download button's own renderUI. The readiness gate can't just poll
+  # guide_proj2's first step (`projections-forecast_type`, the results tab
+  # container) here, though: that container is part of the tab's static
+  # layout and already has nonzero size before Run Forecast is even
+  # clicked, so it would report "ready" instantly -- before the real
+  # computation this transition actually needs to wait on. `ready_el`
+  # overrides the poll target to `projections-dl_report` instead (the
+  # download button, only rendered via `uiOutput()` once a forecast result
+  # exists -- see the comment on `.tour_wait_and_switch()` above), while the
+  # tour still opens on `projections-forecast_type` as its first
+  # highlighted step.
   observeEvent(
     input[["projections-btn_run"]],
     {
-      .tour_advance("historical", guide_proj2, delay = 6)
-      .tour_advance("plan", guide_proj2, delay = 6)
+      .tour_advance(
+        "historical", guide_proj2, "projections-forecast_type",
+        ready_el = "projections-dl_report"
+      )
+      .tour_advance(
+        "plan", guide_proj2, "projections-forecast_type",
+        ready_el = "projections-dl_report"
+      )
     },
     ignoreInit = TRUE
   )
@@ -992,19 +1072,19 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # either way.
   observeEvent(
     upload_result$tour_historical_click(),
-    .tour_launch("historical", guide_h1),
+    .tour_launch("historical", guide_h1, "upload-btn_use_real"),
     ignoreInit = TRUE,
     ignoreNULL = TRUE
   )
   observeEvent(
     upload_result$tour_plan_click(),
-    .tour_launch("plan", guide_p1),
+    .tour_launch("plan", guide_p1, "upload-btn_use_plan"),
     ignoreInit = TRUE,
     ignoreNULL = TRUE
   )
   observeEvent(
     upload_result$tour_calculator_click(),
-    .tour_launch("calculator", guide_c1),
+    .tour_launch("calculator", guide_c1, "upload-btn_use_calculator"),
     ignoreInit = TRUE,
     ignoreNULL = TRUE
   )

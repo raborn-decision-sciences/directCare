@@ -236,6 +236,41 @@ golem_add_external_resources <- function() {
           hideNavTabs();
         }
       })();"
+    )),
+    # Real-readiness signal for guided-tour chapter transitions (see
+    # `.tour_wait_and_switch()` in app_server.R): replaces a fixed
+    # later::later(delay = N) guess with an actual poll for the next
+    # chapter's first target element having nonzero dimensions -- the same
+    # test driver.js's own canHighlight() uses internally to silently skip
+    # a still-hidden/zero-size element. Registered on shiny:connected since
+    # this script tag lives in <head>, potentially before shiny.js itself
+    # has finished loading; safe either way since the actual custom message
+    # is only ever sent later, in response to a user-driven tour action.
+    tags$script(HTML(
+      "$(document).on('shiny:connected', function() {
+        Shiny.addCustomMessageHandler('tourWaitForElement', function(msg) {
+          var attempts = 0;
+          var maxAttempts = 100; // 15s safety cap (100 x 150ms) -- a
+                                  // bounded last resort, not the normal path
+          var iv = setInterval(function() {
+            attempts++;
+            var el = document.getElementById(msg.id);
+            var ready = false;
+            if (el) {
+              var rect = el.getBoundingClientRect();
+              ready = rect.width > 0 && rect.height > 0;
+            }
+            if (ready || attempts >= maxAttempts) {
+              clearInterval(iv);
+              Shiny.setInputValue(
+                'tour_element_ready',
+                {id: msg.id, token: msg.token, ok: ready},
+                {priority: 'event'}
+              );
+            }
+          }, 150);
+        });
+      });"
     ))
   )
 }

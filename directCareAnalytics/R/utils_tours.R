@@ -98,6 +98,17 @@
 .tour_demo_calc_overhead <- 4540
 
 # -- Small helper: a fresh Cicerone guide with one shared default ----------
+# animate stays at its cicerone default (TRUE) -- disabling it looked like
+# the clean fix for the cross-chapter popover-text race documented on
+# app_server.R's tour_element_ready observer, but driver.js's own bundled
+# source (driver.min.js) shows animate = FALSE takes an *early-return* path
+# that detaches the popover's DOM node from its parent right after
+# creating it, apparently expecting something else to re-append it later.
+# Confirmed empirically to make things worse, not better: with animate =
+# FALSE, in-chapter Next clicks (no cross-chapter reset() involved at all,
+# e.g. Quick Calculator's c2 chapter) got stuck outright, not just showing
+# stale text. Left at the library default; see app_server.R for how the
+# cross-chapter race is actually handled instead.
 .tour_guide <- function(id) {
   cicerone::Cicerone$new(id = id, done_btn_text = "Finish")
 }
