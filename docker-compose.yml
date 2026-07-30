@@ -21,6 +21,22 @@ services:
       ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
       FROM_EMAIL: noreply@directcareanalytics.com
       APP_BASE_URL: https://app.directcareanalytics.com
+    # Compose's file-based secrets preserve the *host-side* file's owner/
+    # permissions when mounted -- they do NOT support a per-secret `mode`/
+    # `uid`/`gid` override outside Swarm mode (confirmed live: Compose
+    # prints "secrets `uid`, `gid` and `mode` are not supported, they will
+    # be ignored" and does exactly that). This container runs as the
+    # unprivileged `appuser` (UID 1000, pinned in base.Dockerfile -- see
+    # its comment), not root, so the *host* secret files must be owned by
+    # UID 1000 for it to read them -- see DEPLOY.md Step 4 /
+    # secrets/README.md, which `chown`/`chmod` them accordingly. (A plain
+    # `chmod 600` root-owned file, the original convention, isn't readable
+    # by appuser at all -- confirmed live: "cannot open file
+    # '/run/secrets/db_password': Permission denied" on first production
+    # deploy, since the official Postgres image's entrypoint reads its own
+    # copy of this same secret while still running as root, before
+    # dropping privileges internally, but this app's R process runs fully
+    # as appuser from the start.)
     secrets:
       - db_password
       - zeptomail_token
@@ -44,6 +60,7 @@ services:
       ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
       FROM_EMAIL: noreply@directcareanalytics.com
       APP_BASE_URL: https://planner.directcareanalytics.com
+    # Same reasoning as dca's secrets block above.
     secrets:
       - db_password
       - zeptomail_token

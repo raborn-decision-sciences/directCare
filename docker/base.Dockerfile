@@ -50,4 +50,13 @@ RUN R -e "install.packages(c( \
 # installs and app source stay root-owned/read-only at runtime -- both apps
 # only ever write to R's tempdir() (world-writable /tmp), never to /app --
 # so a non-root process needs no extra chown to run correctly.
-RUN useradd --create-home --shell /bin/bash appuser
+#
+# UID pinned explicitly (rather than whatever useradd's next-available
+# default happens to be) so it's a stable, documented number the *host*
+# can rely on: Compose's file-based secrets (docker-compose.yml's
+# `secrets:` blocks) preserve the host file's own owner/permissions when
+# mounted into the container -- they do not support a per-secret mode/uid
+# override outside Swarm mode. DEPLOY.md Step 4 / secrets/README.md
+# `chown` the host-side secret files to this exact UID so appuser can
+# read them; if this UID ever changes, those must be updated to match.
+RUN useradd --uid 1000 --create-home --shell /bin/bash appuser
