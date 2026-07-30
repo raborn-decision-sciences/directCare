@@ -1,15 +1,22 @@
-# Workflow for directCarePlanner: a Golem Shiny app that depends on three
-# sibling packages in this same monorepo, directCareData, directCarePlanR,
-# and directCareScenarios, all declared via `Remotes:` GitHub references in
-# DESCRIPTION. As with directCarePlanR.yaml, `pak` (used internally by
-# r-lib/actions/setup-r-dependencies) cannot resolve a local sibling
-# package when solving "local::." -- same confirmed limitation, same
-# workaround: skip pak-based dependency resolution entirely. Install every
-# CRAN dependency (the sibling packages' own, plus directCarePlanner's)
-# via plain `install.packages()` FIRST -- directCareScenarios itself
-# depends on bsicons/DBI/shiny, so it must not be `R CMD INSTALL`ed before
-# those are available -- then install all three sibling packages locally
-# via `R CMD INSTALL`, then run `rcmdcheck::rcmdcheck()` directly.
+# Workflow for directCarePlanner: a Golem Shiny app that depends on four
+# sibling packages in this same monorepo, directCareAuth, directCareData,
+# directCarePlanR, and directCareScenarios, all declared via `Remotes:`
+# GitHub references in DESCRIPTION. As with directCarePlanR.yaml, `pak`
+# (used internally by r-lib/actions/setup-r-dependencies) cannot resolve a
+# local sibling package when solving "local::." -- same confirmed
+# limitation, same workaround: skip pak-based dependency resolution
+# entirely. Install every CRAN dependency (the sibling packages' own, plus
+# directCarePlanner's) via plain `install.packages()` FIRST -- both
+# directCareAuth (httr2/openssl/bcrypt/DBI/RPostgres) and directCareScenarios
+# (bsicons/DBI/shiny) must not be `R CMD INSTALL`ed before their own
+# dependencies are available -- then install all four sibling packages
+# locally via `R CMD INSTALL`, then run `rcmdcheck::rcmdcheck()` directly.
+#
+# directCareAuth was previously missing from this workflow entirely (no
+# local install, no CRAN deps, not even in the path triggers below) --
+# confirmed live: CI failed with "Package required but not available:
+# 'directCareAuth'" once the earlier directCareScenarios ordering bug was
+# fixed and this one was exposed next.
 #
 # Unlike directCarePlanR, directCarePlanner's tests don't exercise the
 # PDF-report download handler (no testServer() call touches
@@ -18,10 +25,10 @@
 on:
   push:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCareAuth/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   pull_request:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCareAuth/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   workflow_dispatch: {}
 
 name: directCarePlanner.yaml
@@ -39,18 +46,20 @@ jobs:
           r-version: release
           use-public-rspm: true
 
-      - name: Install CRAN dependencies (directCarePlanR, directCareScenarios, and directCarePlanner)
-        # Must run before the local R CMD INSTALLs below -- directCareScenarios
-        # itself depends on bsicons/DBI/shiny, so installing it before those
+      - name: Install CRAN dependencies (directCareAuth, directCarePlanR, directCareScenarios, and directCarePlanner)
+        # Must run before the local R CMD INSTALLs below -- directCareAuth
+        # depends on httr2/openssl (among others), and directCareScenarios
+        # depends on bsicons/DBI/shiny, so installing either before those
         # are available fails with "dependencies ... are not available"
-        # (confirmed: this exact ordering bug previously broke CI, only
-        # directCarePlanner's own deps were installed after the local
-        # packages instead of before).
+        # (confirmed: this exact ordering bug previously broke CI twice --
+        # first for directCareScenarios, then for directCareAuth, which had
+        # no CRAN deps listed here at all).
         run: |
-          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "openssl", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
-      - name: Install local directCareData, directCarePlanR, and directCareScenarios
+      - name: Install local directCareAuth, directCareData, directCarePlanR, and directCareScenarios
         run: |
+          R CMD INSTALL directCareAuth
           R CMD INSTALL directCareData
           R CMD INSTALL directCarePlanR
           R CMD INSTALL directCareScenarios
