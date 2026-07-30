@@ -4,10 +4,12 @@
 # DESCRIPTION. As with directCarePlanR.yaml, `pak` (used internally by
 # r-lib/actions/setup-r-dependencies) cannot resolve a local sibling
 # package when solving "local::." -- same confirmed limitation, same
-# workaround: skip pak-based dependency resolution entirely. Install all
-# three sibling packages locally via `R CMD INSTALL`, install
-# directCarePlanner's own CRAN dependencies via plain `install.packages()`,
-# and run `rcmdcheck::rcmdcheck()` directly.
+# workaround: skip pak-based dependency resolution entirely. Install every
+# CRAN dependency (the sibling packages' own, plus directCarePlanner's)
+# via plain `install.packages()` FIRST -- directCareScenarios itself
+# depends on bsicons/DBI/shiny, so it must not be `R CMD INSTALL`ed before
+# those are available -- then install all three sibling packages locally
+# via `R CMD INSTALL`, then run `rcmdcheck::rcmdcheck()` directly.
 #
 # Unlike directCarePlanR, directCarePlanner's tests don't exercise the
 # PDF-report download handler (no testServer() call touches
@@ -37,19 +39,21 @@ jobs:
           r-version: release
           use-public-rspm: true
 
-      - name: Install directCarePlanR's own dependencies
+      - name: Install CRAN dependencies (directCarePlanR, directCareScenarios, and directCarePlanner)
+        # Must run before the local R CMD INSTALLs below -- directCareScenarios
+        # itself depends on bsicons/DBI/shiny, so installing it before those
+        # are available fails with "dependencies ... are not available"
+        # (confirmed: this exact ordering bug previously broke CI, only
+        # directCarePlanner's own deps were installed after the local
+        # packages instead of before).
         run: |
-          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble"))'
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
       - name: Install local directCareData, directCarePlanR, and directCareScenarios
         run: |
           R CMD INSTALL directCareData
           R CMD INSTALL directCarePlanR
           R CMD INSTALL directCareScenarios
-
-      - name: Install directCarePlanner's own dependencies
-        run: |
-          Rscript -e 'install.packages(c("bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
       - name: Check directCarePlanner
         run: |
