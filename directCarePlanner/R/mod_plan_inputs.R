@@ -14,7 +14,6 @@ mod_plan_inputs_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
-    directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
     layout_columns(
       col_widths = c(6, 6),
       fill = FALSE,
@@ -77,10 +76,16 @@ mod_plan_inputs_ui <- function(id) {
           checkboxInput(ns("include_fee"), "Include fee-for-service revenue", value = FALSE),
           conditionalPanel(
             condition = sprintf("input['%s']", ns("include_fee")),
-            numericInput(ns("visit_volume"), "Visits per month", value = 100, min = 0, step = 10),
+            numericInput(ns("visit_volume"), "Target visits per month", value = 100, min = 0, step = 10),
             numericInput(ns("new_visit_fee"), "New-patient visit fee ($)", value = 200, min = 0, step = 5),
             numericInput(ns("follow_up_fee"), "Follow-up visit fee ($)", value = 100, min = 0, step = 5),
-            numericInput(ns("new_visit_pct"), "Share of visits that are new-patient (%)", value = 20, min = 0, max = 100, step = 1)
+            numericInput(ns("new_visit_pct"), "Share of visits that are new-patient (%)", value = 20, min = 0, max = 100, step = 1),
+            numericInput(ns("fee_ramp_months"), "Months to reach target visit volume", value = 12, min = 1, step = 1),
+            selectInput(
+              ns("fee_ramp_shape"),
+              "Ramp shape",
+              choices = c("Linear" = "linear", "S-curve" = "s_curve")
+            )
           )
         )
       ),
@@ -147,9 +152,12 @@ mod_plan_inputs_ui <- function(id) {
         numericInput(ns("overhead_growth_rate"), "Monthly overhead growth rate (%)", value = 0, step = 0.1)
       )
     ),
+    # No mod_scenario_banner_ui()/mod_scenario_slots_ui() call here -- both
+    # are rendered exactly once, globally, via page_navbar(header = ...) in
+    # app_ui.R, the same fix already applied to directCareAnalytics (see its
+    # own app_ui.R for the full duplicate-DOM-id rationale this avoids).
     div(
-      class = "d-flex justify-content-between align-items-center mt-3 mb-4 flex-wrap gap-2",
-      directCareScenarios::mod_scenario_slots_ui(ns("scenario")),
+      class = "d-flex justify-content-end mt-3 mb-4",
       input_task_button(ns("submit"), "Build My Plan", icon = bsicons::bs_icon("arrow-right-circle"))
     ),
     .branded_footer()
@@ -304,7 +312,16 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
           visit_volume = iv("visit_volume"),
           new_visit_fee = iv("new_visit_fee"),
           follow_up_fee = iv("follow_up_fee"),
-          new_visit_pct = iv("new_visit_pct") / 100
+          new_visit_pct = iv("new_visit_pct") / 100,
+          # %||% 1 (not the UI's own default of 12) specifically covers a
+          # scenario saved before fee-for-service ramp existed: `values`
+          # (a just-loaded scenario, see iv() above) won't have this key at
+          # all, and ramp_months = 1 reproduces the old flat-from-month-1
+          # behavior those scenarios were actually built with, rather than
+          # silently reinterpreting them under a 12-month ramp they never
+          # had.
+          ramp_months = iv("fee_ramp_months") %||% 1L,
+          ramp_shape = iv("fee_ramp_shape") %||% "linear"
         )
       }
 
@@ -393,6 +410,8 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         new_visit_fee = input$new_visit_fee,
         follow_up_fee = input$follow_up_fee,
         new_visit_pct = input$new_visit_pct,
+        fee_ramp_months = input$fee_ramp_months,
+        fee_ramp_shape = input$fee_ramp_shape,
         startup_mode = input$startup_mode,
         cost_total = input$cost_total,
         cost_ehr = input$cost_ehr,
@@ -414,67 +433,78 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       )
     }
 
-    directCareScenarios::mod_scenario_slots_server(
-      "scenario",
-      table = "plan_scenarios",
-      get_con = directCareAuth::db_connect,
-      practice_id = function() r$practice_id,
+    # mod_scenario_slots_server() itself is now instantiated once at the
+    # app level (app_server.R), not per-tab, so Save/Load/the "viewing
+    # saved scenario" banner are a single shared instance available from
+    # both Plan Inputs and Results (previously Plan Inputs only) -- see
+    # app_server.R's own comment, and directCareAnalytics's identical fix,
+    # for the full rationale. This module just exposes the same callback
+    # bodies as before, as plain closures, for app_server.R to pass into
+    # that single top-level call -- each closure still correctly reads
+    # *this* module's own input$xxx/session objects wherever it's
+    # ultimately invoked from, since R closures capture their defining
+    # environment, not their call site.
+    scenario_on_load <- function(inputs) {
+      updateTextInput(session, "zip", value = inputs$zip)
+      updateRadioButtons(session, "overhead_mode", selected = inputs$overhead_mode)
+      updateNumericInput(session, "overhead_monthly", value = inputs$overhead_monthly)
+      updateNumericInput(session, "overhead_rent", value = inputs$overhead_rent)
+      updateNumericInput(session, "overhead_staff", value = inputs$overhead_staff)
+      updateNumericInput(session, "overhead_ehr", value = inputs$overhead_ehr)
+      updateNumericInput(session, "overhead_malpractice", value = inputs$overhead_malpractice)
+      updateNumericInput(session, "overhead_supplies", value = inputs$overhead_supplies)
+      updateNumericInput(session, "overhead_other", value = inputs$overhead_other)
+      updateCheckboxInput(session, "include_membership", value = isTRUE(inputs$include_membership))
+      updateNumericInput(session, "panel_size", value = inputs$panel_size)
+      updateNumericInput(session, "fee", value = inputs$fee)
+      updateNumericInput(session, "ramp_months", value = inputs$ramp_months)
+      updateSelectInput(session, "ramp_shape", selected = inputs$ramp_shape)
+      updateCheckboxInput(session, "include_fee", value = isTRUE(inputs$include_fee))
+      updateNumericInput(session, "visit_volume", value = inputs$visit_volume)
+      updateNumericInput(session, "new_visit_fee", value = inputs$new_visit_fee)
+      updateNumericInput(session, "follow_up_fee", value = inputs$follow_up_fee)
+      updateNumericInput(session, "new_visit_pct", value = inputs$new_visit_pct)
+      updateNumericInput(session, "fee_ramp_months", value = inputs$fee_ramp_months)
+      updateSelectInput(session, "fee_ramp_shape", selected = inputs$fee_ramp_shape)
+      updateRadioButtons(session, "startup_mode", selected = inputs$startup_mode)
+      updateNumericInput(session, "cost_total", value = inputs$cost_total)
+      updateNumericInput(session, "cost_ehr", value = inputs$cost_ehr)
+      updateNumericInput(session, "cost_equipment", value = inputs$cost_equipment)
+      updateNumericInput(session, "cost_licensing", value = inputs$cost_licensing)
+      updateNumericInput(session, "cost_marketing", value = inputs$cost_marketing)
+      updateNumericInput(session, "cost_other", value = inputs$cost_other)
+      updateRadioButtons(session, "runway_mode", selected = inputs$runway_mode)
+      updateNumericInput(session, "monthly_expenses", value = inputs$monthly_expenses)
+      updateNumericInput(session, "runway_housing", value = inputs$runway_housing)
+      updateNumericInput(session, "runway_utilities", value = inputs$runway_utilities)
+      updateNumericInput(session, "runway_food", value = inputs$runway_food)
+      updateNumericInput(session, "runway_insurance", value = inputs$runway_insurance)
+      updateNumericInput(session, "runway_debt", value = inputs$runway_debt)
+      updateNumericInput(session, "runway_other", value = inputs$runway_other)
+      updateNumericInput(session, "months_coverage", value = inputs$months_coverage)
+      updateNumericInput(session, "horizon_months", value = inputs$horizon_months)
+      updateNumericInput(session, "overhead_growth_rate", value = inputs$overhead_growth_rate)
+
+      # The update*Input() calls above are for visual sync only (so the
+      # form reflects what was loaded) -- they do NOT feed the
+      # recompute below. `input$x` won't reflect any of them until the
+      # client echoes the new values back over the websocket, and
+      # there's no server-side hook (session$onFlushed() included) that
+      # waits for that round trip; it only fires once the server's own
+      # reactive flush completes. Waiting on it previously caused a
+      # loaded scenario to silently recompute against the stale/default
+      # input values instead of the ones just loaded (confirmed live:
+      # loading a saved "10001" ZIP still showed the default 30309's
+      # market context). Passing `inputs` straight into .build_plan()
+      # sidesteps the race entirely -- it's already the exact values
+      # that were just saved, no DOM round trip required.
+      .build_plan(switch_tab = FALSE, values = inputs)
+    }
+
+    list(
       get_inputs_for_save = plan_inputs_for_save,
       get_dirty_signal = plan_inputs_for_save,
-      on_load = function(inputs) {
-        updateTextInput(session, "zip", value = inputs$zip)
-        updateRadioButtons(session, "overhead_mode", selected = inputs$overhead_mode)
-        updateNumericInput(session, "overhead_monthly", value = inputs$overhead_monthly)
-        updateNumericInput(session, "overhead_rent", value = inputs$overhead_rent)
-        updateNumericInput(session, "overhead_staff", value = inputs$overhead_staff)
-        updateNumericInput(session, "overhead_ehr", value = inputs$overhead_ehr)
-        updateNumericInput(session, "overhead_malpractice", value = inputs$overhead_malpractice)
-        updateNumericInput(session, "overhead_supplies", value = inputs$overhead_supplies)
-        updateNumericInput(session, "overhead_other", value = inputs$overhead_other)
-        updateCheckboxInput(session, "include_membership", value = isTRUE(inputs$include_membership))
-        updateNumericInput(session, "panel_size", value = inputs$panel_size)
-        updateNumericInput(session, "fee", value = inputs$fee)
-        updateNumericInput(session, "ramp_months", value = inputs$ramp_months)
-        updateSelectInput(session, "ramp_shape", selected = inputs$ramp_shape)
-        updateCheckboxInput(session, "include_fee", value = isTRUE(inputs$include_fee))
-        updateNumericInput(session, "visit_volume", value = inputs$visit_volume)
-        updateNumericInput(session, "new_visit_fee", value = inputs$new_visit_fee)
-        updateNumericInput(session, "follow_up_fee", value = inputs$follow_up_fee)
-        updateNumericInput(session, "new_visit_pct", value = inputs$new_visit_pct)
-        updateRadioButtons(session, "startup_mode", selected = inputs$startup_mode)
-        updateNumericInput(session, "cost_total", value = inputs$cost_total)
-        updateNumericInput(session, "cost_ehr", value = inputs$cost_ehr)
-        updateNumericInput(session, "cost_equipment", value = inputs$cost_equipment)
-        updateNumericInput(session, "cost_licensing", value = inputs$cost_licensing)
-        updateNumericInput(session, "cost_marketing", value = inputs$cost_marketing)
-        updateNumericInput(session, "cost_other", value = inputs$cost_other)
-        updateRadioButtons(session, "runway_mode", selected = inputs$runway_mode)
-        updateNumericInput(session, "monthly_expenses", value = inputs$monthly_expenses)
-        updateNumericInput(session, "runway_housing", value = inputs$runway_housing)
-        updateNumericInput(session, "runway_utilities", value = inputs$runway_utilities)
-        updateNumericInput(session, "runway_food", value = inputs$runway_food)
-        updateNumericInput(session, "runway_insurance", value = inputs$runway_insurance)
-        updateNumericInput(session, "runway_debt", value = inputs$runway_debt)
-        updateNumericInput(session, "runway_other", value = inputs$runway_other)
-        updateNumericInput(session, "months_coverage", value = inputs$months_coverage)
-        updateNumericInput(session, "horizon_months", value = inputs$horizon_months)
-        updateNumericInput(session, "overhead_growth_rate", value = inputs$overhead_growth_rate)
-
-        # The update*Input() calls above are for visual sync only (so the
-        # form reflects what was loaded) -- they do NOT feed the
-        # recompute below. `input$x` won't reflect any of them until the
-        # client echoes the new values back over the websocket, and
-        # there's no server-side hook (session$onFlushed() included) that
-        # waits for that round trip; it only fires once the server's own
-        # reactive flush completes. Waiting on it previously caused a
-        # loaded scenario to silently recompute against the stale/default
-        # input values instead of the ones just loaded (confirmed live:
-        # loading a saved "10001" ZIP still showed the default 30309's
-        # market context). Passing `inputs` straight into .build_plan()
-        # sidesteps the race entirely -- it's already the exact values
-        # that were just saved, no DOM round trip required.
-        .build_plan(switch_tab = FALSE, values = inputs)
-      }
+      on_load = scenario_on_load
     )
   })
 }

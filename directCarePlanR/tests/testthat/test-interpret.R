@@ -3,7 +3,7 @@
 test_that("interpret_revenue() reports composition and names the larger sensitivity lever", {
   revenue <- calc_mixed_revenue(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   text <- interpret_revenue(revenue)
@@ -34,7 +34,7 @@ test_that("interpret_revenue() handles a membership-only plan", {
 
 test_that("interpret_revenue() handles a fee-for-service-only plan", {
   revenue <- calc_mixed_revenue(
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   text <- interpret_revenue(revenue)

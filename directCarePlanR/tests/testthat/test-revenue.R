@@ -62,19 +62,62 @@ test_that("calc_membership_revenue() errors on invalid arguments", {
 
 # -- calc_fee_revenue ----------------------------------------------------------
 
-test_that("calc_fee_revenue() computes flat revenue across the horizon", {
+test_that("calc_fee_revenue() computes flat revenue once ramp_months = 1 (fully ramped from month 1)", {
   result <- calc_fee_revenue(
     visit_volume = 100,
     new_visit_fee = 200,
     follow_up_fee = 100,
     new_visit_pct = 0.2,
-    horizon_months = 4
+    horizon_months = 4,
+    ramp_months = 1
   )
   expect_s3_class(result, "dcPlanR_fee_revenue")
   expect_equal(result$month, 1:4)
   expect_equal(result$visit_volume, rep(100, 4))
   # 20 new visits * 200 + 80 follow-ups * 100 = 4000 + 8000 = 12000
   expect_equal(result$revenue, rep(12000, 4))
+})
+
+test_that("calc_fee_revenue() ramps linearly by default", {
+  result <- calc_fee_revenue(
+    visit_volume = 100,
+    new_visit_fee = 200,
+    follow_up_fee = 100,
+    new_visit_pct = 0.2,
+    horizon_months = 4,
+    ramp_months = 4,
+    ramp_shape = "linear"
+  )
+  expect_equal(result$visit_volume, c(25, 50, 75, 100))
+  # revenue per visit = 0.2*200 + 0.8*100 = 120
+  expect_equal(result$revenue, c(25, 50, 75, 100) * 120)
+})
+
+test_that("calc_fee_revenue() ramps via smoothstep s_curve", {
+  result <- calc_fee_revenue(
+    visit_volume = 100,
+    new_visit_fee = 200,
+    follow_up_fee = 100,
+    horizon_months = 3,
+    ramp_months = 3,
+    ramp_shape = "s_curve"
+  )
+  # Same smoothstep fractions as calc_membership_revenue()'s s_curve test
+  # (78/300, 222/300, 300/300), applied to visit_volume = 100 instead of
+  # panel_size = 300.
+  expect_equal(result$visit_volume, c(26, 74, 100))
+})
+
+test_that("calc_fee_revenue() handles a ramp longer than the horizon", {
+  result <- calc_fee_revenue(
+    visit_volume = 100,
+    new_visit_fee = 200,
+    follow_up_fee = 100,
+    horizon_months = 3,
+    ramp_months = 24,
+    ramp_shape = "linear"
+  )
+  expect_true(all(result$visit_volume < 100))
 })
 
 test_that("calc_fee_revenue() errors on invalid arguments", {
@@ -90,6 +133,13 @@ test_that("calc_fee_revenue() errors on invalid arguments", {
     calc_fee_revenue(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, horizon_months = -1),
     class = "dcPlanR_invalid_argument"
   )
+  expect_error(
+    calc_fee_revenue(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = -1),
+    class = "dcPlanR_invalid_argument"
+  )
+  expect_error(
+    calc_fee_revenue(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_shape = "quadratic")
+  )
 })
 
 # -- calc_mixed_revenue ---------------------------------------------------------
@@ -97,7 +147,7 @@ test_that("calc_fee_revenue() errors on invalid arguments", {
 test_that("calc_mixed_revenue() combines both components by month", {
   result <- calc_mixed_revenue(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   expect_s3_class(result, "dcPlanR_revenue")
@@ -116,7 +166,7 @@ test_that("calc_mixed_revenue() zero-fills the omitted component", {
   expect_equal(membership_only$total$total_revenue, membership_only$membership$revenue)
 
   fee_only <- calc_mixed_revenue(
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   expect_null(fee_only$membership)

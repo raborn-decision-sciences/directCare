@@ -36,7 +36,7 @@ test_that("build_report_data() lets an explicit practice_name override the deriv
 test_that("build_report_data() assembles the revenue block correctly", {
   revenue <- calc_mixed_revenue(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   data <- build_report_data(revenue = revenue)
@@ -92,7 +92,7 @@ test_that("render_plan_report() compiles a real, non-empty PDF from full report 
   market_context <- fixture_market_context
   revenue <- calc_mixed_revenue(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     horizon_months = 3
   )
   assumptions <- list(

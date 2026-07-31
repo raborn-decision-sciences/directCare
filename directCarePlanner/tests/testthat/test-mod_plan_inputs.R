@@ -98,6 +98,80 @@ test_that("itemized overhead, single-total startup costs, and itemized runway al
   })
 })
 
+test_that("fee-for-service ramp fields flow through to r$revenue", {
+  r <- reactiveValues(
+    practice_name = NULL, horizon_months = NULL, market_context = NULL,
+    revenue = NULL, projections = NULL, capital = NULL, interpretations = NULL
+  )
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    session$setInputs(
+      zip = "30309",
+      include_membership = FALSE,
+      include_fee = TRUE,
+      visit_volume = 100,
+      new_visit_fee = 200,
+      follow_up_fee = 100,
+      new_visit_pct = 20,
+      fee_ramp_months = 4,
+      fee_ramp_shape = "linear",
+      overhead_mode = "single",
+      overhead_monthly = 0,
+      startup_mode = "single",
+      cost_total = 0,
+      runway_mode = "single",
+      monthly_expenses = 0,
+      months_coverage = 1,
+      horizon_months = 4,
+      overhead_growth_rate = 0
+    )
+    session$setInputs(submit = 1)
+
+    # Same ramp math as directCarePlanR's own test-revenue.R: visit volume
+    # builds 25, 50, 75, 100 over 4 months (ramp_months = horizon_months = 4,
+    # linear); revenue per visit = 0.2*200 + 0.8*100 = 120.
+    expect_equal(r$revenue$fee_for_service$visit_volume, c(25, 50, 75, 100))
+    expect_equal(r$revenue$fee_for_service$revenue, c(25, 50, 75, 100) * 120)
+  })
+})
+
+test_that("omitting fee ramp inputs falls back to an unramped (ramp_months = 1) fee projection", {
+  # Covers a scenario saved before fee-for-service ramp existed: `values`
+  # (a just-loaded scenario) has no fee_ramp_months/fee_ramp_shape keys at
+  # all, so .build_plan() must fall back to the pre-ramp flat behavior
+  # those old scenarios were actually built with, not silently reinterpret
+  # them under some default ramp.
+  r <- reactiveValues(
+    practice_name = NULL, horizon_months = NULL, market_context = NULL,
+    revenue = NULL, projections = NULL, capital = NULL, interpretations = NULL
+  )
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    session$setInputs(
+      zip = "30309",
+      include_membership = FALSE,
+      include_fee = TRUE,
+      visit_volume = 100,
+      new_visit_fee = 200,
+      follow_up_fee = 100,
+      new_visit_pct = 20,
+      overhead_mode = "single",
+      overhead_monthly = 0,
+      startup_mode = "single",
+      cost_total = 0,
+      runway_mode = "single",
+      monthly_expenses = 0,
+      months_coverage = 1,
+      horizon_months = 4,
+      overhead_growth_rate = 0
+    )
+    session$setInputs(submit = 1)
+
+    expect_equal(r$revenue$fee_for_service$visit_volume, rep(100, 4))
+    expect_equal(r$revenue$fee_for_service$revenue, rep(12000, 4))
+  })
+})
+
 test_that("a blank ZIP shows an error notification and leaves state untouched", {
   r <- reactiveValues(market_context = NULL)
 

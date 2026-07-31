@@ -81,8 +81,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
       easyClose = TRUE,
       footer = modalButton("Close"),
       tags$h6(class = "fw-bold", "Profile"),
-      textInput("account_practice_name", "Practice Name", value = res_auth$practice_name),
-      textInput("account_address", "Address", value = res_auth$address %||% ""),
+      htmltools::tagQuery(
+        textInput("account_practice_name", "Practice Name", value = res_auth$practice_name)
+      )$find("input")$addAttrs(autocomplete = "organization")$allTags(),
+      htmltools::tagQuery(
+        textInput("account_address", "Address", value = res_auth$address %||% "")
+      )$find("input")$addAttrs(autocomplete = "street-address")$allTags(),
       uiOutput("account_profile_msg"),
       actionButton(
         "account_save_profile", "Save Profile",
@@ -90,10 +94,25 @@ app_server <- function(input, output, session, res_auth = NULL) {
       ),
       tags$hr(),
       tags$h6(class = "fw-bold", "Change Password"),
-      passwordInput("account_current_password", "Current Password"),
-      passwordInput("account_new_password", "New Password"),
+      # Hidden username field -- see directCareAnalytics's identical block
+      # for the full WHATWG/MDN rationale (a password-change form with no
+      # visible username field makes browsers guess wrong about which
+      # nearby text input to pair with the password fields; confirmed
+      # live, Address was getting autofilled with the login email).
+      tags$input(
+        type = "text", value = res_auth$email %||% "", autocomplete = "username",
+        style = "display:none", `aria-hidden` = "true"
+      ),
+      htmltools::tagQuery(
+        passwordInput("account_current_password", "Current Password")
+      )$find("input")$addAttrs(autocomplete = "current-password")$allTags(),
+      htmltools::tagQuery(
+        passwordInput("account_new_password", "New Password")
+      )$find("input")$addAttrs(autocomplete = "new-password")$allTags(),
       tags$p(class = "text-muted small mt-n2", "At least 10 characters."),
-      passwordInput("account_confirm_password", "Confirm New Password"),
+      htmltools::tagQuery(
+        passwordInput("account_confirm_password", "Confirm New Password")
+      )$find("input")$addAttrs(autocomplete = "new-password")$allTags(),
       uiOutput("account_password_msg"),
       actionButton(
         "account_change_password", "Change Password",
@@ -178,16 +197,31 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # bslib::input_dark_mode() flips the client-side data-bs-theme attribute
   # (driving custom.css's [data-bs-theme="dark"] overrides) and emits
   # "light"/"dark" strings via input$dark_mode -- not TRUE/FALSE, so this
-  # checks with identical() rather than isTRUE(). rds_theme_dark() is
-  # constructed fresh here (a plain bs_theme() call, not a piped
-  # bs_add_rules() chain), which avoids a known session$setCurrentTheme()
-  # class-check failure some bslib versions have with piped-together theme
-  # objects. Plots need re-theming too, since thematic_shiny() above pins
-  # explicit colors rather than "auto" -- a CSS variable swap alone
-  # wouldn't reach them.
+  # checks with identical() rather than isTRUE().
+  #
+  # Deliberately NOT calling session$setCurrentTheme() here (it was here
+  # originally, alongside a comment about a since-worked-around bslib
+  # class-check failure) -- confirmed via a live MutationObserver capture
+  # (in DCA, identical mechanism) that calling it makes bslib tear down and
+  # re-fetch all six theme stylesheets (bootstrap.min.css, both Google
+  # Fonts, bslib-component-css, selectize.css, shiny-sass.css) with a fresh
+  # cache-busting `?restyle=` query string on *every single toggle* -- a
+  # real network round-trip for the entire CSS bundle, not just the changed
+  # variables, and the reported cause of the light/dark toggle's visible
+  # flash. It's also redundant: the exact `[data-bs-theme="dark"]` variable
+  # overrides rds_theme_dark() would push are already present in every page
+  # load as a static `!important` <style> block (run_app.R's `head_auth`,
+  # sourced from `.dark_mode_css_rules()`) -- the client's own instant
+  # data-bs-theme attribute flip is enough to apply them with zero network
+  # calls. Signup and password-reset pages (mod_signup.R/
+  # mod_password_reset.R) are NOT wrapped by shinymanager and so don't get
+  # head_auth's static injection -- they still need session$setCurrentTheme()
+  # and keep it.
   observeEvent(input$dark_mode, {
     is_dark <- identical(input$dark_mode, "dark")
-    session$setCurrentTheme(if (is_dark) rds_theme_dark() else rds_theme())
+    # Plots still need re-theming: thematic_shiny() pins explicit colors
+    # rather than "auto" (see comment on the initial call above), so a CSS
+    # variable swap alone wouldn't reach them.
     thematic::thematic_shiny(
       bg = if (is_dark) "#0F172A" else "#F8FAFC",
       fg = if (is_dark) "#E2E8F0" else "#172033",
@@ -236,6 +270,24 @@ app_server <- function(input, output, session, res_auth = NULL) {
     r$practice_id <- res_auth$practice_id
   })
 
-  mod_plan_inputs_server("plan_inputs", r, parent_session = session)
+  plan_inputs_result <- mod_plan_inputs_server("plan_inputs", r, parent_session = session)
   mod_results_server("results", r, parent_session = session)
+
+  # Saved scenario slots (plan_scenarios) -- instantiated once here, at the
+  # app level, rather than inside mod_plan_inputs.R, so the Save/Load
+  # buttons and "viewing saved scenario" banner (rendered once, globally,
+  # via app_ui.R's page_navbar(header = ...)) are available from both Plan
+  # Inputs and Results, not just Plan Inputs. plan_inputs_result's
+  # get_inputs_for_save/get_dirty_signal/on_load are plain closures returned
+  # by mod_plan_inputs_server(); see that module's own comment for why they
+  # still correctly read its own input$xxx/session objects from here.
+  directCareScenarios::mod_scenario_slots_server(
+    "scenario",
+    table = "plan_scenarios",
+    get_con = directCareAuth::db_connect,
+    practice_id = function() r$practice_id,
+    get_inputs_for_save = plan_inputs_result$get_inputs_for_save,
+    get_dirty_signal = plan_inputs_result$get_dirty_signal,
+    on_load = plan_inputs_result$on_load
+  )
 }

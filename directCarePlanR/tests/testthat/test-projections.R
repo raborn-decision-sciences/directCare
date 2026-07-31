@@ -33,7 +33,7 @@ test_that("project_practice() compounds overhead growth month over month", {
 test_that("project_practice() combines membership and fee-for-service revenue", {
   assumptions <- list(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
-    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100),
+    fee_args = list(visit_volume = 100, new_visit_fee = 200, follow_up_fee = 100, ramp_months = 1),
     overhead_monthly = 5000
   )
   result <- project_practice(assumptions, horizon_months = 3)

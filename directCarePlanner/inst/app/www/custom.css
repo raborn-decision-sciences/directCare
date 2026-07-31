@@ -178,16 +178,52 @@ code {
 }
 
 /* ── Dark mode ──────────────────────────────────────────────────────────── */
-/* bg/fg/accent flip via rds_theme_dark() (session$setCurrentTheme()); these
-   --rds-* tokens are static custom properties Bootstrap's own theme swap
-   doesn't touch, so they need their own override here. The navbar is
-   intentionally excluded -- it's already dark-navy in light mode. */
+/* All --bs- and --rds- dark-mode variable overrides live here, in a plain
+   always-linked stylesheet, rather than being pushed via
+   session$setCurrentTheme()/rds_theme_dark() the way they originally were.
+   That approach had two confirmed-live problems (see directCareAnalytics's
+   identical block for the full investigation): (1) session's
+   setCurrentTheme() call makes bslib tear down and re-fetch all six theme
+   stylesheets (bootstrap.min.css, both Google Fonts, bslib-component-css,
+   selectize.css, shiny-sass.css) with a fresh cache-busting query string on
+   every single dark-mode toggle -- a real network round-trip for the whole
+   bundle, not just the changed variables, and the actual cause of the
+   reported light/dark toggle flicker; (2) the login page's equivalent
+   static-<style>-in-head_auth workaround (see .dark_mode_css_rules() in
+   app_ui.R, still used by the login/signup/reset pages, which aren't
+   wrapped in this app_ui() and so can't load custom.css the normal way)
+   does NOT survive shinymanager's login -> authenticated-app transition --
+   confirmed live via document.styleSheets that head_auth's injected
+   overrides are simply gone by the time the real app renders. custom.css
+   is immune to both: it's a normal <link>, present from first paint,
+   untouched by any of bslib's session-theme machinery. No !important
+   needed -- confirmed via the live DOM that this file's <link> already
+   loads after bootstrap.min.css's, so plain cascade order wins the
+   selector tie on equal specificity. The navbar is intentionally excluded
+   from the --bs-* overrides below -- it's already dark-navy in the light
+   theme, so it reads correctly unchanged. */
 [data-bs-theme="dark"] {
   --rds-off-white:  #0F172A;
   --rds-white:      #1E293B;
   --rds-light-gray: #334155;
   --rds-border:     #334155;
   --rds-gray:       #94A3B8;
+  color-scheme: dark;
+  --bs-body-bg: #0F172A;
+  --bs-body-color: #E2E8F0;
+  --bs-emphasis-color: #E2E8F0;
+  --bs-heading-color: #E2E8F0;
+  --bs-secondary: #64748B;
+  --bs-secondary-rgb: 100, 116, 139;
+  --bs-secondary-color: rgba(226, 232, 240, 0.75);
+  --bs-secondary-color-rgb: 226, 232, 240;
+  --bs-secondary-bg: #1E293B;
+  --bs-tertiary-bg: #1E293B;
+  --bs-border-color: #334155;
+  --bs-link-color: #2DD4BF;
+  --bs-link-hover-color: #5EEAD4;
+  --bs-code-color: #CBD5E1;
+  --bs-code-bg: #1E293B;
 }
 
 [data-bs-theme="dark"] .card,

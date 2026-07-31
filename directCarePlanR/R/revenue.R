@@ -88,6 +88,30 @@
   invisible(x)
 }
 
+#' Ramp Fraction by Month
+#'
+#' Shared by [calc_membership_revenue()] and [calc_fee_revenue()]: the
+#' fraction of a target quantity (panel size, visit volume) reached in each
+#' month of a ramp-up period, so both revenue streams build up the same way
+#' rather than starting full on day one.
+#'
+#' @param month Integer vector of month numbers (1-indexed).
+#' @param ramp_months Integer number of months to reach the full target.
+#' @param ramp_shape Character string: `"linear"` or `"s_curve"` (a
+#'   smoothstep curve: slow to start, accelerating through the middle,
+#'   easing into the target).
+#'
+#' @return Numeric vector, same length as `month`, in `[0, 1]`.
+#'
+#' @noRd
+.ramp_fraction <- function(month, ramp_months, ramp_shape) {
+  frac <- pmin(month / ramp_months, 1)
+  if (ramp_shape == "s_curve") {
+    frac <- 3 * frac^2 - 2 * frac^3
+  }
+  frac
+}
+
 #' Calculate Membership Revenue
 #'
 #' Projects membership revenue as panel size times membership fee, applying
@@ -124,11 +148,7 @@ calc_membership_revenue <- function(
   ramp_months <- .validate_positive_int(ramp_months, "ramp_months")
 
   month <- seq_len(horizon_months)
-  frac <- pmin(month / ramp_months, 1)
-  if (ramp_shape == "s_curve") {
-    frac <- 3 * frac^2 - 2 * frac^3
-  }
-  ramped_panel_size <- round(panel_size * frac)
+  ramped_panel_size <- round(panel_size * .ramp_fraction(month, ramp_months, ramp_shape))
 
   structure(
     tibble::tibble(
@@ -144,16 +164,26 @@ calc_membership_revenue <- function(
 #'
 #' Projects fee-based revenue as visit volume times visit fee, using an
 #' explicit new-patient vs. follow-up visit mix since the two are typically
-#' billed at different rates. Unlike membership revenue, visit volume is
-#' not ramped; it is held flat across the horizon.
+#' billed at different rates. Applies the same ramp function as
+#' [calc_membership_revenue()] so visit volume builds up to `visit_volume`
+#' over `ramp_months` rather than starting full on day one -- a new
+#' fee-for-service practice fills its schedule gradually, same as a
+#' membership panel.
 #'
-#' @param visit_volume Integer number of visits per month.
+#' @param visit_volume Integer target number of visits per month once
+#'   ramp-up is complete.
 #' @param new_visit_fee Numeric fee charged for a new-patient visit.
 #' @param follow_up_fee Numeric fee charged for a follow-up visit.
 #' @param new_visit_pct Numeric between 0 and 1: the share of visits that
 #'   are new-patient visits. Defaults to 0.2.
 #' @param horizon_months Integer number of months to project. Defaults to
 #'   24.
+#' @param ramp_months Integer number of months to reach `visit_volume`.
+#'   Defaults to 12. If greater than `horizon_months`, the ramp will not be
+#'   complete by the end of the projection.
+#' @param ramp_shape Character string specifying the ramp shape: `"linear"`
+#'   (default) or `"s_curve"` (a smoothstep curve: slow to start,
+#'   accelerating through the middle, easing into `visit_volume`).
 #'
 #' @return A `dcPlanR_fee_revenue`-classed tibble with one row per month
 #'   and columns `month`, `visit_volume`, and `revenue`.
@@ -164,22 +194,29 @@ calc_fee_revenue <- function(
   new_visit_fee,
   follow_up_fee,
   new_visit_pct = 0.2,
-  horizon_months = 24L
+  horizon_months = 24L,
+  ramp_months = 12L,
+  ramp_shape = c("linear", "s_curve")
 ) {
+  ramp_shape <- match.arg(ramp_shape)
   .validate_nonneg_scalar(visit_volume, "visit_volume")
   .validate_nonneg_scalar(new_visit_fee, "new_visit_fee")
   .validate_nonneg_scalar(follow_up_fee, "follow_up_fee")
   .validate_proportion(new_visit_pct, "new_visit_pct")
   horizon_months <- .validate_positive_int(horizon_months, "horizon_months")
+  ramp_months <- .validate_positive_int(ramp_months, "ramp_months")
 
-  revenue <- (visit_volume * new_visit_pct) *
+  month <- seq_len(horizon_months)
+  ramped_visit_volume <- round(visit_volume * .ramp_fraction(month, ramp_months, ramp_shape))
+
+  revenue <- (ramped_visit_volume * new_visit_pct) *
     new_visit_fee +
-    (visit_volume * (1 - new_visit_pct)) * follow_up_fee
+    (ramped_visit_volume * (1 - new_visit_pct)) * follow_up_fee
 
   structure(
     tibble::tibble(
-      month = seq_len(horizon_months),
-      visit_volume = visit_volume,
+      month = month,
+      visit_volume = ramped_visit_volume,
       revenue = revenue
     ),
     class = c("dcPlanR_fee_revenue", "tbl_df", "tbl", "data.frame")

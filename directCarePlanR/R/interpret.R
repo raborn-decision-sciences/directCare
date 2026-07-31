@@ -86,7 +86,7 @@ interpret_revenue <- function(revenue) {
     )
   } else {
     paste0(
-      "This plan generates ",
+      "At full ramp, this plan generates ",
       .fmt_dollar(fee_final),
       "/month in fee-for-service revenue, with no membership component."
     )

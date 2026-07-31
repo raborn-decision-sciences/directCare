@@ -21,6 +21,25 @@ app_ui <- function(request) {
       ),
       id = "main_nav",
       theme = rds_theme(),
+      # Renders the saved-scenario Save/Load buttons and the "viewing saved
+      # scenario" banner exactly once, globally, instead of inside each
+      # nav_panel's own content -- bslib keeps every nav_panel mounted in the
+      # DOM simultaneously, so rendering the same bare "scenario"-id module
+      # UI once per tab would produce duplicate DOM ids (confirmed in
+      # directCareAnalytics, which hit this exact bug first; see its own
+      # app_ui.R for the full story). A single global instance here is what
+      # makes Save/Load available on both Plan Inputs and Results, not just
+      # Plan Inputs.
+      header = tagList(
+        tags$div(
+          class = "d-flex justify-content-end gap-2 px-3 py-2 border-bottom",
+          directCareScenarios::mod_scenario_slots_ui("scenario")
+        ),
+        tags$div(
+          class = "px-3 pt-2",
+          directCareScenarios::mod_scenario_banner_ui("scenario")
+        )
+      ),
       nav_panel(
         title = tagList(bsicons::bs_icon("clipboard-data"), " Plan Inputs"),
         value = "plan_inputs",
@@ -139,6 +158,11 @@ rds_theme_dark <- function() {
   # (confirmed live via getComputedStyle + querying document.styleSheets for
   # the exact rule/selector). Irrelevant on the authenticated app (no
   # `.panel-auth` element exists there), so safe to include unconditionally.
+  #
+  # `.login-footer-logo` mirrors directCareAnalytics's identical fix -- see
+  # its app_ui.R for the full rationale (custom.css's `.footer-logo` filter
+  # never reaches the login page, since it's rendered outside app_ui() by
+  # shinymanager's secure_app()).
   "[data-bs-theme=\"dark\"] {
       color-scheme: dark;
       --bs-body-bg: #0F172A !important;
@@ -159,6 +183,9 @@ rds_theme_dark <- function() {
     }
     [data-bs-theme=\"dark\"] .panel-auth {
       background-color: #0F172A !important;
+    }
+    [data-bs-theme=\"dark\"] .login-footer-logo {
+      filter: brightness(0) invert(1);
     }"
 }
 

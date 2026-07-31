@@ -72,7 +72,10 @@ run_app <- function(
       ),
       tags$div(
         style = "opacity:0.6;margin-top:16px;",
-        tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
+        tags$img(
+          src = "www/logo-rds-alt.svg", height = "28px",
+          alt = "Raborn Decision Sciences", class = "login-footer-logo"
+        )
       )
     )
   )
