@@ -315,8 +315,27 @@
   ]
 ]
 
-// ── Disclaimer ────────────────────────────────────────────────────────
-#v(0.8em)
+// ── Footnotes ─────────────────────────────────────────────────────────
+// Scenario definitions sourced directly from
+// directCarePlanR::project_scenarios()'s built-in defaults
+// (conservative: ramp_months_multiplier = 1.5, overhead_multiplier = 1.1;
+// optimistic: ramp_months_multiplier = 0.75, overhead_multiplier = 0.9) --
+// the app never overrides these with custom scenario_params, so these are
+// always the actual numbers in effect, not just illustrative ones.
+#if d.projections != none [
+  #v(0.8em)
+  #line(length: 100%, stroke: 0.5pt + border)
+  #v(0.2em)
+  #text(size: 8pt, fill: muted)[
+    *Scenario definitions:* Base reflects the assumptions you entered.
+    Conservative assumes membership growth takes 50% longer to reach your
+    target panel size, with monthly overhead 10% higher than entered.
+    Optimistic assumes membership growth reaches your target panel size
+    25% faster, with monthly overhead 10% lower than entered.
+  ]
+]
+
+#v(0.5em)
 #line(length: 100%, stroke: 0.5pt + border)
 #v(0.2em)
 #text(size: 8pt, fill: muted)[

@@ -15,6 +15,29 @@
 
 .fmt_dollar <- function(x) scales::dollar(x, accuracy = 1)
 
+# Plain-language description of what the three Scenario Projections lines
+# actually vary, sourced directly from directCarePlanR::project_scenarios()'s
+# built-in defaults (conservative: ramp_months_multiplier = 1.5,
+# overhead_multiplier = 1.1; optimistic: ramp_months_multiplier = 0.75,
+# overhead_multiplier = 0.9) -- this app never passes a custom
+# `scenario_params`, so these are always the actual numbers in effect, not
+# just illustrative ones. Kept as a small, muted block near the bottom of
+# the page rather than a card of its own -- it's a definitional aside, not
+# a result.
+.scenario_footnote <- function() {
+  tags$p(
+    class = "small text-muted mt-3 mb-0",
+    tags$strong("Base"),
+    " reflects the assumptions you entered. ",
+    tags$strong("Conservative"),
+    " assumes membership growth takes 50% longer to reach your target ",
+    "panel size, with monthly overhead 10% higher than entered. ",
+    tags$strong("Optimistic"),
+    " assumes membership growth reaches your target panel size 25% ",
+    "faster, with monthly overhead 10% lower than entered."
+  )
+}
+
 # Human-readable labels for calc_startup_costs()'s line_items names, which
 # are the raw internal names passed in from mod_plan_inputs.R's
 # cost_ehr/cost_equipment/etc inputs (ehr_setup, equipment, licensing,
@@ -164,7 +187,8 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             tags$h6(class = "mt-3", "Capital"),
             .paragraphs_to_html(r$interpretations$capital)
           )
-        )
+        ),
+        .scenario_footnote()
       )
     })
 
