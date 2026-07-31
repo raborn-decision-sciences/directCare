@@ -1,6 +1,6 @@
 Package: directCarePlanner
 Title: Direct Care Practice Launch Planner
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R:
     person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com",
            role = c("aut", "cre"))

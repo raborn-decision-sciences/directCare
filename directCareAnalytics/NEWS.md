@@ -1,3 +1,48 @@
+# directCareAnalytics 0.0.2
+
+Substantial functionality added on top of the 0.0.1 base, plus a round of
+bug fixes and performance work. Grouped by area, not exhaustive.
+
+## Authentication & accounts
+
+- Practice login, signup, and self-service password reset (email delivery
+  via ZeptoMail), all backed by the shared `directCareAuth` package.
+- Login lockout and password-reset/signup rate limiting, both keyed on
+  email and on the client's IP address, to resist credential-spray and
+  spam attacks that vary the email but not the source.
+- Account Settings modal for editing practice profile and changing
+  password without contacting support.
+
+## Guided tours & demo mode
+
+- Three interactive `cicerone`-based walkthroughs (Historical Data upload,
+  Plan My Practice / synthetic history, Quick Calculator).
+- A `?demo=1` demo mode with seeded sample data and the real upload/manual-
+  entry paths gated off, for prospective-customer evaluation without a
+  real account.
+
+## Saved scenarios
+
+- Named, user-labeled scenario slots (3 per practice per feature area) for
+  Projections' full forecast pipeline and the Quick Calculator, backed by
+  the shared `directCareScenarios` package. Save/Load and a "viewing saved
+  scenario" banner are available from every tab, not just where they were
+  first built.
+
+## Performance & UX
+
+- Run Forecast now executes in a background process
+  (`shiny::ExtendedTask` + `mirai`) instead of blocking the entire app
+  (every session, every practice) for the duration of one click.
+- Dark mode toggle no longer flashes unstyled content on switch.
+- Enter Data Manually restructured into Set Up / Overhead / Income tabs
+  instead of one long scroll; adopted the same always-visible sticky
+  footer the other tabs use.
+- Assorted correctness fixes: Membership Profile inputs debounced instead
+  of recomputing on every keystroke; generic and GnuCash CSV upload
+  validation and format-reference tooltips corrected against the actual
+  parser requirements.
+
 # directCareAnalytics 0.0.1
 
 Initial release of the Direct Care Analytics Shiny application.

@@ -1,6 +1,6 @@
 Package: directCareAnalytics
 Title: Financial Analytics Dashboard for Direct Care Practices
-Version: 0.0.1
+Version: 0.0.2
 Authors@R:
     person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com",
            role = c("aut", "cre"))
