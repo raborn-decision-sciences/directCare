@@ -504,8 +504,11 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
     nav_footer <- reactive({
       path <- path_chosen()
       if (is.null(path)) {
+        # No step/workflow indicator here -- none of the 4 Upload -> Edit
+        # -> Summary -> Projections steps (or Calculator/Manual Entry)
+        # apply yet, since no path has been chosen. Save/Load stays
+        # available regardless.
         return(.tour_nav_footer(
-          current_step = 1L,
           extra = directCareScenarios::mod_scenario_slots_ui("scenario")
         ))
       }

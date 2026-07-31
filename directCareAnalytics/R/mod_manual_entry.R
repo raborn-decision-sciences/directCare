@@ -246,16 +246,21 @@ mod_manual_entry_server <- function(id, r, parent_session = NULL) {
 
     # Returned for the central output$main_nav_footer (app_server.R) to
     # render when Manual Entry is the active sub-path -- see mod_upload.R's
-    # nav_footer reactive, which delegates here.
+    # nav_footer reactive, which delegates here. Uses .tour_nav_footer()'s
+    # `workflow` (single icon/label) mode, matching the icon/label on the
+    # Upload landing page's own "Plan My Practice" card, so this gets the
+    # same workflow-indicator (left) / Back-Submit (right) layout every
+    # other path uses. No `extra` -- Manual Entry has never had its own
+    # Save/Load (the shared forecast-scenario one doesn't apply here).
     nav_footer <- reactive({
-      div(
-        class = "tour-nav-footer justify-content-between",
-        actionButton(
+      .tour_nav_footer(
+        workflow = list(icon = "sliders", label = "Plan My Practice"),
+        back = actionButton(
           ns("btn_back_manual"),
           tagList(bs_icon("arrow-left"), " Back"),
           class = "btn-outline-secondary"
         ),
-        if (tables_ready()) {
+        forward = if (tables_ready()) {
           actionButton(
             ns("btn_submit_manual"),
             tagList(bs_icon("check2-circle"), " Submit Data"),
