@@ -493,6 +493,25 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
     })
     outputOptions(output, "content", suspendWhenHidden = FALSE)
 
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Edit is the active tab -- see app_ui.R's header comment.
+    nav_footer <- reactive({
+      .tour_nav_footer(
+        current_step = 2L,
+        back = actionButton(
+          ns("btn_back_to_upload"),
+          tagList(bs_icon("arrow-left"), " Back"),
+          class = "btn-outline-secondary"
+        ),
+        forward = actionButton(
+          ns("btn_next_to_summary"),
+          tagList(bs_icon("bar-chart-line"), " Next: Summary ", bs_icon("arrow-right")),
+          class = "btn-primary"
+        ),
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
+
     # -- Aggregate manual-entry message card ----------------------------------
     # Shown when r$overhead_monthly is populated but r$scenario_inputs is NULL
     # (manual period-summary entry, no CSV and no Quick Estimator).
@@ -1075,19 +1094,6 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
                 )
               )
             )
-          )
-        ),
-        .tour_nav_footer(
-          current_step = 2L,
-          back = actionButton(
-            ns("btn_back_to_upload"),
-            tagList(bs_icon("arrow-left"), " Back"),
-            class = "btn-outline-secondary"
-          ),
-          forward = actionButton(
-            ns("btn_next_to_summary"),
-            tagList(bs_icon("bar-chart-line"), " Next: Summary ", bs_icon("arrow-right")),
-            class = "btn-primary"
           )
         )
       )
@@ -2208,5 +2214,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
         )
       }
     })
+
+    list(nav_footer = nav_footer)
   })
 }

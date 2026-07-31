@@ -1127,8 +1127,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
     ignoreNULL = TRUE
   )
 
-  mod_edit_server("edit", r, parent_session = session)
-  mod_summary_server("summary", r, parent_session = session)
+  edit_result <- mod_edit_server("edit", r, parent_session = session)
+  summary_result <- mod_summary_server("summary", r, parent_session = session)
   # Captured (not fire-and-forget like the other three module calls above):
   # its return value supplies the Save/Load callbacks the single app-level
   # scenario_slots instance below needs. mod_projections_server() must run
@@ -1173,4 +1173,39 @@ app_server <- function(input, output, session, res_auth = NULL) {
     on_load = projections_result$on_load,
     is_forecast = TRUE
   )
+
+  # -- Consolidated sticky nav bar: one central output, not one per tab -----
+  # Each tab module returns its Back/Next/Submit buttons (already wrapped in
+  # .tour_nav_footer(), including that tab's own Save/Load "extra" where
+  # applicable) via a `nav_footer` reactive instead of rendering them in its
+  # own content -- this switch just selects which one is currently active
+  # and is the *only* place any of them actually gets inserted into the DOM,
+  # so there's no way for two to ever be visible at once (see app_ui.R's
+  # header comment for the duplicate-DOM-id history this avoids).
+  output$main_nav_footer <- renderUI({
+    switch(input$main_nav,
+      "upload" = upload_result$nav_footer(),
+      "edit" = edit_result$nav_footer(),
+      "summary" = summary_result$nav_footer(),
+      "projections" = projections_result$nav_footer(),
+      NULL
+    )
+  })
+  outputOptions(output, "main_nav_footer", suspendWhenHidden = FALSE)
+
+  # "Viewing saved scenario" banner follows the same active-tab switch --
+  # Calculator has its own separate scenario system (dca_calculator_scenarios,
+  # a different table from the rest of the app's dca_forecast_scenarios), so
+  # it needs its own banner instance, not the shared "scenario" one below.
+  output$main_scenario_banner <- renderUI({
+    if (
+      identical(input$main_nav, "upload") &&
+        identical(upload_result$path_chosen(), "calculator")
+    ) {
+      directCareScenarios::mod_scenario_banner_ui("upload-calculator-scenario")
+    } else {
+      directCareScenarios::mod_scenario_banner_ui("scenario")
+    }
+  })
+  outputOptions(output, "main_scenario_banner", suspendWhenHidden = FALSE)
 }

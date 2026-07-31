@@ -70,17 +70,15 @@ mod_results_server <- function(id, r, parent_session = NULL) {
 
     output$content <- renderUI({
       if (is.null(r$projections)) {
+        # No inline Back button here -- the sticky nav bar above always
+        # shows one for this tab now (see this module's `nav_footer` return
+        # value), so a second copy here would be a duplicate.
         return(
           card(
             card_body(
               class = "text-center text-muted py-5",
               bsicons::bs_icon("arrow-left-circle", size = "2em"),
-              tags$p("Build a plan in the Plan Inputs tab to see results here."),
-              actionButton(
-                ns("btn_back"),
-                tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
-                class = "btn-outline-primary mt-2"
-              )
+              tags$p("Build a plan in the Plan Inputs tab to see results here.")
             )
           )
         )
@@ -166,19 +164,6 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             tags$h6(class = "mt-3", "Capital"),
             .paragraphs_to_html(r$interpretations$capital)
           )
-        ),
-        div(
-          class = "d-flex justify-content-between mt-3 mb-4",
-          actionButton(
-            ns("btn_back"),
-            tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
-            class = "btn-outline-secondary"
-          ),
-          downloadButton(
-            ns("dl_report"),
-            tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
-            class = "btn-primary"
-          )
         )
       )
     })
@@ -241,5 +226,28 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         directCarePlanR::render_plan_report(data, file)
       }
     )
+
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Results is the active tab -- see app_ui.R's header
+    # comment. Last step in the sequence, so Download Report (not a "Next"
+    # tab) takes the forward slot.
+    nav_footer <- reactive({
+      .tour_nav_footer(
+        current_step = 2L,
+        back = actionButton(
+          ns("btn_back"),
+          tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
+          class = "btn-outline-secondary"
+        ),
+        forward = downloadButton(
+          ns("dl_report"),
+          tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
+          class = "btn-primary"
+        ),
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
+
+    list(nav_footer = nav_footer)
   })
 }

@@ -21,20 +21,19 @@ app_ui <- function(request) {
       ),
       id = "main_nav",
       theme = rds_theme(),
-      # Renders the saved-scenario Save/Load buttons and the "viewing saved
-      # scenario" banner exactly once, globally, instead of inside each
-      # nav_panel's own content -- bslib keeps every nav_panel mounted in the
-      # DOM simultaneously, so rendering the same bare "scenario"-id module
-      # UI once per tab would produce duplicate DOM ids (confirmed in
-      # directCareAnalytics, which hit this exact bug first; see its own
-      # app_ui.R for the full story). A single global instance here is what
-      # makes Save/Load available on both Plan Inputs and Results, not just
-      # Plan Inputs.
+      # Consolidated sticky nav bar (Back/Next/Download + step indicator +
+      # Save/Load), rendered exactly once, centrally, by app_server.R's
+      # output$main_nav_footer -- not inside each nav_panel's own content.
+      # bslib keeps every nav_panel mounted in the DOM simultaneously, so
+      # rendering the same bare "scenario"-id module UI once per tab would
+      # produce duplicate DOM ids (confirmed in directCareAnalytics, which
+      # hit this exact bug first; see its own app_ui.R for the full story
+      # and the same central-output pattern this ports). A single central
+      # output is what makes Save/Load (and now Back/Next/Download) available
+      # from both Plan Inputs and Results, not just Plan Inputs, with no
+      # risk of duplication.
       header = tagList(
-        tags$div(
-          class = "d-flex justify-content-end gap-2 px-3 py-2 border-bottom",
-          directCareScenarios::mod_scenario_slots_ui("scenario")
-        ),
+        uiOutput("main_nav_footer"),
         tags$div(
           class = "px-3 pt-2",
           directCareScenarios::mod_scenario_banner_ui("scenario")

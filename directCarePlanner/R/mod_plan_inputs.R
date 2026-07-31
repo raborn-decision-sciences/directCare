@@ -155,11 +155,9 @@ mod_plan_inputs_ui <- function(id) {
     # No mod_scenario_banner_ui()/mod_scenario_slots_ui() call here -- both
     # are rendered exactly once, globally, via page_navbar(header = ...) in
     # app_ui.R, the same fix already applied to directCareAnalytics (see its
-    # own app_ui.R for the full duplicate-DOM-id rationale this avoids).
-    div(
-      class = "d-flex justify-content-end mt-3 mb-4",
-      input_task_button(ns("submit"), "Build My Plan", icon = bsicons::bs_icon("arrow-right-circle"))
-    ),
+    # own app_ui.R for the full duplicate-DOM-id rationale this avoids). The
+    # "Build My Plan" submit button lives in the same central nav bar now
+    # too -- see this module's own `nav_footer` return value.
     .branded_footer()
   )
 }
@@ -174,6 +172,8 @@ mod_plan_inputs_ui <- function(id) {
 #' @noRd
 mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+
     # .nn0(): coerce a potentially-NULL or NA numeric input to 0, so a
     # cleared itemized field contributes $0 to the running total instead of
     # propagating NA into it (a cleared numericInput sends NA, not NULL, so
@@ -501,10 +501,26 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       .build_plan(switch_tab = FALSE, values = inputs)
     }
 
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Plan Inputs is the active tab -- see app_ui.R's header
+    # comment. First step in the sequence, so no back button.
+    nav_footer <- reactive({
+      .tour_nav_footer(
+        current_step = 1L,
+        forward = input_task_button(
+          ns("submit"),
+          "Build My Plan",
+          icon = bsicons::bs_icon("arrow-right-circle")
+        ),
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
+
     list(
       get_inputs_for_save = plan_inputs_for_save,
       get_dirty_signal = plan_inputs_for_save,
-      on_load = scenario_on_load
+      on_load = scenario_on_load,
+      nav_footer = nav_footer
     )
   })
 }

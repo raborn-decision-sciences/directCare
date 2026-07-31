@@ -434,18 +434,25 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             value = "target",
             uiOutput(ns("target_ui"))
           )
-        ),
-        .tour_nav_footer(
-          current_step = 4L,
-          back = actionButton(
-            ns("btn_back_to_summary"),
-            tagList(bs_icon("arrow-left"), " Back to Summary"),
-            class = "btn-outline-secondary"
-          )
         )
       )
     })
     outputOptions(output, "content", suspendWhenHidden = FALSE)
+
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Projections is the active tab -- see app_ui.R's header
+    # comment. Last step in the sequence, so no forward button.
+    nav_footer <- reactive({
+      .tour_nav_footer(
+        current_step = 4L,
+        back = actionButton(
+          ns("btn_back_to_summary"),
+          tagList(bs_icon("arrow-left"), " Back to Summary"),
+          class = "btn-outline-secondary"
+        ),
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
 
     # -- Color-coded method selector -------------------------------------------
     # Renders a radioButtons where each label has a colored dot indicating
@@ -1976,7 +1983,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       get_bundle_for_save = get_bundle_for_save,
       get_dirty_signal = scenario_dirty_signal,
       extract_dirty_signal = scenario_extract_dirty_signal,
-      on_load = scenario_on_load
+      on_load = scenario_on_load,
+      nav_footer = nav_footer
     )
   })
 }

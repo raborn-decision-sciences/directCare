@@ -257,3 +257,76 @@ code {
   background-color: var(--rds-white);
   color: #CBD5E1;
 }
+
+/* ── Consolidated nav bar (Back/Next/Download + step indicator + Save/Load) ── */
+/* Ported from directCareAnalytics's identical rule (inst/app/www/custom.css
+   there) -- see its comment for the full position: sticky rationale. */
+.tour-nav-footer {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background-color: var(--rds-white);
+  border-bottom: 1px solid var(--rds-border);
+  box-shadow: 0 2px 8px rgba(23, 32, 51, 0.06);
+}
+
+.tour-nav-footer-steps {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.tour-nav-footer-extra {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  padding-left: 1rem;
+  border-left: 1px solid var(--rds-border);
+}
+
+/* When there's no back/forward pair, .tour-nav-footer-buttons is empty and
+   margin-left: auto on -extra already pushes it to the right on its own --
+   this only matters when both groups are present. */
+.tour-nav-footer-buttons:empty {
+  display: none;
+}
+
+.tour-nav-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--rds-gray);
+  opacity: 0.55;
+}
+
+.tour-nav-step-complete {
+  color: var(--rds-teal-dark);
+  opacity: 1;
+}
+
+.tour-nav-step-current {
+  color: var(--rds-navy);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.tour-nav-footer-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+[data-bs-theme="dark"] .tour-nav-footer {
+  background-color: var(--rds-white);
+  border-bottom-color: var(--rds-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}

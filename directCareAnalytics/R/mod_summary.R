@@ -290,23 +290,29 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
               DT::dataTableOutput(ns("inc_table"))
             )
           )
-        ),
-        .tour_nav_footer(
-          current_step = 3L,
-          back = actionButton(
-            ns("btn_back_to_edit"),
-            tagList(bs_icon("arrow-left"), " Back"),
-            class = "btn-outline-secondary"
-          ),
-          forward = actionButton(
-            ns("btn_next_to_projections"),
-            tagList(bs_icon("graph-up-arrow"), " Next: Projections ", bs_icon("arrow-right")),
-            class = "btn-primary"
-          )
         )
       )
     })
     outputOptions(output, "content", suspendWhenHidden = FALSE)
+
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Summary is the active tab -- see app_ui.R's header comment.
+    nav_footer <- reactive({
+      .tour_nav_footer(
+        current_step = 3L,
+        back = actionButton(
+          ns("btn_back_to_edit"),
+          tagList(bs_icon("arrow-left"), " Back"),
+          class = "btn-outline-secondary"
+        ),
+        forward = actionButton(
+          ns("btn_next_to_projections"),
+          tagList(bs_icon("graph-up-arrow"), " Next: Projections ", bs_icon("arrow-right")),
+          class = "btn-primary"
+        ),
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
 
     #  Helpers: period column & frequency
     is_weekly <- reactive({
@@ -905,5 +911,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
         selected = "projections"
       )
     })
+
+    list(nav_footer = nav_footer)
   })
 }

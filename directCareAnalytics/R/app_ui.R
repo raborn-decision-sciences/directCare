@@ -25,25 +25,27 @@ app_ui <- function(request) {
       id = "main_nav",
       theme = rds_theme(),
       # header (not per-tab content): renders exactly once, outside every
-      # nav_panel(), so it's the correct place for the single app-level
-      # Save/Load scenario widget (see app_server.R) to live. Rendering the
-      # same mod_scenario_slots_ui("scenario")/mod_scenario_banner_ui(
-      # "scenario") pair inside each of Upload/Edit/Summary/Projections'
-      # own content instead (tried first) produced *duplicate* DOM ids --
-      # this app forces several tabs' outputs to suspendWhenHidden = FALSE,
-      # so bslib keeps every nav_panel's content mounted in the DOM at
-      # once, not just the active one, and Shiny's client-side output
-      # binding only ever updates the first matching id -- confirmed live,
-      # the "viewing saved scenario" banner silently stayed empty on every
-      # tab but one. A single instance here has no such risk.
+      # nav_panel(), so it's the correct place for the single, consolidated
+      # sticky nav bar (Back/Next/Submit + Save/Load, see app_server.R's
+      # output$main_nav_footer) to live. Rendering per-tab footer markup
+      # inside each of Upload/Edit/Summary/Projections' own content instead
+      # (the original design) produced *duplicate* DOM ids -- this app
+      # forces several tabs' outputs to suspendWhenHidden = FALSE, so bslib
+      # keeps every nav_panel's content mounted in the DOM at once, not just
+      # the active one, and Shiny's client-side output binding only ever
+      # updates the first matching id -- confirmed live, the "viewing saved
+      # scenario" banner silently stayed empty on every tab but one. A
+      # single central output switching on input$main_nav (and, for Upload,
+      # its internal path_chosen()) avoids that: every tab module still owns
+      # its own Back/Next buttons and observeEvent()s, it just returns them
+      # via a `nav_footer` reactive instead of rendering them in place, and
+      # only the currently-active tab's version is ever actually inserted
+      # into the DOM.
       header = tagList(
-        tags$div(
-          class = "d-flex justify-content-end gap-2 px-3 py-2 border-bottom",
-          directCareScenarios::mod_scenario_slots_ui("scenario")
-        ),
+        uiOutput("main_nav_footer"),
         tags$div(
           class = "px-3 pt-2",
-          directCareScenarios::mod_scenario_banner_ui("scenario")
+          uiOutput("main_scenario_banner")
         )
       ),
       # -- Tabs (hidden from navbar; navigation via Next/Back buttons) ---------

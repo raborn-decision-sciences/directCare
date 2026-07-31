@@ -10,7 +10,6 @@ mod_calculator_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
-    directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
     layout_columns(
       col_widths = c(5, 7),
 
@@ -108,29 +107,6 @@ mod_calculator_ui <- function(id) {
           uiOutput(ns("results_ui"))
         )
       )
-    ),
-
-    # Reuses .tour_nav_footer()'s CSS class directly (utils_nav_footer.R)
-    # rather than calling that helper itself -- Calculator isn't part of
-    # the Upload -> Edit -> Summary -> Projections sequence its step
-    # indicator represents (it's a self-contained alternate path off the
-    # Upload landing cards, with only a Back, no multi-tab progression),
-    # so the helper's `current_step` concept doesn't apply here. The
-    # `.tour-nav-footer` class alone (sticky bar, background, border,
-    # shadow) is what was actually missing -- Calculator's footer was
-    # previously a plain unstyled div, visually inconsistent with the
-    # other three tabs' sticky footer. `justify-content-between` overrides
-    # the class's default flex-start alignment to keep Back on the left
-    # and the Save/Load buttons on the right, matching this tab's existing
-    # two-group (not three-group) layout.
-    div(
-      class = "tour-nav-footer justify-content-between",
-      actionButton(
-        ns("btn_back"),
-        tagList(bs_icon("arrow-left"), " Back"),
-        class = "btn-outline-secondary"
-      ),
-      directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
     )
   )
 }
@@ -834,6 +810,32 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
       go_back(runif(1))
     })
 
-    return(list(go_back = go_back))
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Calculator is the active sub-path. Uses .tour-nav-footer's
+    # CSS class directly (not the .tour_nav_footer() helper) -- Calculator
+    # isn't part of the Upload -> Edit -> Summary -> Projections sequence
+    # its step indicator represents (it's a self-contained alternate path
+    # off the Upload landing cards, with only a Back, no multi-tab
+    # progression), so the helper's `current_step` concept doesn't apply
+    # here. `justify-content-between` overrides the class's default
+    # flex-start alignment to keep Back on the left and Save/Load on the
+    # right, matching this tab's two-group (not three-group) layout. The
+    # scenario slots use this module's own namespace ("...-calculator-
+    # scenario"), a separate dca_calculator_scenarios-backed instance from
+    # the rest of the app's shared dca_forecast_scenarios one -- see this
+    # module's mod_scenario_slots_server() call above.
+    nav_footer <- reactive({
+      div(
+        class = "tour-nav-footer justify-content-between",
+        actionButton(
+          ns("btn_back"),
+          tagList(bs_icon("arrow-left"), " Back"),
+          class = "btn-outline-secondary"
+        ),
+        directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
+      )
+    })
+
+    return(list(go_back = go_back, nav_footer = nav_footer))
   })
 }

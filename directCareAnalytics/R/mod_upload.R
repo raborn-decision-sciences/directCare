@@ -17,9 +17,6 @@ mod_upload_ui <- function(id) {
     # -- Path choice or upload flow (dynamic) --------------------------------
     uiOutput(ns("main_content")),
 
-    # -- Next button (shown once data is loaded via the upload path) ----------
-    uiOutput(ns("next_btn")),
-
     # -- Branded footer -------------------------------------------------------
     tags$div(
       class = "mt-5 pt-3 border-top d-flex align-items-center justify-content-center gap-3",
@@ -45,7 +42,12 @@ mod_upload_ui <- function(id) {
 #'   test harnesses that don't set up demo mode at all.
 #' @return A list of reactives for `app_server` to observe: `tour_historical_click`,
 #'   `tour_plan_click`, `tour_calculator_click` -- one per landing-page
-#'   "Take the tour" link (see `.tour_launch()` callers in `app_server.R`).
+#'   "Take the tour" link (see `.tour_launch()` callers in `app_server.R`);
+#'   `nav_footer`, the UI for the central sticky nav bar (delegates to the
+#'   Calculator/Manual-Entry sub-modules' own `nav_footer` when one of those
+#'   paths is active); `path_chosen`, this tab's currently active sub-path
+#'   (`NULL`/`"upload"`/`"calculator"`/`"manual"`), read by `app_server.R`'s
+#'   `output$main_scenario_banner` to pick the right banner instance.
 #' @noRd
 mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
   moduleServer(id, function(input, output, session) {
@@ -231,17 +233,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
                 "});"
               ))),
               hr(),
-              uiOutput(ns("upload_controls")),
-              hr(),
-              .tour_nav_footer(
-                current_step = 1L,
-                back = actionButton(
-                  ns("btn_back"),
-                  "Back",
-                  icon = bs_icon("arrow-left"),
-                  class = "btn-outline-secondary"
-                )
-              )
+              uiOutput(ns("upload_controls"))
             )
           ),
           # Right: results
@@ -468,25 +460,6 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       path_chosen(NULL)
     })
 
-    # -- Next button: shown once the upload path has loaded data ---------------
-    output$next_btn <- renderUI({
-      if (!isTRUE(path_chosen() == "upload")) {
-        return(NULL)
-      }
-      has_data <- !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
-      if (!has_data) {
-        return(NULL)
-      }
-      div(
-        class = "d-flex justify-content-end mt-3",
-        actionButton(
-          ns("btn_next_to_edit"),
-          tagList(bs_icon("pencil-square"), " Next: Review & Edit"),
-          class = "btn-primary"
-        )
-      )
-    })
-
     observeEvent(input$btn_next_to_edit, {
       updateNavbarPage(
         parent_session %||% session,
@@ -518,6 +491,50 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       ignoreNULL = TRUE,
       ignoreInit = TRUE
     )
+
+    # -- Consolidated nav bar: delegates to whichever sub-path is active ----
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render -- see that file's comment for why this lives centrally rather
+    # than in each module's own content. Save/Load (the forecast-scenario
+    # widget, `extra`) stays visible even on the path-selection landing
+    # cards (path_chosen() == NULL) -- it was always a global, unconditional
+    # widget before this refactor, not something gated on having picked a
+    # path yet -- just with no Back/Next since there's nothing to navigate
+    # yet at that point.
+    nav_footer <- reactive({
+      path <- path_chosen()
+      if (is.null(path)) {
+        return(.tour_nav_footer(
+          current_step = 1L,
+          extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        ))
+      }
+      if (path == "calculator") {
+        return(calculator_result$nav_footer())
+      }
+      if (path == "manual") {
+        return(manual_result$nav_footer())
+      }
+      # path == "upload": Next only appears once real data has loaded.
+      has_data <- !is.null(r$overhead_monthly) && nrow(r$overhead_monthly) > 0
+      .tour_nav_footer(
+        current_step = 1L,
+        back = actionButton(
+          ns("btn_back"),
+          "Back",
+          icon = bs_icon("arrow-left"),
+          class = "btn-outline-secondary"
+        ),
+        forward = if (has_data) {
+          actionButton(
+            ns("btn_next_to_edit"),
+            tagList(bs_icon("pencil-square"), " Next: Review & Edit"),
+            class = "btn-primary"
+          )
+        },
+        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+      )
+    })
 
     # -- Upload & process: GnuCash or generic combined ---------------------
     observeEvent(input$btn_upload, {
@@ -948,7 +965,9 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
     list(
       tour_historical_click = reactive(input$tour_historical),
       tour_plan_click = reactive(input$tour_plan),
-      tour_calculator_click = reactive(input$tour_calculator)
+      tour_calculator_click = reactive(input$tour_calculator),
+      nav_footer = nav_footer,
+      path_chosen = path_chosen
     )
   })
 }

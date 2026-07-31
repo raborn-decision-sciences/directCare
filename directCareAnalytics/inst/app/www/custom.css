@@ -266,23 +266,24 @@ code {
   filter: brightness(0) invert(1);
 }
 
-/* ── Tab-navigation footer (Back/Next + step indicator) ─────────────────── */
-/* position: fixed (was sticky): each tab module renders its own copy of
-   this footer at the end of its own content (mod_upload.R/mod_edit.R/
-   mod_summary.R/mod_projections.R via .tour_nav_footer(), R/
-   utils_nav_footer.R). sticky only pins the footer once the user has
-   scrolled to the bottom of that tab's own content -- on a tall page
-   (Summary's plots, Enter Data Manually's two DT tables) reaching it could
-   need real scrolling first, reported as the buttons not reliably being
-   visible. fixed pins it to the viewport unconditionally, at the cost of
-   needing explicit padding-bottom compensation on the page's own bottom
-   spacing (added on <body> below) so the last real element of any tab's
-   content is never hidden behind it. Still safe against full_screen card
+/* ── Consolidated nav bar (Back/Next/Submit + step indicator + Save/Load) ── */
+/* Rendered exactly once, centrally, by app_server.R's output$main_nav_footer
+   (see app_ui.R's page_navbar(header = ...)) -- every tab module still owns
+   its own Back/Next/Submit buttons and observeEvent()s, it just returns them
+   via a `nav_footer` reactive instead of rendering them in its own content,
+   so only the active tab's version is ever mounted here.
+   position: sticky, not fixed: this bar lives in the page header, directly
+   below the navbar in normal document flow -- the navbar itself is bslib's
+   default static-top (not fixed), so `top: 0` alone gets exactly the
+   requested behavior with no JS: the bar sits below the navbar while
+   scrolling past it, then once the navbar has fully scrolled out of view
+   (so the bar's natural position would go above the viewport) it sticks to
+   the true top and stays there. Still safe against full_screen card
    overlays -- bslib's full-screen z-index is far higher than this, so an
-   expanded chart/table still correctly covers the footer while open. */
+   expanded chart/table still correctly covers the bar while open. */
 .tour-nav-footer {
-  position: fixed;
-  bottom: 0;
+  position: sticky;
+  top: 0;
   left: 0;
   right: 0;
   z-index: 20;
@@ -292,16 +293,8 @@ code {
   gap: 1rem;
   padding: 0.6rem 1rem;
   background-color: var(--rds-white);
-  border-top: 1px solid var(--rds-border);
-  box-shadow: 0 -2px 8px rgba(23, 32, 51, 0.06);
-}
-
-/* Reserves space at the bottom of the whole page so a fixed .tour-nav-footer
-   never overlaps the last real element of any tab's content -- sized
-   generously (the footer can wrap to two rows on narrow viewports once
-   Save/Load/step-indicator/Back/Next are all present at once). */
-body {
-  padding-bottom: 96px;
+  border-bottom: 1px solid var(--rds-border);
+  box-shadow: 0 2px 8px rgba(23, 32, 51, 0.06);
 }
 
 .tour-nav-footer-steps {
@@ -354,8 +347,8 @@ body {
 
 [data-bs-theme="dark"] .tour-nav-footer {
   background-color: var(--rds-white);
-  border-top-color: var(--rds-border);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.35);
+  border-bottom-color: var(--rds-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 [data-bs-theme="dark"] .tour-nav-step-current {

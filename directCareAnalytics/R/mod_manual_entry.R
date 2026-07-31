@@ -73,10 +73,7 @@ mod_manual_entry_ui <- function(id) {
         icon = bs_icon("plus-circle"),
         uiOutput(ns("income_panel_ui"))
       )
-    ),
-
-    # -- Back / Submit row -----------------------------------------------------
-    uiOutput(ns("manual_nav_ui"))
+    )
   )
 }
 
@@ -86,8 +83,10 @@ mod_manual_entry_ui <- function(id) {
 #' @param id Module namespace ID.
 #' @param r  Shared \code{reactiveValues} from \code{app_server}.
 #' @param parent_session Top-level Shiny session for cross-tab navigation.
-#' @return A list with one reactive element, \code{go_back}, that fires when
-#'   the user clicks Back (used by the parent to reset \code{path_chosen}).
+#' @return A list with \code{go_back}, a reactive that fires when the user
+#'   clicks Back (used by the parent to reset \code{path_chosen}), and
+#'   \code{nav_footer}, the UI for the central sticky nav bar when this
+#'   sub-path is active.
 #' @noRd
 mod_manual_entry_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
@@ -245,7 +244,10 @@ mod_manual_entry_server <- function(id, r, parent_session = NULL) {
       )
     })
 
-    output$manual_nav_ui <- renderUI({
+    # Returned for the central output$main_nav_footer (app_server.R) to
+    # render when Manual Entry is the active sub-path -- see mod_upload.R's
+    # nav_footer reactive, which delegates here.
+    nav_footer <- reactive({
       div(
         class = "tour-nav-footer justify-content-between",
         actionButton(
@@ -429,6 +431,6 @@ mod_manual_entry_server <- function(id, r, parent_session = NULL) {
     })
 
     # -- Return back-navigation signal to parent module ------------------------
-    list(go_back = reactive(input$btn_back_manual))
+    list(go_back = reactive(input$btn_back_manual), nav_footer = nav_footer)
   })
 }

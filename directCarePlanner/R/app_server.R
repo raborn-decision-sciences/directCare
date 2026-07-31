@@ -271,7 +271,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
   })
 
   plan_inputs_result <- mod_plan_inputs_server("plan_inputs", r, parent_session = session)
-  mod_results_server("results", r, parent_session = session)
+  results_result <- mod_results_server("results", r, parent_session = session)
 
   # Saved scenario slots (plan_scenarios) -- instantiated once here, at the
   # app level, rather than inside mod_plan_inputs.R, so the Save/Load
@@ -290,4 +290,20 @@ app_server <- function(input, output, session, res_auth = NULL) {
     get_dirty_signal = plan_inputs_result$get_dirty_signal,
     on_load = plan_inputs_result$on_load
   )
+
+  # -- Consolidated sticky nav bar: one central output, not one per tab -----
+  # Each tab module returns its Back/Next/Download buttons (already wrapped
+  # in .tour_nav_footer(), including that tab's own Save/Load "extra") via a
+  # `nav_footer` reactive instead of rendering them in its own content --
+  # this switch just selects which one is currently active and is the only
+  # place either ever actually gets inserted into the DOM (see app_ui.R's
+  # header comment).
+  output$main_nav_footer <- renderUI({
+    switch(input$main_nav,
+      "plan_inputs" = plan_inputs_result$nav_footer(),
+      "results" = results_result$nav_footer(),
+      NULL
+    )
+  })
+  outputOptions(output, "main_nav_footer", suspendWhenHidden = FALSE)
 }
