@@ -202,7 +202,18 @@ golem_add_external_resources <- function() {
       path = app_sys("app/www"),
       app_title = "Direct Care Practice Launch Planner | Raborn Decision Sciences"
     ),
-    tags$link(rel = "stylesheet", href = "www/custom.css"),
+    # Cache-busted via a content hash query string -- see
+    # directCareAnalytics's app_ui.R for the full rationale (confirmed
+    # live: a returning visitor's browser kept a pre-deploy custom.css
+    # cached even after a hard refresh, while a fresh private window
+    # picked up the new file immediately).
+    tags$link(
+      rel = "stylesheet",
+      href = paste0(
+        "www/custom.css?v=",
+        substr(tools::md5sum(app_sys("app/www/custom.css")), 1, 10)
+      )
+    ),
     # Hide workflow tabs from the navbar — navigation is via the "Build My
     # Plan" submit button and the Back button on Results. Ported from
     # directCareAnalytics's app_ui.R.

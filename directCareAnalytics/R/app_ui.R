@@ -249,7 +249,20 @@ golem_add_external_resources <- function() {
       path = app_sys("app/www"),
       app_title = "Direct Care Analytics | Raborn Decision Sciences"
     ),
-    tags$link(rel = "stylesheet", href = "www/custom.css"),
+    # Cache-busted via a content hash query string -- without this, a
+    # returning visitor's browser can keep serving a pre-deploy custom.css
+    # from its own disk cache indefinitely (confirmed live: an already-open
+    # browser profile kept showing pre-deploy nav-bar CSS even after a hard
+    # refresh, while a fresh private window picked up the new file
+    # immediately). The URL path itself never changes, so nothing else
+    # about how it's served needs to change.
+    tags$link(
+      rel = "stylesheet",
+      href = paste0(
+        "www/custom.css?v=",
+        substr(tools::md5sum(app_sys("app/www/custom.css")), 1, 10)
+      )
+    ),
     # Loads driver.js (cicerone's underlying JS/CSS) for the guided-tour
     # walkthroughs launched from the help modal -- see R/utils_tours.R.
     cicerone::use_cicerone(),
