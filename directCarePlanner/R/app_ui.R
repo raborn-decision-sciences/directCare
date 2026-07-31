@@ -250,7 +250,8 @@ golem_add_external_resources <- function() {
     tags$img(
       src = "www/logo-rds-alt.svg",
       height = "36px",
-      alt = "Raborn Decision Sciences"
+      alt = "Raborn Decision Sciences",
+      class = "footer-logo"
     )
   )
 }

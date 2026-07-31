@@ -258,6 +258,17 @@ code {
   color: #CBD5E1;
 }
 
+/* .branded_footer()'s logo is a fixed dark-navy SVG with no dark-mode
+   variant -- brightness(0) flattens it to solid black regardless of its
+   original colors, then invert(1) flips that to white, so it reads as a
+   soft light watermark against the dark background (parent div's own
+   opacity: 0.55 already keeps it subtle in both modes). Ported from
+   directCareAnalytics's identical rule -- this one was previously missing
+   here entirely, along with the `footer-logo` class on the <img> itself. */
+[data-bs-theme="dark"] .footer-logo {
+  filter: brightness(0) invert(1);
+}
+
 /* ── Consolidated nav bar (Back/Next/Download + step indicator + Save/Load) ── */
 /* Ported from directCareAnalytics's identical rule (inst/app/www/custom.css
    there) -- see its comment for the full position: sticky rationale. */
@@ -329,4 +340,13 @@ code {
   background-color: var(--rds-white);
   border-bottom-color: var(--rds-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* --rds-navy stays a fixed dark hex in both themes (it's a brand color,
+   not redefined for dark mode) -- .tour-nav-step-current's text would
+   otherwise be near-invisible against the dark .tour-nav-footer
+   background above. Ported from directCareAnalytics's identical rule --
+   this one was previously missing here entirely. */
+[data-bs-theme="dark"] .tour-nav-step-current {
+  color: #f8fafc;
 }
