@@ -297,6 +297,25 @@ golem_add_external_resources <- function() {
     # is only ever sent later, in response to a user-driven tour action.
     tags$script(HTML(
       "$(document).on('shiny:connected', function() {
+        // Welcome tour prompt (see app_server.R's tour_prompt_checked
+        // observer): 'seen' is tracked here, not server-side, since it's a
+        // soft one-time nudge rather than durable account state. Marking
+        // it seen the moment we decide to show it (not on dismiss) means
+        // closing the modal any way -- Escape, outside click, or either
+        // button -- all correctly count as 'seen', with no extra
+        // round-trip needed.
+        Shiny.addCustomMessageHandler('checkTourPromptSeen', function(msg) {
+          var seen = false;
+          try {
+            seen = localStorage.getItem('dca_tour_prompt_seen') === '1';
+          } catch (e) {}
+          if (!seen) {
+            try {
+              localStorage.setItem('dca_tour_prompt_seen', '1');
+            } catch (e) {}
+            Shiny.setInputValue('show_tour_prompt', Math.random(), {priority: 'event'});
+          }
+        });
         Shiny.addCustomMessageHandler('tourWaitForElement', function(msg) {
           var attempts = 0;
           var maxAttempts = 100; // 15s safety cap (100 x 150ms) -- a
@@ -320,6 +339,65 @@ golem_add_external_resources <- function() {
           }, 150);
         });
       });"
+    )),
+    # Scroll-driven pin for the consolidated nav bar (see custom.css's
+    # `.tour-nav-footer` comment for why this replaced a plain CSS
+    # `position: sticky`): toggles `.tour-nav-pinned` (position: fixed)
+    # once the real navbar has scrolled out of view, inserting a
+    # same-height placeholder so content doesn't jump. Re-synced after
+    # every re-render of output$main_nav_footer (app_server.R), since
+    # Shiny replaces that uiOutput's entire contents -- and any pinned
+    # class/placeholder tied to the old element -- on every tab switch.
+    tags$script(HTML(
+      "(function() {
+        var PIN_CLASS = 'tour-nav-pinned';
+        var placeholder = null;
+
+        function pin(footer) {
+          if (footer.classList.contains(PIN_CLASS)) return;
+          placeholder = document.createElement('div');
+          placeholder.style.height = footer.getBoundingClientRect().height + 'px';
+          placeholder.className = 'tour-nav-footer-placeholder';
+          footer.parentNode.insertBefore(placeholder, footer);
+          footer.classList.add(PIN_CLASS);
+        }
+
+        function unpin(footer) {
+          if (placeholder) {
+            placeholder.remove();
+            placeholder = null;
+          }
+          if (footer) footer.classList.remove(PIN_CLASS);
+        }
+
+        function sync() {
+          var footer = document.querySelector('.tour-nav-footer');
+          if (!footer) return;
+          var navbar = document.querySelector('.navbar');
+          var navbarBottom = navbar ? navbar.getBoundingClientRect().bottom : 0;
+          if (navbarBottom <= 0) {
+            pin(footer);
+          } else {
+            unpin(footer);
+          }
+        }
+
+        window.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+
+        $(document).on('shiny:value', function(e) {
+          if (e.name === 'main_nav_footer') {
+            placeholder = null;
+            setTimeout(sync, 0);
+          }
+        });
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', sync);
+        } else {
+          sync();
+        }
+      })();"
     ))
   )
 }

@@ -234,6 +234,68 @@ golem_add_external_resources <- function() {
           hideNavTabs();
         }
       })();"
+    )),
+    # Scroll-driven pin for the consolidated nav bar -- ported from
+    # directCareAnalytics's identical script (see its app_ui.R for the full
+    # rationale: a plain CSS `position: sticky` bar breaks once a tab's
+    # content is taller than bslib's fillable-container height, since
+    # sticky's containing block is capped to that viewport-fit box rather
+    # than the full scrollable page). Toggles `.tour-nav-pinned` (position:
+    # fixed) once the real navbar has scrolled out of view, inserting a
+    # same-height placeholder so content doesn't jump. Re-synced after
+    # every re-render of output$main_nav_footer (app_server.R), since Shiny
+    # replaces that uiOutput's entire contents -- and any pinned
+    # class/placeholder tied to the old element -- on every tab switch.
+    tags$script(HTML(
+      "(function() {
+        var PIN_CLASS = 'tour-nav-pinned';
+        var placeholder = null;
+
+        function pin(footer) {
+          if (footer.classList.contains(PIN_CLASS)) return;
+          placeholder = document.createElement('div');
+          placeholder.style.height = footer.getBoundingClientRect().height + 'px';
+          placeholder.className = 'tour-nav-footer-placeholder';
+          footer.parentNode.insertBefore(placeholder, footer);
+          footer.classList.add(PIN_CLASS);
+        }
+
+        function unpin(footer) {
+          if (placeholder) {
+            placeholder.remove();
+            placeholder = null;
+          }
+          if (footer) footer.classList.remove(PIN_CLASS);
+        }
+
+        function sync() {
+          var footer = document.querySelector('.tour-nav-footer');
+          if (!footer) return;
+          var navbar = document.querySelector('.navbar');
+          var navbarBottom = navbar ? navbar.getBoundingClientRect().bottom : 0;
+          if (navbarBottom <= 0) {
+            pin(footer);
+          } else {
+            unpin(footer);
+          }
+        }
+
+        window.addEventListener('scroll', sync, { passive: true });
+        window.addEventListener('resize', sync);
+
+        $(document).on('shiny:value', function(e) {
+          if (e.name === 'main_nav_footer') {
+            placeholder = null;
+            setTimeout(sync, 0);
+          }
+        });
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', sync);
+        } else {
+          sync();
+        }
+      })();"
     ))
   )
 }

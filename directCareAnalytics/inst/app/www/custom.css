@@ -272,20 +272,22 @@ code {
    its own Back/Next/Submit buttons and observeEvent()s, it just returns them
    via a `nav_footer` reactive instead of rendering them in its own content,
    so only the active tab's version is ever mounted here.
-   position: sticky, not fixed: this bar lives in the page header, directly
-   below the navbar in normal document flow -- the navbar itself is bslib's
-   default static-top (not fixed), so `top: 0` alone gets exactly the
-   requested behavior with no JS: the bar sits below the navbar while
-   scrolling past it, then once the navbar has fully scrolled out of view
-   (so the bar's natural position would go above the viewport) it sticks to
-   the true top and stays there. Still safe against full_screen card
+   Pinning is JS-driven (see golem_add_external_resources()'s nav-pin script
+   in app_ui.R), not a plain CSS `position: sticky`. sticky was tried first
+   and looked right on short pages, but its "containing block" is the
+   nearest block/flex ancestor's own box -- which for a nav_panel's content
+   here is a bslib fill container sized to fit the viewport (~660px), not
+   the full scrollable page. On any tab with content taller than that (e.g.
+   Edit with many transactions), the bar detaches once scrolled past that
+   point and scrolls away entirely -- confirmed live, and reliably
+   reproduced by the guided tour's own scroll-into-view for a step whose
+   target lives in this bar. The `.tour-nav-pinned` class below is toggled
+   by that script based on the real navbar's position, with a placeholder
+   div inserted to hold the bar's normal-flow height so content doesn't
+   jump when it switches to fixed. Still safe against full_screen card
    overlays -- bslib's full-screen z-index is far higher than this, so an
    expanded chart/table still correctly covers the bar while open. */
 .tour-nav-footer {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
@@ -295,6 +297,13 @@ code {
   background-color: var(--rds-white);
   border-bottom: 1px solid var(--rds-border);
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.06);
+}
+
+.tour-nav-footer.tour-nav-pinned {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 .tour-nav-footer-steps {
@@ -353,4 +362,16 @@ code {
 
 [data-bs-theme="dark"] .tour-nav-step-current {
   color: #f8fafc;
+}
+
+/* Shiny notifications (bootstrap.min.css's high-specificity
+   #shiny-notification-panel#shiny-notification-panel rule pins these to
+   z-index: 1090) render underneath driver.js's tour-highlight overlay
+   (.driver-highlighted-element sits at z-index: 100004, confirmed live) --
+   any notification fired while a tour is active, e.g. the demo-mode
+   "loaded sample data" toast in mod_upload.R, showed up as near-invisible
+   dim text behind the dimming overlay. !important is needed to out-rank
+   that higher-specificity double-id selector. */
+#shiny-notification-panel {
+  z-index: 100010 !important;
 }

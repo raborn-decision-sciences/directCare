@@ -671,6 +671,61 @@ app_server <- function(input, output, session, res_auth = NULL) {
     .tour_launch("calculator", guide_c1, "upload-btn_use_calculator")
   })
 
+  # -- Welcome tour prompt (once per browser, not every login) --------------
+  # Nudges a just-logged-in (or just-entered-demo) user toward the guided
+  # tour. "Once" is tracked client-side via localStorage (app_ui.R's
+  # checkTourPromptSeen handler), not a new DB column -- this is a soft
+  # nudge, not durable account state worth persisting server-side. Two
+  # separate triggers share one tour_prompt_checked guard so only one of
+  # them ever actually fires per session:
+  #   - res_auth$practice_name, not bare res_auth: shinymanager's
+  #     secure_server() is wired up unconditionally (see run_app.R), so
+  #     res_auth itself is a live, non-NULL reactiveValues object in
+  #     *every* session, demo included; only its fields stay unpopulated
+  #     for demo (see the practice_name/id sync above). Gating on the
+  #     field itself is what actually distinguishes "a real login just
+  #     completed" from "the app started."
+  #   - demo_mode(), for demo sessions, which never populate res_auth's
+  #     fields at all and so would otherwise never trigger this.
+  tour_prompt_checked <- reactiveVal(FALSE)
+  .maybe_show_tour_prompt <- function() {
+    if (!tour_prompt_checked()) {
+      tour_prompt_checked(TRUE)
+      session$sendCustomMessage("checkTourPromptSeen", list())
+    }
+  }
+  observeEvent(res_auth$practice_name, {
+    req(res_auth$practice_name)
+    .maybe_show_tour_prompt()
+  })
+  observeEvent(demo_mode(), {
+    req(demo_mode())
+    .maybe_show_tour_prompt()
+  })
+
+  observeEvent(input$show_tour_prompt, {
+    showModal(modalDialog(
+      title = tagList(bs_icon("compass"), " New to Direct Care Analytics?"),
+      tags$p(
+        "Take a 2-minute guided tour to see how to upload your bookkeeping ",
+        "data, review categories, and generate a forecast."
+      ),
+      footer = tagList(
+        modalButton("Maybe later"),
+        actionButton(
+          "tour_prompt_start",
+          tagList(bs_icon("play-circle"), " Take the tour"),
+          class = "btn-primary"
+        )
+      ),
+      easyClose = TRUE
+    ))
+  })
+
+  observeEvent(input$tour_prompt_start, {
+    .tour_launch("historical", guide_h1, "upload-btn_use_real")
+  })
+
   # -- Historical Data: h1 (Upload cards) -> h2 (upload form) -> h3 (mapping
   # results) -> h4 (Review & Edit) -> h5 (Summary) -> shared Projections tail.
   #

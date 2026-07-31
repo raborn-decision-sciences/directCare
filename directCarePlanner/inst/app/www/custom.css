@@ -271,12 +271,11 @@ code {
 
 /* ── Consolidated nav bar (Back/Next/Download + step indicator + Save/Load) ── */
 /* Ported from directCareAnalytics's identical rule (inst/app/www/custom.css
-   there) -- see its comment for the full position: sticky rationale. */
+   there) -- see its comment for why pinning is JS-driven (`.tour-nav-pinned`,
+   toggled by app_ui.R's nav-pin script) rather than a plain CSS
+   `position: sticky`, which breaks once a tab's content is taller than
+   bslib's fillable-container height. */
 .tour-nav-footer {
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
@@ -286,6 +285,13 @@ code {
   background-color: var(--rds-white);
   border-bottom: 1px solid var(--rds-border);
   box-shadow: 0 2px 8px rgba(23, 32, 51, 0.06);
+}
+
+.tour-nav-footer.tour-nav-pinned {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 .tour-nav-footer-steps {
