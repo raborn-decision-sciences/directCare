@@ -21,6 +21,16 @@ run_app <- function(
   # production so local development still sees real error messages.
   options(shiny.sanitize.errors = get_golem_config("app_prod"))
 
+  # Persistent background-process pool for mod_projections.R's Run Forecast
+  # ExtendedTask (see its own comment for the full rationale) -- set up once
+  # per app process, here, rather than lazily on first use, so the first
+  # click of a session doesn't pay a ~1s worker-spawn cost on top of the
+  # forecast itself. n = 2 is a deliberately modest pool: this app has no
+  # CPU/memory limit set in docker-compose.yml, and a small practice-facing
+  # tool has no need for more than a couple of concurrent background
+  # forecasts at once.
+  mirai::daemons(n = 2)
+
   # Resource path must be registered before secure_app() wraps the UI --
   # golem_add_external_resources() (which normally does this) only runs
   # inside app_ui(), which shinymanager doesn't call until after a
@@ -86,7 +96,10 @@ run_app <- function(
       ),
       tags$div(
         style = "opacity:0.6;margin-top:16px;",
-        tags$img(src = "www/logo-rds-alt.svg", height = "28px", alt = "Raborn Decision Sciences")
+        tags$img(
+          src = "www/logo-rds-alt.svg", height = "28px",
+          alt = "Raborn Decision Sciences", class = "login-footer-logo"
+        )
       )
     )
   )

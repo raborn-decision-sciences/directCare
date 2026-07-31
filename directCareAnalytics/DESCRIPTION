@@ -26,6 +26,7 @@ Imports:
     htmltools,
     jsonlite,
     later,
+    mirai,
     pkgload,
     RPostgres,
     scales,

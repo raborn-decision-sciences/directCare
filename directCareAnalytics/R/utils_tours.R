@@ -405,7 +405,7 @@
   # about zero-size `display: contents` wrappers silently failing to
   # highlight.
   guide$step(
-    el = "projections-income_growth",
+    el = "projections-income_growth_wrap",
     title = "Optional: assume income growth",
     description = paste0(
       "Apply a yearly growth rate on top of the fitted trend if you expect ",

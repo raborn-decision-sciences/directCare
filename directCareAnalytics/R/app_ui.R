@@ -24,6 +24,28 @@ app_ui <- function(request) {
       ),
       id = "main_nav",
       theme = rds_theme(),
+      # header (not per-tab content): renders exactly once, outside every
+      # nav_panel(), so it's the correct place for the single app-level
+      # Save/Load scenario widget (see app_server.R) to live. Rendering the
+      # same mod_scenario_slots_ui("scenario")/mod_scenario_banner_ui(
+      # "scenario") pair inside each of Upload/Edit/Summary/Projections'
+      # own content instead (tried first) produced *duplicate* DOM ids --
+      # this app forces several tabs' outputs to suspendWhenHidden = FALSE,
+      # so bslib keeps every nav_panel's content mounted in the DOM at
+      # once, not just the active one, and Shiny's client-side output
+      # binding only ever updates the first matching id -- confirmed live,
+      # the "viewing saved scenario" banner silently stayed empty on every
+      # tab but one. A single instance here has no such risk.
+      header = tagList(
+        tags$div(
+          class = "d-flex justify-content-end gap-2 px-3 py-2 border-bottom",
+          directCareScenarios::mod_scenario_slots_ui("scenario")
+        ),
+        tags$div(
+          class = "px-3 pt-2",
+          directCareScenarios::mod_scenario_banner_ui("scenario")
+        )
+      ),
       # -- Tabs (hidden from navbar; navigation via Next/Back buttons) ---------
       nav_panel(
         title = tagList(bs_icon("upload"), " Upload"),
@@ -176,6 +198,15 @@ rds_theme_dark <- function() {
   # (confirmed live via getComputedStyle + querying document.styleSheets for
   # the exact rule/selector). Irrelevant on the authenticated app (no
   # `.panel-auth` element exists there), so safe to include unconditionally.
+  #
+  # `.login-footer-logo` mirrors custom.css's `.footer-logo` rule (the
+  # authenticated app's Upload-tab footer logo, item E in the archive) --
+  # same dark navy SVG, same brightness(0)+invert(1) fix, needed again here
+  # because the login page never loads custom.css at all (it's rendered by
+  # shinymanager's secure_app(), outside app_ui()) -- without this the
+  # login page's own footer logo (run_app.R's tags_bottom) stayed its
+  # original dark color and was hard to see against the dark background,
+  # while the authenticated app's matching logo was already fixed.
   "[data-bs-theme=\"dark\"] {
       color-scheme: dark;
       --bs-body-bg: #0F172A !important;
@@ -196,6 +227,9 @@ rds_theme_dark <- function() {
     }
     [data-bs-theme=\"dark\"] .panel-auth {
       background-color: #0F172A !important;
+    }
+    [data-bs-theme=\"dark\"] .login-footer-logo {
+      filter: brightness(0) invert(1);
     }"
 }
 

@@ -144,8 +144,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
       easyClose = TRUE,
       footer = modalButton("Close"),
       tags$h6(class = "fw-bold", "Profile"),
-      textInput("account_practice_name", "Practice Name", value = res_auth$practice_name),
-      textInput("account_address", "Address", value = res_auth$address %||% ""),
+      htmltools::tagQuery(
+        textInput("account_practice_name", "Practice Name", value = res_auth$practice_name)
+      )$find("input")$addAttrs(autocomplete = "organization")$allTags(),
+      htmltools::tagQuery(
+        textInput("account_address", "Address", value = res_auth$address %||% "")
+      )$find("input")$addAttrs(autocomplete = "street-address")$allTags(),
       uiOutput("account_profile_msg"),
       actionButton(
         "account_save_profile", "Save Profile",
@@ -153,10 +157,30 @@ app_server <- function(input, output, session, res_auth = NULL) {
       ),
       tags$hr(),
       tags$h6(class = "fw-bold", "Change Password"),
-      passwordInput("account_current_password", "Current Password"),
-      passwordInput("account_new_password", "New Password"),
+      # Hidden username field, WHATWG/MDN's documented workaround for a
+      # password-change form with no visible username field: without one,
+      # browsers guess which nearby text input is the "identity" field to
+      # pair with the password fields below, and guess wrong -- confirmed
+      # live, Address (the actual nearest preceding text field) was
+      # getting autofilled with the login email instead of a street
+      # address. `display:none` (not `type="hidden"`, which some password
+      # managers ignore outright) plus `autocomplete="username"` is the
+      # documented fix; not a real Shiny-bound input, purely a hint for
+      # the browser's own autofill heuristics.
+      tags$input(
+        type = "text", value = res_auth$email %||% "", autocomplete = "username",
+        style = "display:none", `aria-hidden` = "true"
+      ),
+      htmltools::tagQuery(
+        passwordInput("account_current_password", "Current Password")
+      )$find("input")$addAttrs(autocomplete = "current-password")$allTags(),
+      htmltools::tagQuery(
+        passwordInput("account_new_password", "New Password")
+      )$find("input")$addAttrs(autocomplete = "new-password")$allTags(),
       tags$p(class = "text-muted small mt-n2", "At least 10 characters."),
-      passwordInput("account_confirm_password", "Confirm New Password"),
+      htmltools::tagQuery(
+        passwordInput("account_confirm_password", "Confirm New Password")
+      )$find("input")$addAttrs(autocomplete = "new-password")$allTags(),
       uiOutput("account_password_msg"),
       actionButton(
         "account_change_password", "Change Password",
@@ -255,16 +279,30 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # bslib::input_dark_mode() flips the client-side data-bs-theme attribute
   # (driving custom.css's [data-bs-theme="dark"] overrides) and emits
   # "light"/"dark" strings via input$dark_mode -- not TRUE/FALSE, so this
-  # checks with identical() rather than isTRUE(). rds_theme_dark() is
-  # constructed fresh here (a plain bs_theme() call, not a piped
-  # bs_add_rules() chain), which avoids a known session$setCurrentTheme()
-  # class-check failure some bslib versions have with piped-together theme
-  # objects. Plots need re-theming too, since thematic_shiny() above pins
-  # explicit colors rather than "auto" (see comment on that call) -- a CSS
-  # variable swap alone wouldn't reach them.
+  # checks with identical() rather than isTRUE().
+  #
+  # Deliberately NOT calling session$setCurrentTheme() here (it was here
+  # originally, alongside a comment about a since-worked-around bslib
+  # class-check failure) -- confirmed via a live MutationObserver capture
+  # that calling it makes bslib tear down and re-fetch all six theme
+  # stylesheets (bootstrap.min.css, both Google Fonts, bslib-component-css,
+  # selectize.css, shiny-sass.css) with a fresh cache-busting `?restyle=`
+  # query string on *every single toggle* -- a real network round-trip for
+  # the entire CSS bundle, not just the changed variables, and the reported
+  # cause of the light/dark toggle's visible flash. It's also redundant:
+  # the exact `[data-bs-theme="dark"]` variable overrides rds_theme_dark()
+  # would push are already present in every page load as a static
+  # `!important` <style> block (run_app.R's `head_auth`, sourced from
+  # `.dark_mode_css_rules()`) -- the client's own instant data-bs-theme
+  # attribute flip is enough to apply them with zero network calls. Signup
+  # and password-reset pages (mod_signup.R/mod_password_reset.R) are NOT
+  # wrapped by shinymanager and so don't get head_auth's static injection --
+  # they still need session$setCurrentTheme() and keep it.
   observeEvent(input$dark_mode, {
     is_dark <- identical(input$dark_mode, "dark")
-    session$setCurrentTheme(if (is_dark) rds_theme_dark() else rds_theme())
+    # Plots still need re-theming: thematic_shiny() pins explicit colors
+    # rather than "auto" (see comment on the initial call above), so a CSS
+    # variable swap alone wouldn't reach them.
     thematic::thematic_shiny(
       bg = if (is_dark) "#0F172A" else "#F8FAFC",
       fg = if (is_dark) "#E2E8F0" else "#172033",
@@ -1091,5 +1129,48 @@ app_server <- function(input, output, session, res_auth = NULL) {
 
   mod_edit_server("edit", r, parent_session = session)
   mod_summary_server("summary", r, parent_session = session)
-  mod_projections_server("projections", r, parent_session = session)
+  # Captured (not fire-and-forget like the other three module calls above):
+  # its return value supplies the Save/Load callbacks the single app-level
+  # scenario_slots instance below needs. mod_projections_server() must run
+  # first so those closures exist before being passed in.
+  projections_result <- mod_projections_server("projections", r, parent_session = session)
+
+  # -- Saved scenario slots (dca_forecast_scenarios): one shared instance ----
+  # Previously owned entirely by mod_projections.R, wired only into
+  # Projections' own footer -- Save/Load and the "viewing saved scenario"
+  # banner were a Projections-only feature. Moved up to be a single
+  # app-level instance instead so the exact same widget (same underlying
+  # loaded-scenario state, same banner) can be rendered from every DCA
+  # tab's footer via mod_scenario_slots_ui("scenario")/mod_scenario_banner_ui
+  # ("scenario") -- a bare id, not namespaced under any one tab module.
+  # Instantiating this separately inside each of Upload/Edit/Summary/
+  # Projections instead (four independent mod_scenario_slots_server() calls)
+  # would have created four *disconnected* widgets: loading a scenario from
+  # Upload's copy wouldn't show its banner or apply Projections' own
+  # forecast settings on Projections' copy, since each would hold its own
+  # separate loaded_label()/loaded_snapshot() reactiveVals. A single shared
+  # instance avoids that entirely. get_bundle_for_save/get_dirty_signal/
+  # extract_dirty_signal/on_load all come from mod_projections_server()'s
+  # return value -- they're the exact same closures the old Projections-
+  # local call used, just returned instead of consumed in place, so they
+  # still correctly read/update that module's own inputs and reactiveVals
+  # (R closures capture their defining environment, not their call site).
+  directCareScenarios::mod_scenario_slots_server(
+    "scenario",
+    table = "dca_forecast_scenarios",
+    get_con = directCareAuth::db_connect,
+    practice_id = function() r$practice_id,
+    get_bundle_for_save = projections_result$get_bundle_for_save,
+    # r$source_filename doesn't exist yet -- nothing currently tracks the
+    # originating upload's filename on shared state. reactiveValues returns
+    # NULL for an unset field, which is exactly the schema's own "NULL for
+    # a manual-entry-only session" case, so this is a correct (if
+    # always-NULL for now) value, not a bug -- wiring up real filename
+    # tracking in mod_upload.R is a small, separate follow-on.
+    get_source_filename = function() r$source_filename,
+    get_dirty_signal = projections_result$get_dirty_signal,
+    extract_dirty_signal = projections_result$extract_dirty_signal,
+    on_load = projections_result$on_load,
+    is_forecast = TRUE
+  )
 }

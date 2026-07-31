@@ -81,106 +81,123 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       )
     }
 
-    scenario_slots <- directCareScenarios::mod_scenario_slots_server(
-      "scenario",
-      table = "dca_forecast_scenarios",
-      get_con = directCareAuth::db_connect,
-      practice_id = function() r$practice_id,
-      get_bundle_for_save = function() {
-        list(
-          transactions = r$transactions,
-          overhead_monthly = r$overhead_monthly,
-          income_monthly = r$income_monthly,
-          inputs = list(
-            method = input$method,
-            horizon = input$horizon,
-            confidence = input$confidence,
-            income_growth = input$income_growth,
-            overhead_model = input$overhead_model,
-            overhead_growth = input$overhead_growth,
-            overhead_custom = input$overhead_custom,
-            target_income = input$target_income,
-            membership_tiers = proj_tiers_list(),
-            overhead_events = overhead_events_raw(),
-            fee_events = fee_events_raw()
-          ),
-          results = list(
-            breakeven = .safe_result(breakeven_result()),
-            revenue = .safe_result(revenue_result()),
-            target = .safe_result(target_result()),
-            adj_breakeven = .safe_result(adj_breakeven()),
-            adj_revenue = .safe_result(adj_revenue()),
-            adj_target = .safe_result(adj_target())
-          )
+    # -- Saved scenario slots: callbacks only ----------------------------------
+    # mod_scenario_slots_server() itself is now instantiated once at the
+    # app level (app_server.R), not per-tab, so Save/Load/the "viewing
+    # saved scenario" banner are a single shared instance available from
+    # every DCA tab's footer instead of a Projections-only widget -- see
+    # app_server.R's own comment for the full rationale. This module just
+    # exposes the same callback bodies as before, as plain closures, for
+    # app_server.R to pass into that single top-level call. Returning
+    # closures rather than the reactives they read directly is deliberate:
+    # each closure still correctly reads *this* module's own input$xxx/
+    # session/reactiveVal objects wherever it's ultimately invoked from,
+    # since R closures capture their defining environment, not their call
+    # site -- standard Shiny module-return-value behavior, no different
+    # from any other module that returns a reactive for a caller elsewhere
+    # to consume.
+    get_bundle_for_save <- function() {
+      list(
+        transactions = r$transactions,
+        overhead_monthly = r$overhead_monthly,
+        income_monthly = r$income_monthly,
+        inputs = list(
+          method = input$method,
+          horizon = input$horizon,
+          confidence = input$confidence,
+          income_growth = input$income_growth,
+          overhead_model = input$overhead_model,
+          overhead_growth = input$overhead_growth,
+          overhead_custom = input$overhead_custom,
+          target_income = input$target_income,
+          membership_tiers = proj_tiers_list(),
+          overhead_events = overhead_events_raw(),
+          fee_events = fee_events_raw()
+        ),
+        results = list(
+          breakeven = .safe_result(breakeven_result()),
+          revenue = .safe_result(revenue_result()),
+          target = .safe_result(target_result()),
+          adj_breakeven = .safe_result(adj_breakeven()),
+          adj_revenue = .safe_result(adj_revenue()),
+          adj_target = .safe_result(adj_target())
         )
-      },
-      # r$source_filename doesn't exist yet -- nothing currently tracks the
-      # originating upload's filename on shared state. reactiveValues
-      # returns NULL for an unset field, which is exactly the schema's own
-      # "NULL for a manual-entry-only session" case, so this is a correct
-      # (if always-NULL for now) value, not a bug -- wiring up real
-      # filename tracking in mod_upload.R is a small, separate follow-on.
-      get_source_filename = function() r$source_filename,
-      get_dirty_signal = scenario_dirty_signal,
-      extract_dirty_signal = function(bundle) {
-        inputs <- bundle$inputs
-        list(
-          method = inputs$method, horizon = inputs$horizon,
-          confidence = inputs$confidence, income_growth = inputs$income_growth,
-          overhead_model = inputs$overhead_model, overhead_growth = inputs$overhead_growth,
-          membership_tiers = inputs$membership_tiers,
-          overhead_events = inputs$overhead_events, fee_events = inputs$fee_events
-        )
-      },
-      on_load = function(bundle) {
-        inputs <- bundle$inputs
-        updateSelectInput(session, "method", selected = inputs$method)
-        updateSliderInput(session, "horizon", value = inputs$horizon)
-        updateSliderInput(session, "confidence", value = inputs$confidence)
-        updateSliderInput(session, "income_growth", value = inputs$income_growth)
-        updateSelectInput(session, "overhead_model", selected = inputs$overhead_model)
-        updateSliderInput(session, "overhead_growth", value = inputs$overhead_growth)
+      )
+    }
 
-        proj_n_tiers(max(1L, length(inputs$membership_tiers)))
-        n_overhead_events(length(inputs$overhead_events))
-        n_fee_events(length(inputs$fee_events))
+    scenario_extract_dirty_signal <- function(bundle) {
+      inputs <- bundle$inputs
+      list(
+        method = inputs$method, horizon = inputs$horizon,
+        confidence = inputs$confidence, income_growth = inputs$income_growth,
+        overhead_model = inputs$overhead_model, overhead_growth = inputs$overhead_growth,
+        membership_tiers = inputs$membership_tiers,
+        overhead_events = inputs$overhead_events, fee_events = inputs$fee_events
+      )
+    }
 
-        # Two-phase: the tier/event field counts just set above only take
-        # effect once their renderUI()s re-render with that many rows --
-        # applying per-row values has to wait for that, or updateXInput()
-        # would target ids that don't exist in the DOM yet. Unlike the
-        # tour's own cross-*tab* transitions, this is a same-tab renderUI()
-        # refresh, which reliably completes within one flush, so a plain
-        # onFlushed(once = TRUE) (no polling/delay) is sufficient here.
-        session$onFlushed(function() {
-          if (!is.null(inputs$overhead_custom)) {
-            updateNumericInput(session, "overhead_custom", value = inputs$overhead_custom)
-          }
-          if (!is.null(inputs$target_income)) {
-            updateNumericInput(session, "target_income", value = inputs$target_income)
-          }
-          tiers <- inputs$membership_tiers
-          for (i in seq_along(tiers)) {
-            updateTextInput(session, paste0("proj_tier_label_", i), value = tiers[[i]]$label)
-            updateNumericInput(session, paste0("proj_tier_members_", i), value = tiers[[i]]$members)
-            updateNumericInput(session, paste0("proj_tier_fee_", i), value = tiers[[i]]$fee)
-          }
-          ov_events <- inputs$overhead_events
-          for (i in seq_along(ov_events)) {
-            updateTextInput(session, paste0("ov_event_label_", i), value = ov_events[[i]]$label)
-            updateSelectInput(session, paste0("ov_event_start_", i), selected = ov_events[[i]]$start_date)
-            updateNumericInput(session, paste0("ov_event_cost_", i), value = ov_events[[i]]$cost)
-          }
-          fee_events <- inputs$fee_events
-          for (i in seq_along(fee_events)) {
-            updateSelectInput(session, paste0("fee_event_tier_", i), selected = as.character(fee_events[[i]]$tier_idx))
-            updateSelectInput(session, paste0("fee_event_start_", i), selected = fee_events[[i]]$start_date)
-            updateNumericInput(session, paste0("fee_event_new_fee_", i), value = fee_events[[i]]$new_fee)
-          }
-        }, once = TRUE)
-      },
-      is_forecast = TRUE
-    )
+    scenario_on_load <- function(bundle) {
+      # Restores the shared upload/edit/summary data too, not just this
+      # tab's own forecast settings below -- correct (if previously
+      # unnoticed) gap in the original Projections-only design: it never
+      # needed this, since by the time a user reached Projections in the
+      # same session, r$transactions/overhead_monthly/income_monthly were
+      # already populated from their own upload earlier in that same
+      # session, and Load only ever needed to restore *settings* on top of
+      # data that was already live. Now that Load is reachable from a
+      # fresh session on any tab (Upload/Edit/Summary), without this the
+      # banner would claim a scenario was loaded while every other tab
+      # still showed "Upload a CSV first" -- confirmed live.
+      r$transactions <- bundle$transactions
+      r$overhead_monthly <- bundle$overhead_monthly
+      r$income_monthly <- bundle$income_monthly
+
+      inputs <- bundle$inputs
+      updateSelectInput(session, "method", selected = inputs$method)
+      updateSliderInput(session, "horizon", value = inputs$horizon)
+      updateSliderInput(session, "confidence", value = inputs$confidence)
+      updateSliderInput(session, "income_growth", value = inputs$income_growth)
+      updateSelectInput(session, "overhead_model", selected = inputs$overhead_model)
+      updateSliderInput(session, "overhead_growth", value = inputs$overhead_growth)
+
+      proj_n_tiers(max(1L, length(inputs$membership_tiers)))
+      n_overhead_events(length(inputs$overhead_events))
+      n_fee_events(length(inputs$fee_events))
+
+      # Two-phase: the tier/event field counts just set above only take
+      # effect once their renderUI()s re-render with that many rows --
+      # applying per-row values has to wait for that, or updateXInput()
+      # would target ids that don't exist in the DOM yet. Unlike the
+      # tour's own cross-*tab* transitions, this is a same-tab renderUI()
+      # refresh, which reliably completes within one flush, so a plain
+      # onFlushed(once = TRUE) (no polling/delay) is sufficient here.
+      session$onFlushed(function() {
+        if (!is.null(inputs$overhead_custom)) {
+          updateNumericInput(session, "overhead_custom", value = inputs$overhead_custom)
+        }
+        if (!is.null(inputs$target_income)) {
+          updateNumericInput(session, "target_income", value = inputs$target_income)
+        }
+        tiers <- inputs$membership_tiers
+        for (i in seq_along(tiers)) {
+          updateTextInput(session, paste0("proj_tier_label_", i), value = tiers[[i]]$label)
+          updateNumericInput(session, paste0("proj_tier_members_", i), value = tiers[[i]]$members)
+          updateNumericInput(session, paste0("proj_tier_fee_", i), value = tiers[[i]]$fee)
+        }
+        ov_events <- inputs$overhead_events
+        for (i in seq_along(ov_events)) {
+          updateTextInput(session, paste0("ov_event_label_", i), value = ov_events[[i]]$label)
+          updateSelectInput(session, paste0("ov_event_start_", i), selected = ov_events[[i]]$start_date)
+          updateNumericInput(session, paste0("ov_event_cost_", i), value = ov_events[[i]]$cost)
+        }
+        fee_events <- inputs$fee_events
+        for (i in seq_along(fee_events)) {
+          updateSelectInput(session, paste0("fee_event_tier_", i), selected = as.character(fee_events[[i]]$tier_idx))
+          updateSelectInput(session, paste0("fee_event_start_", i), selected = fee_events[[i]]$start_date)
+          updateNumericInput(session, paste0("fee_event_new_fee_", i), value = fee_events[[i]]$new_fee)
+        }
+      }, once = TRUE)
+    }
 
     # -- Gate: require uploaded data ------------------------------------------
     output$content <- renderUI({
@@ -260,13 +277,26 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             class = "small text-muted",
             "Applied on top of the fitted model. Defaults leave the historical trend unchanged."
           ),
-          sliderInput(
-            ns("income_growth"),
-            "Income growth (%/yr)",
-            min = -60,
-            max = 60,
-            value = 0,
-            step = 0.5
+          # Wrapped in an explicit id for the same reason overhead_model_wrap
+          # is below: sliderInput()'s own inputId lands on a native <input>
+          # that ionRangeSlider (the JS widget Shiny's slider uses) hides
+          # and replaces with a sibling .irs structure -- the same
+          # hidden-input gotcha as selectize, just for sliders instead of
+          # selects. The tour step (utils_tours.R, tour_proj1) previously
+          # targeted ns("income_growth") directly, which highlighted a
+          # zero-size element up at the page's origin instead of the
+          # visible slider -- confirmed live: it rendered in the upper
+          # left, well above the actual "Income growth" control.
+          tags$div(
+            id = ns("income_growth_wrap"),
+            sliderInput(
+              ns("income_growth"),
+              "Income growth (%/yr)",
+              min = -60,
+              max = 60,
+              value = 0,
+              step = 0.5
+            )
           ),
           # Wrapped in an explicit id: selectInput()'s own inputId lands on
           # the native <select>, which selectize.js hides (display: none)
@@ -377,7 +407,16 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         ),
 
         # -- Main area: forecast sub-tabs -----------------------------------
-        directCareScenarios::mod_scenario_banner_ui(ns("scenario")),
+        # No mod_scenario_banner_ui()/mod_scenario_slots_ui() call here --
+        # both are rendered exactly once, globally, in app_ui.R. bslib keeps
+        # every nav_panel's content mounted in the DOM simultaneously (this
+        # app forces several tabs' outputs to suspendWhenHidden = FALSE),
+        # so rendering the same bare "scenario"-id module UI once per tab
+        # produced *duplicate* DOM ids -- confirmed live: 4 elements all
+        # sharing id="scenario-banner", of which only the first ever
+        # received Shiny's renderUI updates, leaving the banner silently
+        # empty on every tab except one. A single global instance (see
+        # app_ui.R) is the correct fix, not a per-tab one.
         navset_card_underline(
           id = ns("forecast_type"),
           nav_panel(
@@ -402,8 +441,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
             ns("btn_back_to_summary"),
             tagList(bs_icon("arrow-left"), " Back to Summary"),
             class = "btn-outline-secondary"
-          ),
-          extra = directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
+          )
         )
       )
     })
@@ -696,23 +734,41 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       })
     })
 
-    proj_total_members <- reactive({
+    # Raw (non-debounced) snapshot of every tier's current field values --
+    # re-fires on every keystroke in any Label/Members/Fee box, same as
+    # every downstream reactive reading input[[...]] directly used to.
+    # Debounced immediately below; nothing else should read this reactive.
+    .proj_tier_raw <- reactive({
       n <- proj_n_tiers()
-      sum(vapply(
-        seq_len(n),
-        \(i) .nn_proj(input[[paste0("proj_tier_members_", i)]]),
-        numeric(1)
-      ))
+      lapply(seq_len(n), function(i) {
+        list(
+          label = input[[paste0("proj_tier_label_", i)]] %||% "",
+          members = .nn_proj(input[[paste0("proj_tier_members_", i)]]),
+          fee = .nn_proj(input[[paste0("proj_tier_fee_", i)]])
+        )
+      })
+    })
+
+    # Debounced: proj_total_members/proj_total_revenue/proj_avg_fee/
+    # profile_ok/fee_per_period, and the observe() below that syncs
+    # r$panel_size/r$membership_fee/r$membership_tiers, all previously read
+    # the tier inputs directly and so recomputed on every single keystroke
+    # -- confirmed live this made the whole Membership Profile section feel
+    # laggy while typing any Label, Members, or Fee value. Reading from this
+    # debounced reactive instead means that whole downstream chain waits
+    # for a short pause in typing before recomputing, matching how the
+    # user's cursor moving to a different field (not muscle-memory typing
+    # speed) is the real "done editing" signal.
+    proj_tier_debounced <- shiny::debounce(.proj_tier_raw, millis = 500)
+
+    proj_total_members <- reactive({
+      sum(vapply(proj_tier_debounced(), \(t) t$members, numeric(1)))
     })
 
     proj_total_revenue <- reactive({
-      n <- proj_n_tiers()
       sum(vapply(
-        seq_len(n),
-        function(i) {
-          .nn_proj(input[[paste0("proj_tier_members_", i)]]) *
-            .nn_proj(input[[paste0("proj_tier_fee_", i)]])
-        },
+        proj_tier_debounced(),
+        \(t) t$members * t$fee,
         numeric(1)
       ))
     })
@@ -723,14 +779,7 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     })
 
     proj_tiers_list <- reactive({
-      n <- proj_n_tiers()
-      lapply(seq_len(n), function(i) {
-        list(
-          label = input[[paste0("proj_tier_label_", i)]] %||% "",
-          members = .nn_proj(input[[paste0("proj_tier_members_", i)]]),
-          fee = .nn_proj(input[[paste0("proj_tier_fee_", i)]])
-        )
-      })
+      proj_tier_debounced()
     })
 
     # -- Practice profile helpers ---------------------------------------------
@@ -789,59 +838,120 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     }
 
     # -- Reactive forecast results --------------------------------------------
-    # Each result is computed on demand when the run button is clicked.
-    # Using bindEvent to avoid firing before the user explicitly requests it.
+    # Break-even/Revenue/Target all run in a single background process via
+    # shiny::ExtendedTask + mirai, instead of blocking the main R process on
+    # eventReactive() (as this used to). forecast_breakeven()/forecast_revenue()/
+    # forecast_target() call `forecast` (base R's stats::lm/HoltWinters or the
+    # forecast package's ets()/auto.arima()), which for ARIMA on a longer
+    # history is slow enough to freeze the *entire app* -- every other
+    # session/practice too, since Shiny is single-threaded per R process --
+    # for the duration of one click. Running it in a mirai worker keeps the
+    # main process free to keep serving everyone else while this one
+    # practice's forecast computes. input_task_button("btn_run", ...) (in the
+    # sidebar above) is bound to this task below, so it shows its built-in
+    # busy/spinner state for exactly as long as the task is running.
+    #
+    # All three forecasts share one task (not three separate ExtendedTasks):
+    # they share income_summary()/overhead_monthly as inputs, so running them
+    # together in the same worker call means their warnings land in one place
+    # to de-duplicate against shown_warnings, matching the original
+    # run_forecast() helper's behavior before this refactor.
 
     # Tracks warning messages already shown in the current btn_run event.
     # Reset each time Run Forecast is clicked so deduplication is per-run, not
-    # per-session. Three forecast calls share this set so a message that fires
-    # in breakeven_result doesn't repeat in revenue_result or target_result.
+    # per-session.
     shown_warnings <- reactiveVal(character(0))
 
-    observeEvent(
-      input$btn_run,
-      {
-        shown_warnings(character(0))
-      },
-      priority = 10
-    )
-
-    # Helper: run a forecast call, surfacing data-volume warnings as UI
-    # notifications and silently discarding all other expected warnings
-    # (breakeven-not-reached, frequency-mismatch, etc.).
-    # Uses withCallingHandlers for warnings (stack intact, muffle works) and
-    # wraps that in tryCatch to catch errors after unwinding.
-    run_forecast <- function(expr) {
-      tryCatch(
-        withCallingHandlers(
-          expr,
-          warning = function(w) {
-            msg <- conditionMessage(w)
-            if (inherits(w, "dcForecastR_insufficient_data")) {
-              if (!msg %in% shown_warnings()) {
-                shown_warnings(c(shown_warnings(), msg))
-                showNotification(msg, type = "error", duration = 15)
+    # The function passed to ExtendedTask$new() runs in *this* R process (it
+    # receives the plain values invoke() is called with below) and must
+    # return a promise -- a bare mirai::mirai() call satisfies that directly,
+    # since mirai objects implement the promise interface themselves. The
+    # `{...}` expression, by contrast, runs in a background mirai worker
+    # process: it has no access to reactive values, `input`, or anything else
+    # in this environment, only the objects explicitly passed in as named
+    # arguments below -- hence directCareForecastR:: staying fully namespaced
+    # (already true before this refactor) and income_summary/overhead_monthly
+    # etc. being passed as plain data frames, not reactives.
+    forecast_task <- ExtendedTask$new(function(
+      income_summary,
+      overhead_monthly,
+      method,
+      horizon,
+      confidence,
+      target_income,
+      run_target
+    ) {
+      mirai::mirai(
+        {
+          # Runs one forecast call, capturing its data-volume warnings
+          # (message + class only -- condition objects themselves don't need
+          # to survive the trip back across the process boundary) instead of
+          # showNotification()-ing them directly, since there is no Shiny
+          # session in this worker process to notify. Errors are likewise
+          # captured rather than allowed to fail the whole mirai call, so a
+          # problem in one of the three forecasts (e.g. Target's
+          # target_income) doesn't discard the other two.
+          run_one <- function(expr) {
+            warns <- list()
+            result <- tryCatch(
+              withCallingHandlers(
+                expr,
+                warning = function(w) {
+                  warns[[length(warns) + 1L]] <<- list(
+                    message = conditionMessage(w),
+                    classes = class(w)
+                  )
+                  invokeRestart("muffleWarning")
+                }
+              ),
+              error = function(e) {
+                structure(
+                  list(message = conditionMessage(e)),
+                  class = "forecast_task_error"
+                )
               }
-            } else if (inherits(w, "dcForecastR_method_fallback")) {
-              if (!msg %in% shown_warnings()) {
-                shown_warnings(c(shown_warnings(), msg))
-                showNotification(msg, type = "warning", duration = 12)
-              }
-            } else if (inherits(w, "dcForecastR_low_data_advisory")) {
-              if (!msg %in% shown_warnings()) {
-                shown_warnings(c(shown_warnings(), msg))
-                showNotification(msg, type = "message", duration = 10)
-              }
-            }
-            invokeRestart("muffleWarning")
+            )
+            list(result = result, warnings = warns)
           }
-        ),
-        error = function(e) {
-          showNotification(conditionMessage(e), type = "error", duration = 8)
-          NULL
-        }
+
+          list(
+            breakeven = run_one(directCareForecastR::forecast_breakeven(
+              income_summary = income_summary,
+              overhead_summary = overhead_monthly,
+              method = method,
+              horizon = horizon,
+              confidence_level = confidence
+            )),
+            revenue = run_one(directCareForecastR::forecast_revenue(
+              income_summary = income_summary,
+              method = method,
+              horizon = horizon,
+              confidence_level = confidence
+            )),
+            target = if (run_target) {
+              run_one(directCareForecastR::forecast_target(
+                income_summary = income_summary,
+                overhead_summary = overhead_monthly,
+                target_income = target_income,
+                method = method,
+                horizon = horizon,
+                confidence_level = confidence
+              ))
+            } else {
+              NULL
+            }
+          )
+        },
+        income_summary = income_summary,
+        overhead_monthly = overhead_monthly,
+        method = method,
+        horizon = horizon,
+        confidence = confidence,
+        target_income = target_income,
+        run_target = run_target
       )
-    }
+    })
+    bslib::bind_task_button(forecast_task, "btn_run")
 
     # Income summary: use uploaded/manually entered income if available,
     # otherwise fall back to a proportional proxy so projections still run.
@@ -868,48 +978,76 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       }
     })
 
-    breakeven_result <- eventReactive(input$btn_run, {
+    observeEvent(input$btn_run, {
       req(r$overhead_monthly)
-      run_forecast(
-        directCareForecastR::forecast_breakeven(
-          income_summary = income_summary(),
-          overhead_summary = r$overhead_monthly,
-          method = input$method,
-          horizon = input$horizon,
-          confidence_level = input$confidence
-        )
+      shown_warnings(character(0))
+      forecast_task$invoke(
+        income_summary = income_summary(),
+        overhead_monthly = r$overhead_monthly,
+        method = input$method,
+        horizon = input$horizon,
+        confidence = input$confidence,
+        target_income = input$target_income,
+        # Preserves the original eventReactive-based behavior: Target only
+        # computes if the user was on the Income Target sub-tab at the
+        # moment Run Forecast was clicked (see the partial-report regression
+        # tests in test-mod-projections.R).
+        run_target = isTRUE(input$forecast_type == "target") &&
+          !is.null(input$target_income)
       )
     })
 
-    revenue_result <- eventReactive(input$btn_run, {
-      req(r$overhead_monthly)
-      run_forecast(
-        directCareForecastR::forecast_revenue(
-          income_summary = income_summary(),
-          method = input$method,
-          horizon = input$horizon,
-          confidence_level = input$confidence
-        )
-      )
+    # Surfaces each forecast's captured warnings/errors as the same
+    # showNotification() calls run_forecast() used to make directly -- moved
+    # here, out of the reactive graph, since the worker process that computes
+    # them has no session to notify from. Fires once per completed task
+    # invocation (forecast_task$result() only changes when the task's status
+    # actually transitions), not once per downstream reactive read.
+    observeEvent(forecast_task$result(), {
+      out <- forecast_task$result()
+      notify_section <- function(section) {
+        if (is.null(section)) {
+          return(invisible())
+        }
+        for (w in section$warnings) {
+          if (w$message %in% shown_warnings()) {
+            next
+          }
+          shown_warnings(c(shown_warnings(), w$message))
+          if ("dcForecastR_insufficient_data" %in% w$classes) {
+            showNotification(w$message, type = "error", duration = 15)
+          } else if ("dcForecastR_method_fallback" %in% w$classes) {
+            showNotification(w$message, type = "warning", duration = 12)
+          } else if ("dcForecastR_low_data_advisory" %in% w$classes) {
+            showNotification(w$message, type = "message", duration = 10)
+          }
+        }
+        if (inherits(section$result, "forecast_task_error")) {
+          showNotification(section$result$message, type = "error", duration = 8)
+        }
+      }
+      notify_section(out$breakeven)
+      notify_section(out$revenue)
+      notify_section(out$target)
     })
 
-    target_result <- eventReactive(input$btn_run, {
-      req(
-        r$overhead_monthly,
-        input$target_income,
-        input$forecast_type == "target"
-      )
-      run_forecast(
-        directCareForecastR::forecast_target(
-          income_summary = income_summary(),
-          overhead_summary = r$overhead_monthly,
-          target_income = input$target_income,
-          method = input$method,
-          horizon = input$horizon,
-          confidence_level = input$confidence
-        )
-      )
-    })
+    # Resolves one forecast section down to the plain result adj_breakeven()/
+    # adj_revenue()/adj_target() below already expect (NULL if that forecast
+    # was never run this task, or errored -- the error itself was already
+    # surfaced via notify_section() above).
+    .extract_forecast <- function(section) {
+      if (is.null(section)) {
+        return(NULL)
+      }
+      if (inherits(section$result, "forecast_task_error")) {
+        return(NULL)
+      }
+      section$result
+    }
+
+    breakeven_result <- reactive(.extract_forecast(forecast_task$result()$breakeven))
+    revenue_result <- reactive(.extract_forecast(forecast_task$result()$revenue))
+    target_result <- reactive(.extract_forecast(forecast_task$result()$target))
 
     # -- Conditional overhead-model controls ---------------------------------
     output$overhead_model_controls <- renderUI({
@@ -1833,5 +1971,12 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         selected = "summary"
       )
     })
+
+    list(
+      get_bundle_for_save = get_bundle_for_save,
+      get_dirty_signal = scenario_dirty_signal,
+      extract_dirty_signal = scenario_extract_dirty_signal,
+      on_load = scenario_on_load
+    )
   })
 }

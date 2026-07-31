@@ -195,6 +195,7 @@ test_that(".safe_result resolves an un-run forecast to NULL instead of throwing"
       forecast_type = "breakeven"
     )
     session$setInputs(btn_run = 1)
+    wait_for_task(forecast_task)
 
     expect_false(is.null(.safe_result(adj_breakeven())))
     expect_false(is.null(.safe_result(adj_revenue())))
@@ -214,6 +215,7 @@ test_that("download_ui offers the button and lists missing sections for a partia
       forecast_type = "breakeven"
     )
     session$setInputs(btn_run = 1)
+    wait_for_task(forecast_task)
 
     html <- as.character(output$download_ui$html)
     expect_true(grepl("Download Report", html, fixed = TRUE))
@@ -233,6 +235,7 @@ test_that("download_ui shows no missing-sections note once all three forecasts h
       forecast_type = "target"
     )
     session$setInputs(btn_run = 1)
+    wait_for_task(forecast_task)
 
     expect_false(is.null(.safe_result(adj_breakeven())))
     expect_false(is.null(.safe_result(adj_revenue())))
