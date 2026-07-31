@@ -9,11 +9,14 @@ calc_fee_revenue(
   new_visit_fee,
   follow_up_fee,
   new_visit_pct = 0.2,
-  horizon_months = 24L
+  horizon_months = 24L,
+  ramp_months = 12L,
+  ramp_shape = c("linear", "s_curve")
 )
 }
 \arguments{
-\item{visit_volume}{Integer number of visits per month.}
+\item{visit_volume}{Integer target number of visits per month once
+ramp-up is complete.}
 
 \item{new_visit_fee}{Numeric fee charged for a new-patient visit.}
 
@@ -24,6 +27,14 @@ are new-patient visits. Defaults to 0.2.}
 
 \item{horizon_months}{Integer number of months to project. Defaults to
 24.}
+
+\item{ramp_months}{Integer number of months to reach \code{visit_volume}.
+Defaults to 12. If greater than \code{horizon_months}, the ramp will not be
+complete by the end of the projection.}
+
+\item{ramp_shape}{Character string specifying the ramp shape: \code{"linear"}
+(default) or \code{"s_curve"} (a smoothstep curve: slow to start,
+accelerating through the middle, easing into \code{visit_volume}).}
 }
 \value{
 A \code{dcPlanR_fee_revenue}-classed tibble with one row per month
@@ -32,6 +43,9 @@ and columns \code{month}, \code{visit_volume}, and \code{revenue}.
 \description{
 Projects fee-based revenue as visit volume times visit fee, using an
 explicit new-patient vs. follow-up visit mix since the two are typically
-billed at different rates. Unlike membership revenue, visit volume is
-not ramped; it is held flat across the horizon.
+billed at different rates. Applies the same ramp function as
+\code{\link[=calc_membership_revenue]{calc_membership_revenue()}} so visit volume builds up to \code{visit_volume}
+over \code{ramp_months} rather than starting full on day one -- a new
+fee-for-service practice fills its schedule gradually, same as a
+membership panel.
 }
