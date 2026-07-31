@@ -526,7 +526,13 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       sw <- input$software %||% "gnucash"
 
       warnings_caught <- list()
-      tryCatch(
+      # Tracks whether *this* upload attempt succeeded -- the success
+      # notification below must not fire off stale r$overhead_monthly left
+      # over from a previous successful upload in the same session (that
+      # was silently reusing old state and showing a "(done) Loaded..."
+      # toast right alongside the "Upload failed" one whenever a later
+      # attempt errored out, e.g. a CSV missing the type column).
+      upload_ok <- tryCatch(
         withCallingHandlers(
           {
             if (sw == "gnucash") {
@@ -597,6 +603,8 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
               loaded$overhead <- TRUE
               loaded$income <- TRUE
             }
+
+            TRUE
           },
           warning = function(w) {
             warnings_caught[[length(warnings_caught) + 1L]] <<- w
@@ -609,10 +617,11 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             type = "error",
             duration = 8
           )
+          FALSE
         }
       )
 
-      if (!is.null(r$overhead_monthly)) {
+      if (isTRUE(upload_ok) && !is.null(r$overhead_monthly)) {
         n_ovhd <- nrow(r$overhead %||% data.frame())
         n_inc <- nrow(r$income %||% data.frame())
         showNotification(
@@ -639,7 +648,10 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       req(input$overhead_file)
 
       warnings_caught <- list()
-      tryCatch(
+      # See btn_upload's identical upload_ok comment above -- same fix,
+      # same reason (this attempt's success notification must not fire off
+      # a stale successful load from earlier in the session).
+      load_ok <- tryCatch(
         withCallingHandlers(
           {
             overhead <- directCareForecastR::ingest_csv_generic(
@@ -657,6 +669,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             r$validation <- c(r$validation %||% list(), warnings_caught)
             loaded$overhead <- TRUE
             init_generic_state()
+            TRUE
           },
           warning = function(w) {
             warnings_caught[[length(warnings_caught) + 1L]] <<- w
@@ -669,10 +682,11 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             type = "error",
             duration = 8
           )
+          FALSE
         }
       )
 
-      if (loaded$overhead) {
+      if (isTRUE(load_ok)) {
         n <- nrow(r$overhead)
         showNotification(
           paste0(
@@ -692,7 +706,10 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       req(input$income_file)
 
       warnings_caught <- list()
-      tryCatch(
+      # See btn_upload's identical upload_ok comment above -- same fix,
+      # same reason (this attempt's success notification must not fire off
+      # a stale successful load from earlier in the session).
+      load_ok <- tryCatch(
         withCallingHandlers(
           {
             income <- directCareForecastR::ingest_csv_generic(
@@ -710,6 +727,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             r$validation <- c(r$validation %||% list(), warnings_caught)
             loaded$income <- TRUE
             init_generic_state()
+            TRUE
           },
           warning = function(w) {
             warnings_caught[[length(warnings_caught) + 1L]] <<- w
@@ -722,10 +740,11 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             type = "error",
             duration = 8
           )
+          FALSE
         }
       )
 
-      if (loaded$income) {
+      if (isTRUE(load_ok)) {
         n <- nrow(r$income)
         showNotification(
           paste0(
@@ -939,6 +958,23 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
 
 .gnucash_controls_ui <- function(ns) {
   tagList(
+    # Wrapped in an explicit id for the same reason overhead_model_wrap /
+    # income_growth_wrap are (mod_projections.R): fileInput()'s underlying
+    # <input type="file"> already carries Bootstrap's own `position:
+    # absolute` styling (its standard "hide the native file input under a
+    # custom Browse button" trick) -- when driver.js's own highlight()
+    # tries to reposition that same already-absolutely-positioned element
+    # for its spotlight effect, the two positioning schemes conflict and
+    # shove the real element (and, cascading from it, the popover) tens
+    # of thousands of pixels off-screen. Confirmed live via direct DOM
+    # inspection: both the highlighted <input> and the popover ended up
+    # at getBoundingClientRect() x/y around -99900, rendering the tour
+    # step (utils_tours.R's tour_h2 "Choose a file" step) completely
+    # invisible with no console error and no clear signal why. Targeting
+    # this wrapper div (which driver.js has no reason to reposition)
+    # instead of the raw input sidesteps the conflict entirely.
+    tags$div(
+      id = ns("csv_file_wrap"),
     fileInput(
       ns("csv_file"),
       tagList(
@@ -982,6 +1018,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       accept = c(".csv", ".gnucash"),
       buttonLabel = "Browse...",
       placeholder = "No file selected"
+    )
     ),
     accordion(
       open = FALSE,
@@ -1190,6 +1227,89 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       ),
       choiceValues = list("combined", "separate"),
       selected = "combined"
+    ),
+    accordion(
+      open = FALSE,
+      accordion_panel(
+        title = "File format reference",
+        icon = bs_icon("table"),
+        tags$p(
+          class = "small text-muted mb-2",
+          "Your CSV should look like the example below. Extra columns are ",
+          "ignored."
+        ),
+        tags$div(
+          class = "table-responsive",
+          tags$table(
+            class = "table table-sm table-bordered small mb-0",
+            style = "font-family: monospace; font-size: 0.75rem;",
+            tags$thead(
+              tags$tr(
+                tags$th("date"),
+                tags$th("amount"),
+                tags$th("type")
+              )
+            ),
+            tags$tbody(
+              tags$tr(
+                tags$td("01/15/2024"),
+                tags$td("1200.00"),
+                tags$td("expense")
+              ),
+              tags$tr(
+                tags$td("01/15/2024"),
+                tags$td("3500.00"),
+                tags$td("income")
+              ),
+              tags$tr(
+                tags$td("02/01/2024"),
+                tags$td("145.00"),
+                tags$td("expense")
+              )
+            )
+          )
+        ),
+        tags$p(
+          class = "small text-muted mt-2 mb-1",
+          bs_icon("exclamation-triangle"),
+          " Column names must match ",
+          tags$strong("exactly"),
+          " (case-sensitive) what you type in the ",
+          tags$em("Date column"),
+          "/",
+          tags$em("Amount column"),
+          "/",
+          tags$em("Type column"),
+          " boxes below — a header of ",
+          tags$code("Date"),
+          " will not match a box set to ",
+          tags$code("date"),
+          ". If your export uses different capitalization (common with ",
+          "Excel or Google Sheets exports), either edit the header row or ",
+          "update the boxes to match it exactly."
+        ),
+        tags$p(
+          class = "small text-muted mb-1",
+          bs_icon("lightbulb"),
+          " Dates: most common formats are recognized automatically (e.g. ",
+          tags$code("01/15/2024"),
+          ", ",
+          tags$code("2024-01-15"),
+          ", or ",
+          tags$code("Jan 15 2024"),
+          "). If a column has dates that aren't being read correctly, ",
+          "try reformatting it to ",
+          tags$code("YYYY-MM-DD"),
+          "."
+        ),
+        tags$p(
+          class = "small text-muted mb-0",
+          bs_icon("lightbulb"),
+          " Amounts should be positive for both income and expense rows ",
+          "— the type column (not the sign) determines how each row ",
+          "is classified."
+        )
+      )
     ),
     uiOutput(ns("generic_file_inputs"))
   )

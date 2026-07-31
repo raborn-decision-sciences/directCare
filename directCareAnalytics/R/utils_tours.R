@@ -142,7 +142,7 @@
   # Upload tab, upload-path form (file input + Upload & Process).
   guide <- .tour_guide("tour_h2")
   guide$step(
-    el = "upload-csv_file",
+    el = "upload-csv_file_wrap",
     title = "Choose a file",
     description = paste0(
       "Select a GnuCash export (.gnucash or .csv). Don't have one handy? ",
