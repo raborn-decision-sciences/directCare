@@ -1,3 +1,16 @@
+<!--
+  Not directly served by Caddy -- kept here as the easy-to-preview/edit
+  source. The actual response is an inline copy in the Caddyfile's
+  (maintenance_page) snippet, via a respond directive with an explicit
+  200 status (Caddy's handle_errors can't be made to override the
+  502/503/504 status via file_server, and Cloudflare replaces any
+  502/503/504 body -- even a real one from a reachable origin -- with its
+  own branded error page). If you edit this file, copy the change into
+  the Caddyfile too. IMPORTANT: this file's content is embedded in the
+  Caddyfile inside a backtick-quoted raw string -- never introduce a
+  backtick character anywhere in this file, or the Caddyfile config will
+  fail to parse.
+-->
 <!doctype html>
 <html lang="en">
 <head>

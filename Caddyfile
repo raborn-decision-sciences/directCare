@@ -31,12 +31,136 @@
 	# passing its first request) -- without this, Caddy's bare default
 	# error page is all a client sees for that window. Only fires while
 	# Caddy itself is up; if Caddy's own container is down (or Cloudflare
-	# can't reach it at all -- its 521/522/523 pages), this can't help,
-	# since nothing here is running to serve it.
+	# can't reach it at all), this can't help, since nothing here is
+	# running to serve it -- Cloudflare shows its own 521/522/523 page.
+	#
+	# The page content is embedded here (not served via file_server from
+	# caddy/errors/maintenance.html) because Caddy's handle_errors pins
+	# the client-visible status to the original error code (502/503/504)
+	# no matter what an inner file_server/root/rewrite chain does --
+	# confirmed live: file_server served the right body with the right
+	# Content-Length, but the response status stayed 502. Cloudflare
+	# treats any 502/503/504 -- even one carrying a real body from a
+	# reachable origin -- as a trigger to discard that body and substitute
+	# its own generic branded error page, so the custom page never
+	# actually reached a browser in production. `respond` is the one
+	# directive Caddy's error handling actually lets override the status,
+	# which is why this uses that instead. Keep this HTML in sync with
+	# caddy/errors/maintenance.html (kept alongside as the
+	# easy-to-preview/edit source -- not directly served anymore).
 	handle_errors 502 503 504 {
-		root * /srv/errors
-		rewrite * /maintenance.html
-		file_server
+		header Content-Type "text/html; charset=utf-8"
+		respond `<!--
+  Not directly served by Caddy -- kept here as the easy-to-preview/edit
+  source. The actual response is an inline copy in the Caddyfile's
+  (maintenance_page) snippet, via a respond directive with an explicit
+  200 status (Caddy's handle_errors can't be made to override the
+  502/503/504 status via file_server, and Cloudflare replaces any
+  502/503/504 body -- even a real one from a reachable origin -- with its
+  own branded error page). If you edit this file, copy the change into
+  the Caddyfile too. IMPORTANT: this file's content is embedded in the
+  Caddyfile inside a backtick-quoted raw string -- never introduce a
+  backtick character anywhere in this file, or the Caddyfile config will
+  fail to parse.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="20">
+<title>Temporarily Unavailable | Raborn Decision Sciences</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --navy: #0F172A;
+    --panel: #172033;
+    --border: #334155;
+    --teal: #14B8A6;
+    --text: #E2E8F0;
+    --muted: #94A3B8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--navy);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main {
+    max-width: 440px;
+    text-align: center;
+  }
+  .logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 24px;
+    display: block;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+  p {
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0 0 8px;
+  }
+  .brand {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--muted);
+    opacity: 0.7;
+  }
+  .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    margin-right: 6px;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="256" height="256" rx="56" fill="#0A1B33"></rect>
+    <g transform="translate(123,130) scale(0.78) translate(-123,-130)">
+      <rect x="47" y="135" width="20" height="53" rx="4" fill="#3C5B7D"></rect>
+      <path d="M30,150 A99,99 0 0 1 212,78" fill="none" stroke="#149AAD" stroke-width="6" stroke-linecap="round"></path>
+      <path d="M30,150 A99,99 0 0 0 200,194" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-linecap="round"></path>
+      <circle cx="30" cy="150" r="7" fill="#FFFFFF"></circle>
+      <text x="126" y="188" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="172" fill="#FFFFFF">R</text>
+      <rect x="72" y="118" width="20" height="70" rx="4" fill="#2E4A68"></rect>
+      <rect x="97" y="100" width="20" height="88" rx="4" fill="#23B7CC"></rect>
+      <path d="M56,176 C 116,166 152,148 172,120 C 187,101 196,93 203,87" fill="none" stroke="#F5A623" stroke-width="5.5" stroke-linecap="round"></path>
+      <polygon points="212,78 207,95 195,83" fill="#F5A623"></polygon>
+    </g>
+  </svg>
+  <h1>We'll be right back</h1>
+  <p>This app is briefly unavailable &mdash; usually a routine update in progress.</p>
+  <p>This page will refresh automatically in a moment.</p>
+  <div class="brand"><span class="dot"></span>Raborn Decision Sciences</div>
+</main>
+</body>
+</html>
+` 200
 	}
 }
 
