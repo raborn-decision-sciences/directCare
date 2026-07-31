@@ -52,7 +52,7 @@ test_that("zip_county_crosswalk has exactly one primary county per zip", {
   expect_true(all(primary_counts == 1))
 })
 
-test_that("direct_care_landscape has the placeholder schema", {
+test_that("direct_care_landscape has the expected schema", {
   expect_s3_class(direct_care_landscape, "data.frame")
   expect_equal(
     names(direct_care_landscape),
@@ -61,7 +61,22 @@ test_that("direct_care_landscape has the placeholder schema", {
       "estimated_panel_size", "city", "state_abb", "source", "as_of_date"
     )
   )
-  expect_equal(nrow(direct_care_landscape), 0L)
+})
+
+test_that("direct_care_landscape has sane values once populated", {
+  skip_if_not(
+    nrow(direct_care_landscape) > 0L,
+    "direct_care_landscape is still the empty placeholder; run data-raw/05_direct_care_landscape.R"
+  )
+
+  expect_true(all(nchar(direct_care_landscape$county_fips) == 5L))
+  expect_true(all(nchar(direct_care_landscape$state_abb) == 2L))
+  expect_true(all(
+    direct_care_landscape$practice_type %in%
+      c("Pure DPC", "Hybrid", "Unknown/Other")
+  ))
+  expect_true(all(!is.na(direct_care_landscape$source)))
+  expect_true(all(!is.na(direct_care_landscape$as_of_date)))
 })
 
 test_that("data_provenance has the expected structure", {

@@ -77,7 +77,7 @@ Output of `build_market_context()`.
 | `population_income` | `dcPlanR_population_income` list | `county_fips`, `population`, `median_household_income` |
 | `uninsured` | `dcPlanR_uninsured_estimate` list | `county_fips`, `uninsured_count`, `uninsured_rate` |
 | `physician_density` | `dcPlanR_physician_density` list | `county_fips`, `physician_count`, `physician_density_per_10k` |
-| `landscape` | tibble | Nearby direct care practices; zero rows if none known (`directCareData::direct_care_landscape` is currently an empty placeholder — no real source identified yet) |
+| `landscape` | tibble | Nearby direct care practices; zero rows if none known (`directCareData::direct_care_landscape` is sourced from the DPC Frontier mapper — `practice_name`, `estimated_panel_size`, and `city` are always `NA`, since the source export doesn't include them) |
 | `provenance` | list | `directCareData::data_provenance` — vintage/retrieval date/source per underlying data source |
 
 ### Revenue (`dcPlanR_revenue`)
@@ -264,7 +264,6 @@ devtools::document()
 
 ## Known gaps / future work
 
-- **`direct_care_landscape` is an empty placeholder** — `directCareData` ships it with the correct schema but zero rows; no real competitor-directory source has been identified yet. No code changes are needed elsewhere when one is.
 - **`inst/report/report.typ` is unbranded** — a minimal, functionally-complete placeholder (no RDS navy/teal design system, KPI boxes, or section headers like `directCareAnalytics`'s report). A dedicated design pass is expected once real report content/section order has been validated against actual use.
 - **`project_scenarios()`'s `scenario_params` is scoped to two levers** — `ramp_months_multiplier` and `overhead_multiplier` only, matching the spec's own named example. Broadening to arbitrary assumption overrides would be a non-breaking future addition.
 - **No Shiny app yet** — `directCarePlanner`, the Golem app meant to consume this package (form-based assumption collection, operational checklist, report download), has not been started.

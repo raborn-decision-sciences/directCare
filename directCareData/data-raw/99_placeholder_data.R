@@ -36,9 +36,16 @@ county_cbsa_crosswalk <- tibble::tibble(
   metro_micro = character()
 )
 
-# direct_care_landscape has no external dependency, so reuse its real
-# script rather than redefining the same schema here.
-source("data-raw/05_direct_care_landscape.R")
+direct_care_landscape <- tibble::tibble(
+  county_fips = character(),
+  practice_name = character(),
+  practice_type = character(),
+  estimated_panel_size = integer(),
+  city = character(),
+  state_abb = character(),
+  source = character(),
+  as_of_date = as.Date(character())
+)
 
 not_yet_generated <- list(
   vintage = "not yet generated",

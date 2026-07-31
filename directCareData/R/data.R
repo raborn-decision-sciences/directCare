@@ -74,26 +74,32 @@
 
 #' Direct Care Practice Landscape
 #'
-#' A curated directory of existing direct care practices, used to
-#' summarize local competition for a prospective practice location.
-#' Currently ships as an empty, zero-row placeholder pending a real data
-#' source.
+#' A directory of existing direct care practices, used to summarize
+#' local competition for a prospective practice location. Sourced from a
+#' manual CSV export of the DPC Frontier interactive map, which has no
+#' stable programmatic API; \code{practice_name}, \code{estimated_panel_size},
+#' and \code{city} are \code{NA} for every row since the export doesn't
+#' include them.
 #'
 #' @format A tibble with columns:
 #' \describe{
-#'   \item{county_fips}{Character. 5-digit county FIPS code.}
-#'   \item{practice_name}{Character. Practice name.}
-#'   \item{practice_type}{Character. e.g. \code{"membership"},
-#'     \code{"hybrid"}, \code{"fee_for_service"}.}
-#'   \item{estimated_panel_size}{Integer. Estimated panel size, \code{NA}
-#'     if unknown.}
-#'   \item{city}{Character. Practice city.}
+#'   \item{county_fips}{Character. 5-digit county FIPS code, derived from
+#'     the practice's latitude/longitude via a spatial join against
+#'     Census county boundaries.}
+#'   \item{practice_name}{Character. Practice name. Always \code{NA} --
+#'     not present in the source export.}
+#'   \item{practice_type}{Character. \code{"Pure DPC"}, \code{"Hybrid"},
+#'     or \code{"Unknown/Other"}, as classified by the source.}
+#'   \item{estimated_panel_size}{Integer. Estimated panel size. Always
+#'     \code{NA} -- not present in the source export.}
+#'   \item{city}{Character. Practice city. Always \code{NA} -- not
+#'     present in the source export.}
 #'   \item{state_abb}{Character. 2-letter state abbreviation.}
 #'   \item{source}{Character. Provenance of this specific row.}
 #'   \item{as_of_date}{Date. Date this row's information was current as
 #'     of, \code{NA} if unknown.}
 #' }
-#' @source Internally curated; no source identified yet.
+#' @source DPC Frontier mapper (\url{https://mapper.dpcfrontier.com/}).
 "direct_care_landscape"
 
 #' Data Provenance Metadata
