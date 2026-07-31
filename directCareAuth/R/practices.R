@@ -7,6 +7,15 @@ DEFAULT_SIGNUP_MAX_REQUESTS <- 5L
 #' @noRd
 DEFAULT_SIGNUP_WINDOW_MINUTES <- 60L
 
+#' Default IP-based signup rate-limit threshold
+#'
+#' Deliberately more permissive than the email-based 5/60 -- same
+#' shared-office-IP reasoning as [auth_is_locked_out_by_ip()]'s own default,
+#' and not derived from measured abuse either. Reuses the email check's own
+#' 60-minute window rather than a separate one.
+#' @noRd
+DEFAULT_SIGNUP_IP_MAX_REQUESTS <- 20L
+
 #' Check whether an email has attempted too many signups recently
 #'
 #' Same pattern as [password_reset_is_rate_limited()] -- counts recent
@@ -30,6 +39,39 @@ signup_is_rate_limited <- function(con, email,
        WHERE email = $1 AND event_type = 'signup_attempt'
          AND created_at > now() - make_interval(mins => $2)",
     params = list(email, as.integer(window_minutes))
+  )
+  isTRUE(result$n[[1]] >= max_requests)
+}
+
+#' Check whether an IP address has attempted too many signups recently
+#'
+#' Mirror-image of [signup_is_rate_limited()], keyed by `ip_address` instead
+#' of `email` -- catches automated signup spam cycling through different
+#' emails from one source that the email-based check alone can't see.
+#' Callers should gate on either being `TRUE`, same as login lockout's
+#' [auth_is_locked_out()]/[auth_is_locked_out_by_ip()] pair.
+#'
+#' @param con An open `DBI` connection.
+#' @param ip The client's IP to check, or `NA` if it couldn't be determined
+#'   -- always returns `FALSE` in that case, rather than failing open/closed
+#'   on missing data.
+#' @param max_requests Attempt threshold. Defaults to 20 (see
+#'   `DEFAULT_SIGNUP_IP_MAX_REQUESTS`).
+#' @param window_minutes Lookback window, in minutes. Defaults to 60.
+#' @return `TRUE` if rate-limited, `FALSE` otherwise.
+#' @export
+signup_is_rate_limited_by_ip <- function(con, ip,
+                                          max_requests = DEFAULT_SIGNUP_IP_MAX_REQUESTS,
+                                          window_minutes = DEFAULT_SIGNUP_WINDOW_MINUTES) {
+  if (is.na(ip)) {
+    return(FALSE)
+  }
+  result <- DBI::dbGetQuery(
+    con,
+    "SELECT count(*) AS n FROM auth_events
+       WHERE ip_address = $1 AND event_type = 'signup_attempt'
+         AND created_at > now() - make_interval(mins => $2)",
+    params = list(ip, as.integer(window_minutes))
   )
   isTRUE(result$n[[1]] >= max_requests)
 }

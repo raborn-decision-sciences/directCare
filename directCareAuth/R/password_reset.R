@@ -10,6 +10,15 @@ DEFAULT_RESET_WINDOW_MINUTES <- 60L
 #' @noRd
 DEFAULT_RESET_TOKEN_EXPIRY_MINUTES <- 60L
 
+#' Default IP-based password-reset rate-limit threshold
+#'
+#' Deliberately more permissive than the email-based 3/60 -- same
+#' shared-office-IP reasoning as [auth_is_locked_out_by_ip()]'s own default,
+#' and not derived from measured abuse either. Reuses the email check's own
+#' 60-minute window rather than a separate one.
+#' @noRd
+DEFAULT_RESET_IP_MAX_REQUESTS <- 10L
+
 #' Generate a hex-encoded cryptographically random token
 #' @noRd
 .generate_reset_token <- function() {
@@ -48,6 +57,39 @@ password_reset_is_rate_limited <- function(con, email,
        WHERE email = $1 AND event_type = 'password_reset_requested'
          AND created_at > now() - make_interval(mins => $2)",
     params = list(email, as.integer(window_minutes))
+  )
+  isTRUE(result$n[[1]] >= max_requests)
+}
+
+#' Check whether an IP address has requested too many password resets recently
+#'
+#' Mirror-image of [password_reset_is_rate_limited()], keyed by `ip_address`
+#' instead of `email` -- catches automated reset-request spam cycling
+#' through different emails from one source that the email-based check
+#' alone can't see. Callers should gate on either being `TRUE`, same as
+#' login lockout's [auth_is_locked_out()]/[auth_is_locked_out_by_ip()] pair.
+#'
+#' @param con An open `DBI` connection.
+#' @param ip The client's IP to check, or `NA` if it couldn't be determined
+#'   -- always returns `FALSE` in that case, rather than failing open/closed
+#'   on missing data.
+#' @param max_requests Request threshold. Defaults to 10 (see
+#'   `DEFAULT_RESET_IP_MAX_REQUESTS`).
+#' @param window_minutes Lookback window, in minutes. Defaults to 60.
+#' @return `TRUE` if rate-limited, `FALSE` otherwise.
+#' @export
+password_reset_is_rate_limited_by_ip <- function(con, ip,
+                                                  max_requests = DEFAULT_RESET_IP_MAX_REQUESTS,
+                                                  window_minutes = DEFAULT_RESET_WINDOW_MINUTES) {
+  if (is.na(ip)) {
+    return(FALSE)
+  }
+  result <- DBI::dbGetQuery(
+    con,
+    "SELECT count(*) AS n FROM auth_events
+       WHERE ip_address = $1 AND event_type = 'password_reset_requested'
+         AND created_at > now() - make_interval(mins => $2)",
+    params = list(ip, as.integer(window_minutes))
   )
   isTRUE(result$n[[1]] >= max_requests)
 }

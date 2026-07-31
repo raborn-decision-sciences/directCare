@@ -36,11 +36,14 @@ test_that("a successful signup marks signup_done and logs a signup event", {
   logged <- NULL
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
+    signup_is_rate_limited_by_ip = function(...) FALSE,
     practice_create = function(con, practice_name, email, password) {
       list(ok = TRUE, id = 7L)
     },
-    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA) {
+    auth_event_log = function(con, event_type, email = NA, practice_id = NA,
+                               detail = NA, ip_address = NA) {
       logged <<- list(event_type = event_type, email = email, practice_id = practice_id)
     },
     .package = "directCareAuth"
@@ -63,7 +66,9 @@ test_that("a successful signup marks signup_done and logs a signup event", {
 test_that("email_taken keeps the form up, without marking signup_done", {
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
+    signup_is_rate_limited_by_ip = function(...) FALSE,
     auth_event_log = function(...) invisible(NULL),
     practice_create = function(...) list(ok = FALSE, reason = "email_taken"),
     .package = "directCareAuth"
@@ -83,7 +88,9 @@ test_that("email_taken keeps the form up, without marking signup_done", {
 test_that("weak_password keeps the form up, without marking signup_done", {
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
+    signup_is_rate_limited_by_ip = function(...) FALSE,
     auth_event_log = function(...) invisible(NULL),
     practice_create = function(...) list(ok = FALSE, reason = "weak_password"),
     .package = "directCareAuth"
@@ -103,8 +110,10 @@ test_that("weak_password keeps the form up, without marking signup_done", {
 test_that("a rate-limited email shows a message and never calls practice_create", {
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     signup_is_rate_limited = function(...) TRUE,
+    signup_is_rate_limited_by_ip = function(...) FALSE,
     practice_create = function(...) stop("practice_create() should not be called"),
     .package = "directCareAuth"
   )
@@ -113,6 +122,28 @@ test_that("a rate-limited email shows a message and never calls practice_create"
   testServer(mod_signup_server, {
     session$setInputs(
       practice_name = "River DPC", email = "spammer@example.com",
+      password = "a-strong-password", confirm_password = "a-strong-password",
+      submit = 1
+    )
+    expect_false(isTRUE(signup_done()))
+  })
+})
+
+test_that("a rate-limited IP shows a message and never calls practice_create", {
+  local_mocked_bindings(
+    db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) "203.0.113.7",
+    auth_event_log = function(...) invisible(NULL),
+    signup_is_rate_limited = function(...) FALSE,
+    signup_is_rate_limited_by_ip = function(...) TRUE,
+    practice_create = function(...) stop("practice_create() should not be called"),
+    .package = "directCareAuth"
+  )
+  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+
+  testServer(mod_signup_server, {
+    session$setInputs(
+      practice_name = "River DPC", email = "someone@example.com",
       password = "a-strong-password", confirm_password = "a-strong-password",
       submit = 1
     )

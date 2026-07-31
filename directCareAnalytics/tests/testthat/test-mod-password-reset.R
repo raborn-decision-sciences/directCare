@@ -45,10 +45,13 @@ test_that("request_submit shows the generic message and sends an email for a kno
   sent <- NULL
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
-    auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA) {
+    extract_client_ip = function(session) NA_character_,
+    auth_event_log = function(con, event_type, email = NA, practice_id = NA,
+                               detail = NA, ip_address = NA) {
       logged[[length(logged) + 1]] <<- event_type
     },
     password_reset_is_rate_limited = function(con, email) FALSE,
+    password_reset_is_rate_limited_by_ip = function(con, ip) FALSE,
     password_reset_request = function(con, email) {
       list(ok = TRUE, token = "tok-123", practice_id = 1L, practice_name = "River DPC")
     },
@@ -73,8 +76,10 @@ test_that("request_submit shows the generic message and sends an email for a kno
 test_that("request_submit shows the same generic message for an unknown email, without sending", {
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     password_reset_is_rate_limited = function(con, email) FALSE,
+    password_reset_is_rate_limited_by_ip = function(con, ip) FALSE,
     password_reset_request = function(con, email) list(ok = FALSE),
     send_password_reset_email = function(...) stop("send_password_reset_email() should not be called"),
     .package = "directCareAuth"
@@ -87,11 +92,13 @@ test_that("request_submit shows the same generic message for an unknown email, w
   })
 })
 
-test_that("request_submit skips the lookup entirely when rate-limited", {
+test_that("request_submit skips the lookup entirely when rate-limited by email", {
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     password_reset_is_rate_limited = function(con, email) TRUE,
+    password_reset_is_rate_limited_by_ip = function(con, ip) FALSE,
     password_reset_request = function(...) stop("password_reset_request() should not be called"),
     .package = "directCareAuth"
   )
@@ -99,6 +106,24 @@ test_that("request_submit skips the lookup entirely when rate-limited", {
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(email = "doc@example.com", request_submit = 1)
+    expect_match(as.character(reset_msg()), "reset link")
+  })
+})
+
+test_that("request_submit skips the lookup entirely when rate-limited by IP", {
+  local_mocked_bindings(
+    db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) "203.0.113.7",
+    auth_event_log = function(...) invisible(NULL),
+    password_reset_is_rate_limited = function(con, email) FALSE,
+    password_reset_is_rate_limited_by_ip = function(con, ip) TRUE,
+    password_reset_request = function(...) stop("password_reset_request() should not be called"),
+    .package = "directCareAuth"
+  )
+  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+
+  testServer(mod_password_reset_server, args = list(id = "reset"), {
+    session$setInputs(email = "someone@example.com", request_submit = 1)
     expect_match(as.character(reset_msg()), "reset link")
   })
 })

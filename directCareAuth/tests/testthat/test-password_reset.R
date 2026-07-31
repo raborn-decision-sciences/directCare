@@ -19,6 +19,50 @@ test_that("password_reset_is_rate_limited is TRUE at or above the request thresh
   expect_true(password_reset_is_rate_limited("mock_con", "doc@example.com"))
 })
 
+test_that("password_reset_is_rate_limited_by_ip is FALSE when the IP is NA, without querying", {
+  local_mocked_bindings(
+    dbGetQuery = function(...) stop("dbGetQuery() should not be called for an NA IP"),
+    .package = "DBI"
+  )
+
+  expect_false(password_reset_is_rate_limited_by_ip("mock_con", NA_character_))
+})
+
+test_that("password_reset_is_rate_limited_by_ip is FALSE below the default 10-request threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 9L),
+    .package = "DBI"
+  )
+
+  expect_false(password_reset_is_rate_limited_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("password_reset_is_rate_limited_by_ip is TRUE at or above the default 10-request threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 10L),
+    .package = "DBI"
+  )
+
+  expect_true(password_reset_is_rate_limited_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("password_reset_is_rate_limited_by_ip queries by ip and the configured window", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(n = 0L)
+    },
+    .package = "DBI"
+  )
+
+  password_reset_is_rate_limited_by_ip("mock_con", "203.0.113.7", max_requests = 5, window_minutes = 30)
+
+  expect_match(captured$statement, "event_type = 'password_reset_requested'")
+  expect_match(captured$statement, "ip_address = \\$1")
+  expect_equal(captured$params, list("203.0.113.7", 30L))
+})
+
 test_that("password_reset_request returns ok=FALSE for an unknown email, without inserting", {
   local_mocked_bindings(
     dbGetQuery = function(conn, statement, params) {

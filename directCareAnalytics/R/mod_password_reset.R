@@ -107,12 +107,21 @@ mod_password_reset_server <- function(id) {
 
       con <- directCareAuth::db_connect()
       on.exit(DBI::dbDisconnect(con), add = TRUE)
+      ip <- directCareAuth::extract_client_ip(session)
 
       # Logged unconditionally -- both for the audit trail and so the rate
       # limit itself can't be used to probe which emails have accounts.
-      directCareAuth::auth_event_log(con, event_type = "password_reset_requested", email = email)
+      directCareAuth::auth_event_log(con, event_type = "password_reset_requested", email = email, ip_address = ip)
 
-      if (!directCareAuth::password_reset_is_rate_limited(con, email)) {
+      # Gated on either the email or the IP being over its own threshold --
+      # same "either" logic as login lockout's auth_is_locked_out()/
+      # auth_is_locked_out_by_ip() pair, so reset-request spam cycling
+      # through different emails from one source can't dodge the
+      # email-only check.
+      if (
+        !directCareAuth::password_reset_is_rate_limited(con, email) &&
+          !directCareAuth::password_reset_is_rate_limited_by_ip(con, ip)
+      ) {
         result <- directCareAuth::password_reset_request(con, email)
         if (isTRUE(result$ok)) {
           reset_url <- paste0(Sys.getenv("APP_BASE_URL"), "/?reset=1&token=", result$token)

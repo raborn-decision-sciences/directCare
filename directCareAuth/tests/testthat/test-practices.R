@@ -35,6 +35,50 @@ test_that("signup_is_rate_limited queries by email and the configured window", {
   expect_equal(captured$params, list("doc@example.com", 30L))
 })
 
+test_that("signup_is_rate_limited_by_ip is FALSE when the IP is NA, without querying", {
+  local_mocked_bindings(
+    dbGetQuery = function(...) stop("dbGetQuery() should not be called for an NA IP"),
+    .package = "DBI"
+  )
+
+  expect_false(signup_is_rate_limited_by_ip("mock_con", NA_character_))
+})
+
+test_that("signup_is_rate_limited_by_ip is FALSE below the attempt threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 19L),
+    .package = "DBI"
+  )
+
+  expect_false(signup_is_rate_limited_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("signup_is_rate_limited_by_ip is TRUE at or above the default 20-attempt threshold", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) data.frame(n = 20L),
+    .package = "DBI"
+  )
+
+  expect_true(signup_is_rate_limited_by_ip("mock_con", "203.0.113.7"))
+})
+
+test_that("signup_is_rate_limited_by_ip queries by ip and the configured window", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(n = 0L)
+    },
+    .package = "DBI"
+  )
+
+  signup_is_rate_limited_by_ip("mock_con", "203.0.113.7", max_requests = 10, window_minutes = 30)
+
+  expect_match(captured$statement, "event_type = 'signup_attempt'")
+  expect_match(captured$statement, "ip_address = \\$1")
+  expect_equal(captured$params, list("203.0.113.7", 30L))
+})
+
 test_that("practice_find_by_email issues the expected query", {
   captured <- NULL
   local_mocked_bindings(

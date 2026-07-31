@@ -87,14 +87,22 @@ mod_signup_server <- function(id) {
 
       con <- directCareAuth::db_connect()
       on.exit(DBI::dbDisconnect(con), add = TRUE)
+      ip <- directCareAuth::extract_client_ip(session)
 
       # Logged unconditionally, before the rate-limit check, so repeated
       # attempts against the same email count toward the limit regardless
       # of whether they ultimately succeed (matches mod_password_reset.R's
       # signup_attempt/password_reset_requested logging convention).
-      directCareAuth::auth_event_log(con, event_type = "signup_attempt", email = email)
+      directCareAuth::auth_event_log(con, event_type = "signup_attempt", email = email, ip_address = ip)
 
-      if (directCareAuth::signup_is_rate_limited(con, email)) {
+      # Gated on either the email or the IP being over its own threshold --
+      # same "either" logic as login lockout's auth_is_locked_out()/
+      # auth_is_locked_out_by_ip() pair, so signup spam cycling through
+      # different emails from one source can't dodge the email-only check.
+      if (
+        directCareAuth::signup_is_rate_limited(con, email) ||
+          directCareAuth::signup_is_rate_limited_by_ip(con, ip)
+      ) {
         signup_msg(tags$p(
           class = "text-danger small mb-0",
           "Too many signup attempts. Please try again later."
