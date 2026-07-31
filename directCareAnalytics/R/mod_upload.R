@@ -1037,7 +1037,9 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             tags$thead(
               tags$tr(
                 tags$th("Date"),
+                tags$th("Full Account Name"),
                 tags$th("Account Name"),
+                tags$th("Description"),
                 tags$th("Amount Num.")
               )
             ),
@@ -1045,20 +1047,33 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
               tags$tr(
                 tags$td("01/15/2024"),
                 tags$td("Expenses:Rent"),
+                tags$td("Rent"),
+                tags$td("Monthly rent"),
                 tags$td("1200.00")
               ),
               tags$tr(
                 tags$td("01/15/2024"),
                 tags$td("Income:Membership"),
+                tags$td("Membership"),
+                tags$td("Membership fee"),
                 tags$td("3500.00")
               ),
               tags$tr(
                 tags$td("02/01/2024"),
                 tags$td("Expenses:Utilities"),
+                tags$td("Utilities"),
+                tags$td("Electric bill"),
                 tags$td("145.00")
               )
             )
           )
+        ),
+        tags$p(
+          class = "small text-muted mt-2 mb-0",
+          bs_icon("info-circle"),
+          " All five columns above are required. GnuCash's own CSV export ",
+          "includes them by default (plus others, which are ignored) — ",
+          "column names are case-sensitive."
         ),
         tags$p(
           class = "small text-muted mt-2 mb-0",
