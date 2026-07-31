@@ -11,10 +11,19 @@ mod_manual_entry_ui <- function(id) {
   ns <- NS(id)
 
   tagList(
-    # -- Setup card ------------------------------------------------------------
-    card(
-      card_header(bs_icon("sliders"), " Set Up Entry Table"),
-      card_body(
+    # Set Up / Overhead / Income as sub-tabs (matching the pattern already
+    # used for Projections' forecast-type tabs) instead of three cards
+    # stacked in one long scroll -- once the entry tables render, Setup +
+    # Overhead + Income together left little breathing room and made simple
+    # data entry feel cramped. navset_card_underline() is already a card, so
+    # each nav_panel's content goes directly inside it, not wrapped in its
+    # own card() -- same convention Projections' own sub-tabs already use.
+    navset_card_underline(
+      id = ns("manual_tabs"),
+      nav_panel(
+        "Set Up",
+        value = "setup",
+        icon = bs_icon("sliders"),
         layout_columns(
           col_widths = c(3, 9),
           div(
@@ -51,11 +60,20 @@ mod_manual_entry_ui <- function(id) {
             )
           )
         )
+      ),
+      nav_panel(
+        "Overhead",
+        value = "overhead",
+        icon = bs_icon("dash-circle"),
+        uiOutput(ns("overhead_panel_ui"))
+      ),
+      nav_panel(
+        "Income",
+        value = "income",
+        icon = bs_icon("plus-circle"),
+        uiOutput(ns("income_panel_ui"))
       )
     ),
-
-    # -- Data entry tables (rendered after Generate) ---------------------------
-    uiOutput(ns("manual_tables_ui")),
 
     # -- Back / Submit row -----------------------------------------------------
     uiOutput(ns("manual_nav_ui"))
@@ -164,67 +182,72 @@ mod_manual_entry_server <- function(id, r, parent_session = NULL) {
         check.names = FALSE,
         stringsAsFactors = FALSE
       ))
+
+      # Jumps straight to the Overhead tab once a table exists -- the whole
+      # point of Generate Entry Table is to start filling in data, and
+      # without this the user would land back on Set Up (the tab they were
+      # already on) and have to click Overhead themselves.
+      bslib::nav_select("manual_tabs", selected = "overhead", session = session)
     })
 
     tables_ready <- reactive(!is.null(manual_ovhd()))
 
     # -- Render editable DT tables ---------------------------------------------
-    output$manual_tables_ui <- renderUI({
+    output$overhead_panel_ui <- renderUI({
       if (!tables_ready()) {
-        return(NULL)
+        return(p(
+          class = "text-muted",
+          "Generate an entry table in the Set Up tab first."
+        ))
       }
       tagList(
-        card(
-          class = "mt-3",
-          card_header(
-            bs_icon("dash-circle"),
-            " Overhead / Expenses per Period"
-          ),
-          card_body(
-            tags$p(
-              class = "small text-muted mb-2",
-              bs_icon("info-circle"),
-              " Click any value cell to edit. ",
-              tags$strong("Rent"),
-              " \u2014 facility costs; ",
-              tags$strong("Payroll"),
-              " \u2014 staff wages & benefits; ",
-              tags$strong("EHR"),
-              " \u2014 software & subscriptions; ",
-              tags$strong("Malpractice"),
-              " \u2014 insurance premiums; ",
-              tags$strong("Supplies"),
-              " \u2014 labs, consumables; ",
-              tags$strong("Other"),
-              " \u2014 miscellaneous."
-            ),
-            DT::dataTableOutput(ns("ovhd_tbl"))
-          )
+        tags$p(
+          class = "small text-muted mb-2",
+          bs_icon("info-circle"),
+          " Click any value cell to edit. ",
+          tags$strong("Rent"),
+          " \u2014 facility costs; ",
+          tags$strong("Payroll"),
+          " \u2014 staff wages & benefits; ",
+          tags$strong("EHR"),
+          " \u2014 software & subscriptions; ",
+          tags$strong("Malpractice"),
+          " \u2014 insurance premiums; ",
+          tags$strong("Supplies"),
+          " \u2014 labs, consumables; ",
+          tags$strong("Other"),
+          " \u2014 miscellaneous."
         ),
-        card(
-          class = "mt-3",
-          card_header(bs_icon("plus-circle"), " Income / Revenue per Period"),
-          card_body(
-            tags$p(
-              class = "small text-muted mb-2",
-              bs_icon("info-circle"),
-              " Click any value cell to edit. ",
-              tags$strong("Membership"),
-              " \u2014 recurring monthly membership fees; ",
-              tags$strong("FFS"),
-              " \u2014 fee-for-service visits; ",
-              tags$strong("Other Income"),
-              " \u2014 grants, ancillary revenue."
-            ),
-            DT::dataTableOutput(ns("inc_tbl"))
-          )
-        )
+        DT::dataTableOutput(ns("ovhd_tbl"))
+      )
+    })
+
+    output$income_panel_ui <- renderUI({
+      if (!tables_ready()) {
+        return(p(
+          class = "text-muted",
+          "Generate an entry table in the Set Up tab first."
+        ))
+      }
+      tagList(
+        tags$p(
+          class = "small text-muted mb-2",
+          bs_icon("info-circle"),
+          " Click any value cell to edit. ",
+          tags$strong("Membership"),
+          " \u2014 recurring monthly membership fees; ",
+          tags$strong("FFS"),
+          " \u2014 fee-for-service visits; ",
+          tags$strong("Other Income"),
+          " \u2014 grants, ancillary revenue."
+        ),
+        DT::dataTableOutput(ns("inc_tbl"))
       )
     })
 
     output$manual_nav_ui <- renderUI({
       div(
-        class = "d-flex gap-2 mt-3 mb-4",
+        class = "tour-nav-footer justify-content-between",
         actionButton(
           ns("btn_back_manual"),
           tagList(bs_icon("arrow-left"), " Back"),
@@ -234,7 +257,7 @@ mod_manual_entry_server <- function(id, r, parent_session = NULL) {
           actionButton(
             ns("btn_submit_manual"),
             tagList(bs_icon("check2-circle"), " Submit Data"),
-            class = "btn-success ms-auto"
+            class = "btn-success"
           )
         }
       )

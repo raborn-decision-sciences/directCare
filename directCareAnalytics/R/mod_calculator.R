@@ -110,8 +110,21 @@ mod_calculator_ui <- function(id) {
       )
     ),
 
+    # Reuses .tour_nav_footer()'s CSS class directly (utils_nav_footer.R)
+    # rather than calling that helper itself -- Calculator isn't part of
+    # the Upload -> Edit -> Summary -> Projections sequence its step
+    # indicator represents (it's a self-contained alternate path off the
+    # Upload landing cards, with only a Back, no multi-tab progression),
+    # so the helper's `current_step` concept doesn't apply here. The
+    # `.tour-nav-footer` class alone (sticky bar, background, border,
+    # shadow) is what was actually missing -- Calculator's footer was
+    # previously a plain unstyled div, visually inconsistent with the
+    # other three tabs' sticky footer. `justify-content-between` overrides
+    # the class's default flex-start alignment to keep Back on the left
+    # and the Save/Load buttons on the right, matching this tab's existing
+    # two-group (not three-group) layout.
     div(
-      class = "d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2",
+      class = "tour-nav-footer justify-content-between",
       actionButton(
         ns("btn_back"),
         tagList(bs_icon("arrow-left"), " Back"),
