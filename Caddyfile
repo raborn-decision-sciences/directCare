@@ -1,36 +1,53 @@
 (security_headers) {
-    header {
-        Strict-Transport-Security "max-age=31536000"
-        X-Frame-Options "DENY"
-        # Shiny/httpuv already sends X-Content-Type-Options: nosniff itself
-        # -- delete first so this doesn't end up duplicated in the response,
-        # then set it explicitly anyway so it's guaranteed regardless of
-        # what the app layer does.
-        -X-Content-Type-Options
-        X-Content-Type-Options "nosniff"
-        # 'unsafe-inline' for script/style is required here -- Shiny/bslib/
-        # htmlwidgets (DT, cicerone) all rely on inline <style>/<script>
-        # tags, and this app wasn't built with a nonce/hash-based CSP in
-        # mind. 'unsafe-eval' is also required -- confirmed by live testing,
-        # not assumed: Shiny's own client JS evaluates conditionalPanel
-        # expressions via `new Function()`, and htmlwidgets (DT) evaluates
-        # JS-returning options the same way; without 'unsafe-eval' both
-        # break outright (conditionalPanels never show/hide, DT tables
-        # render empty) rather than degrading gracefully. connect-src
-        # allows the websocket Shiny's reactive updates run over; font-src/
-        # img-src allow data: URIs some htmlwidgets use for small embedded
-        # assets. frame-ancestors is the modern replacement for
-        # X-Frame-Options (kept both for older clients).
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
-    }
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		# Shiny/httpuv already sends X-Content-Type-Options: nosniff itself
+		# -- delete first so this doesn't end up duplicated in the response,
+		# then set it explicitly anyway so it's guaranteed regardless of
+		# what the app layer does.
+		-X-Content-Type-Options
+		X-Content-Type-Options "nosniff"
+		# 'unsafe-inline' for script/style is required here -- Shiny/bslib/
+		# htmlwidgets (DT, cicerone) all rely on inline <style>/<script>
+		# tags, and this app wasn't built with a nonce/hash-based CSP in
+		# mind. 'unsafe-eval' is also required -- confirmed by live testing,
+		# not assumed: Shiny's own client JS evaluates conditionalPanel
+		# expressions via `new Function()`, and htmlwidgets (DT) evaluates
+		# JS-returning options the same way; without 'unsafe-eval' both
+		# break outright (conditionalPanels never show/hide, DT tables
+		# render empty) rather than degrading gracefully. connect-src
+		# allows the websocket Shiny's reactive updates run over; font-src/
+		# img-src allow data: URIs some htmlwidgets use for small embedded
+		# assets. frame-ancestors is the modern replacement for
+		# X-Frame-Options (kept both for older clients).
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+	}
+}
+
+(maintenance_page) {
+	# Served whenever the upstream app container is unreachable (e.g.
+	# mid-deploy, between the old container stopping and the new one
+	# passing its first request) -- without this, Caddy's bare default
+	# error page is all a client sees for that window. Only fires while
+	# Caddy itself is up; if Caddy's own container is down (or Cloudflare
+	# can't reach it at all -- its 521/522/523 pages), this can't help,
+	# since nothing here is running to serve it.
+	handle_errors 502 503 504 {
+		root * /srv/errors
+		rewrite * /maintenance.html
+		file_server
+	}
 }
 
 app.directcareanalytics.com {
-    import security_headers
-    reverse_proxy dca:3838
+	import security_headers
+	import maintenance_page
+	reverse_proxy dca:3838
 }
 
 planner.directcareanalytics.com {
-    import security_headers
-    reverse_proxy planner:3838
+	import security_headers
+	import maintenance_page
+	reverse_proxy planner:3838
 }
