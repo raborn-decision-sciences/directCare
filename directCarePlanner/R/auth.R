@@ -53,7 +53,14 @@ check_credentials_db <- function(user, password, ip = NA_character_) {
       address = practice$address,
       plan_tier = practice$plan_tier,
       subscription_status = practice$subscription_status,
-      stripe_customer_id = practice$stripe_customer_id
+      stripe_customer_id = practice$stripe_customer_id,
+      first_name = practice$first_name,
+      last_name = practice$last_name,
+      practice_type = practice$practice_type,
+      practice_type_other = practice$practice_type_other,
+      practice_status = practice$practice_status,
+      practice_specialty = practice$practice_specialty,
+      referral_source = practice$referral_source
     )
   )
 }

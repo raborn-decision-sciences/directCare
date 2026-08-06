@@ -4,7 +4,19 @@
 \alias{practice_update_profile}
 \title{Update a practice's profile fields}
 \usage{
-practice_update_profile(con, practice_id, practice_name, address)
+practice_update_profile(
+  con,
+  practice_id,
+  practice_name,
+  address,
+  first_name = "",
+  last_name = "",
+  practice_type = "",
+  practice_type_other = "",
+  practice_status = "",
+  practice_specialty = "",
+  referral_source = ""
+)
 }
 \arguments{
 \item{con}{An open \code{DBI} connection.}
@@ -14,6 +26,14 @@ practice_update_profile(con, practice_id, practice_name, address)
 \item{practice_name}{New display name.}
 
 \item{address}{New address (may be \code{NA}/empty).}
+
+\item{first_name, last_name, practice_type, practice_type_other, }{practice_status,practice_specialty,referral_source Optional signup
+profile fields (migration 008) -- same fields \code{practice_create()}
+accepts at signup, now editable afterward too. Pass \code{""} (the
+default) to leave a field blank; the Account Settings modal
+(\code{app_server.R}, both apps) prefills these from \code{res_auth} and
+always sends the full set back on save, same convention as
+\code{practice_name}/\code{address} above.}
 }
 \value{
 \code{list(ok = TRUE)}.

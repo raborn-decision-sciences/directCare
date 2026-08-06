@@ -132,8 +132,44 @@ test_that("practice_create hashes the password and inserts a new row", {
 
   expect_true(result$ok)
   expect_equal(result$id, 42L)
-  expect_equal(captured$params, list("River DPC", "doc@example.com", "hashed-password"))
+  expect_equal(
+    captured$params,
+    list("River DPC", "doc@example.com", "hashed-password", "", "", "", "", "", "", "")
+  )
   expect_match(captured$statement, "ON CONFLICT \\(email\\) DO NOTHING")
+})
+
+test_that("practice_create passes through the optional signup profile fields", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(id = 42L)
+    },
+    .package = "DBI"
+  )
+  local_mocked_bindings(
+    hashpw = function(password, salt) "hashed-password",
+    gensalt = function() "salt",
+    .package = "bcrypt"
+  )
+
+  result <- practice_create(
+    "mock_con", "River DPC", "doc@example.com", "a-strong-password",
+    first_name = "Jane", last_name = "Smith", practice_type = "Physician",
+    practice_type_other = "", practice_status = "Just exploring",
+    practice_specialty = "Primary Care", referral_source = "Word of mouth"
+  )
+
+  expect_true(result$ok)
+  expect_equal(
+    captured$params,
+    list(
+      "River DPC", "doc@example.com", "hashed-password",
+      "Jane", "Smith", "Physician", "", "Just exploring",
+      "Primary Care", "Word of mouth"
+    )
+  )
 })
 
 test_that("practice_create reports email_taken when the insert returns no row", {
@@ -219,5 +255,35 @@ test_that("practice_update_profile issues the expected update", {
   result <- practice_update_profile("mock_con", 7L, "New Name", "456 Oak Ave")
 
   expect_true(result$ok)
-  expect_equal(captured$params, list("New Name", "456 Oak Ave", 7L))
+  expect_equal(
+    captured$params,
+    list("New Name", "456 Oak Ave", "", "", "", "", "", "", "", 7L)
+  )
+})
+
+test_that("practice_update_profile passes through the optional profile fields", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbExecute = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      1L
+    },
+    .package = "DBI"
+  )
+
+  result <- practice_update_profile(
+    "mock_con", 7L, "New Name", "456 Oak Ave",
+    first_name = "Jane", last_name = "Smith", practice_type = "Physician",
+    practice_type_other = "", practice_status = "Just exploring",
+    practice_specialty = "Primary Care", referral_source = "Word of mouth"
+  )
+
+  expect_true(result$ok)
+  expect_equal(
+    captured$params,
+    list(
+      "New Name", "456 Oak Ave", "Jane", "Smith", "Physician", "",
+      "Just exploring", "Primary Care", "Word of mouth", 7L
+    )
+  )
 })

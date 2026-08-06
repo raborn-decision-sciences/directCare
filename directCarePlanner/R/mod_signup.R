@@ -66,6 +66,53 @@ mod_signup_ui <- function(id) {
   )
 }
 
+#' Collapsed-by-default "tell us more" accordion for the signup form
+#'
+#' See directCareAnalytics's identical helper for the full rationale.
+#' @noRd
+.signup_more_info_accordion <- function(ns) {
+  accordion(
+    id = ns("more_info"),
+    open = FALSE,
+    class = "mb-2",
+    accordion_panel(
+      title = "Tell us more about your practice (optional)",
+      icon = bs_icon("info-circle"),
+      tags$div(
+        class = "d-flex gap-2",
+        tags$div(class = "flex-fill", textInput(ns("first_name"), "First Name")),
+        tags$div(class = "flex-fill", textInput(ns("last_name"), "Last Name"))
+      ),
+      selectInput(
+        ns("practice_type"), "Practice Type",
+        choices = c(
+          "Select one" = "",
+          "Physician", "Nurse Practitioner", "Mental Health Therapist", "Other"
+        )
+      ),
+      conditionalPanel(
+        condition = sprintf("input['%s'] == 'Other'", ns("practice_type")),
+        textInput(ns("practice_type_other"), "Please specify")
+      ),
+      selectInput(
+        ns("practice_status"), "Practice Status",
+        choices = c(
+          "Select one" = "",
+          "Just exploring",
+          "Planning to launch a direct care practice",
+          "Direct care practice launched within the last year",
+          "Direct care practice launched more than a year ago"
+        )
+      ),
+      textInput(
+        ns("practice_specialty"), "Practice Specialty",
+        placeholder = "Primary Care, Pediatrics, Gynecology, etc."
+      ),
+      textInput(ns("referral_source"), "How did you hear about us?")
+    )
+  )
+}
+
 #' Signup form module -- server
 #'
 #' Fully open for the beta: no invite code, approval step, or email
@@ -146,7 +193,19 @@ mod_signup_server <- function(id) {
         return()
       }
 
-      result <- directCareAuth::practice_create(con, practice_name, email, password)
+      # All optional -- see .signup_more_info_accordion()'s own comment for
+      # why none of these gate account creation the way practice_name/email
+      # do above.
+      result <- directCareAuth::practice_create(
+        con, practice_name, email, password,
+        first_name = trimws(input$first_name %||% ""),
+        last_name = trimws(input$last_name %||% ""),
+        practice_type = input$practice_type %||% "",
+        practice_type_other = trimws(input$practice_type_other %||% ""),
+        practice_status = input$practice_status %||% "",
+        practice_specialty = trimws(input$practice_specialty %||% ""),
+        referral_source = trimws(input$referral_source %||% "")
+      )
 
       if (isTRUE(result$ok)) {
         directCareAuth::auth_event_log(
@@ -207,6 +266,7 @@ mod_signup_server <- function(id) {
           passwordInput(session$ns("password"), "Password"),
           tags$p(class = "text-muted small mt-n2", "At least 10 characters."),
           passwordInput(session$ns("confirm_password"), "Confirm Password"),
+          .signup_more_info_accordion(session$ns),
           uiOutput(session$ns("signup_msg")),
           actionButton(session$ns("submit"), "Create Account", class = "btn-primary w-100 mt-2")
         )

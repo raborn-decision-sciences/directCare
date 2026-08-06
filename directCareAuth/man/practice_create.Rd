@@ -4,7 +4,19 @@
 \alias{practice_create}
 \title{Create a new practice account}
 \usage{
-practice_create(con, practice_name, email, password)
+practice_create(
+  con,
+  practice_name,
+  email,
+  password,
+  first_name = "",
+  last_name = "",
+  practice_type = "",
+  practice_type_other = "",
+  practice_status = "",
+  practice_specialty = "",
+  referral_source = ""
+)
 }
 \arguments{
 \item{con}{An open \code{DBI} connection.}
@@ -15,6 +27,11 @@ practice_create(con, practice_name, email, password)
 
 \item{password}{Plaintext password; hashed here via \code{bcrypt::hashpw()}
 before it ever reaches the database.}
+
+\item{first_name, last_name, practice_type, practice_type_other, }{practice_status,practice_specialty,referral_source Optional signup
+profile fields (migration 008) -- mirror the closed-beta waitlist
+form on the marketing site, but none of these are required to create
+an account. Pass \code{""} (the default) for anything not collected.}
 }
 \value{
 \verb{list(ok = TRUE, id = <new practice id>)} on success, or

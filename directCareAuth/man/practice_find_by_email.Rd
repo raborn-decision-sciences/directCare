@@ -13,11 +13,17 @@ practice_find_by_email(con, email)
 }
 \value{
 A data frame with 0 or 1 rows and columns \code{id}, \code{practice_name},
-\code{email}, \code{password_hash}, \code{address}, \code{plan_tier}, \code{subscription_status}.
-The last two are only ever written by \code{directCareBilling}'s webhook
-handler (see STRIPE_BILLING.md) -- this function just surfaces them for
-\code{check_credentials_db()} to fold into \code{user_info}, from which
-shinymanager copies them into \code{res_auth} for the apps' feature gates.
+\code{email}, \code{password_hash}, \code{address}, \code{plan_tier}, \code{subscription_status},
+\code{stripe_customer_id}, \code{first_name}, \code{last_name}, \code{practice_type},
+\code{practice_type_other}, \code{practice_status}, \code{practice_specialty},
+\code{referral_source}. \code{plan_tier}/\code{subscription_status}/\code{stripe_customer_id}
+are only ever written by \code{directCareBilling}'s webhook handler (see
+STRIPE_BILLING.md); the optional profile fields (migration 008) are
+only ever written by \code{practice_create()}/\code{practice_update_profile()} --
+this function just surfaces all of it for \code{check_credentials_db()} to
+fold into \code{user_info}, from which shinymanager copies them into
+\code{res_auth} for the apps' feature gates, Account Settings prefill, and
+\code{stripe_create_portal_session()} calls.
 }
 \description{
 Look up a practice by login email

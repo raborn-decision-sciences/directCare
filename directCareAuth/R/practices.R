@@ -93,17 +93,24 @@ password_is_strong <- function(password) {
 #' @param email The email address to look up.
 #' @return A data frame with 0 or 1 rows and columns `id`, `practice_name`,
 #'   `email`, `password_hash`, `address`, `plan_tier`, `subscription_status`,
-#'   `stripe_customer_id`. The last three are only ever written by
-#'   `directCareBilling`'s webhook handler (see STRIPE_BILLING.md) -- this
-#'   function just surfaces them for `check_credentials_db()` to fold into
-#'   `user_info`, from which shinymanager copies them into `res_auth` for the
-#'   apps' feature gates and `stripe_create_portal_session()` calls.
+#'   `stripe_customer_id`, `first_name`, `last_name`, `practice_type`,
+#'   `practice_type_other`, `practice_status`, `practice_specialty`,
+#'   `referral_source`. `plan_tier`/`subscription_status`/`stripe_customer_id`
+#'   are only ever written by `directCareBilling`'s webhook handler (see
+#'   STRIPE_BILLING.md); the optional profile fields (migration 008) are
+#'   only ever written by `practice_create()`/`practice_update_profile()` --
+#'   this function just surfaces all of it for `check_credentials_db()` to
+#'   fold into `user_info`, from which shinymanager copies them into
+#'   `res_auth` for the apps' feature gates, Account Settings prefill, and
+#'   `stripe_create_portal_session()` calls.
 #' @export
 practice_find_by_email <- function(con, email) {
   DBI::dbGetQuery(
     con,
     "SELECT id, practice_name, email, password_hash, address,
-            plan_tier, subscription_status, stripe_customer_id
+            plan_tier, subscription_status, stripe_customer_id,
+            first_name, last_name, practice_type, practice_type_other,
+            practice_status, practice_specialty, referral_source
        FROM practices WHERE email = $1",
     params = list(email)
   )
@@ -116,10 +123,19 @@ practice_find_by_email <- function(con, email) {
 #' @param email Login email. Must be unique across `practices`.
 #' @param password Plaintext password; hashed here via `bcrypt::hashpw()`
 #'   before it ever reaches the database.
+#' @param first_name,last_name,practice_type,practice_type_other,
+#'   practice_status,practice_specialty,referral_source Optional signup
+#'   profile fields (migration 008) -- mirror the closed-beta waitlist
+#'   form on the marketing site, but none of these are required to create
+#'   an account. Pass `""` (the default) for anything not collected.
 #' @return `list(ok = TRUE, id = <new practice id>)` on success, or
 #'   `list(ok = FALSE, reason = "email_taken" | "weak_password")`.
 #' @export
-practice_create <- function(con, practice_name, email, password) {
+practice_create <- function(con, practice_name, email, password,
+                             first_name = "", last_name = "",
+                             practice_type = "", practice_type_other = "",
+                             practice_status = "", practice_specialty = "",
+                             referral_source = "") {
   if (!password_is_strong(password)) {
     return(list(ok = FALSE, reason = "weak_password"))
   }
@@ -131,11 +147,19 @@ practice_create <- function(con, practice_name, email, password) {
   # for the same email.
   inserted <- DBI::dbGetQuery(
     con,
-    "INSERT INTO practices (practice_name, email, password_hash)
-       VALUES ($1, $2, $3)
+    "INSERT INTO practices (
+       practice_name, email, password_hash,
+       first_name, last_name, practice_type, practice_type_other,
+       practice_status, practice_specialty, referral_source
+     )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (email) DO NOTHING
        RETURNING id",
-    params = list(practice_name, email, password_hash)
+    params = list(
+      practice_name, email, password_hash,
+      first_name, last_name, practice_type, practice_type_other,
+      practice_status, practice_specialty, referral_source
+    )
   )
 
   if (nrow(inserted) != 1) {
@@ -188,13 +212,35 @@ practice_update_password <- function(con, practice_id, current_password, new_pas
 #' @param practice_id The practice's `practices.id`.
 #' @param practice_name New display name.
 #' @param address New address (may be `NA`/empty).
+#' @param first_name,last_name,practice_type,practice_type_other,
+#'   practice_status,practice_specialty,referral_source Optional signup
+#'   profile fields (migration 008) -- same fields `practice_create()`
+#'   accepts at signup, now editable afterward too. Pass `""` (the
+#'   default) to leave a field blank; the Account Settings modal
+#'   (`app_server.R`, both apps) prefills these from `res_auth` and
+#'   always sends the full set back on save, same convention as
+#'   `practice_name`/`address` above.
 #' @return `list(ok = TRUE)`.
 #' @export
-practice_update_profile <- function(con, practice_id, practice_name, address) {
+practice_update_profile <- function(con, practice_id, practice_name, address,
+                                     first_name = "", last_name = "",
+                                     practice_type = "", practice_type_other = "",
+                                     practice_status = "", practice_specialty = "",
+                                     referral_source = "") {
   DBI::dbExecute(
     con,
-    "UPDATE practices SET practice_name = $1, address = $2 WHERE id = $3",
-    params = list(practice_name, address, practice_id)
+    "UPDATE practices SET
+       practice_name = $1, address = $2,
+       first_name = $3, last_name = $4, practice_type = $5,
+       practice_type_other = $6, practice_status = $7,
+       practice_specialty = $8, referral_source = $9
+     WHERE id = $10",
+    params = list(
+      practice_name, address,
+      first_name, last_name, practice_type, practice_type_other,
+      practice_status, practice_specialty, referral_source,
+      practice_id
+    )
   )
 
   list(ok = TRUE)

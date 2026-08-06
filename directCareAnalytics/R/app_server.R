@@ -150,6 +150,57 @@ app_server <- function(input, output, session, res_auth = NULL) {
       htmltools::tagQuery(
         textInput("account_address", "Address", value = res_auth$address %||% "")
       )$find("input")$addAttrs(autocomplete = "street-address")$allTags(),
+      # Same optional fields collected at signup (mod_signup.R's identically
+      # named accordion), now editable afterward -- prefilled from res_auth,
+      # which practice_find_by_email() already surfaces these through (see
+      # auth.R's user_info). Plain top-level ids (no ns()) since this modal,
+      # unlike mod_signup.R's, isn't inside a module.
+      accordion(
+        id = "account_more_info",
+        open = FALSE,
+        class = "mb-2",
+        accordion_panel(
+          title = "More about your practice (optional)",
+          icon = bs_icon("info-circle"),
+          tags$div(
+            class = "d-flex gap-2",
+            tags$div(class = "flex-fill", textInput("account_first_name", "First Name", value = res_auth$first_name %||% "")),
+            tags$div(class = "flex-fill", textInput("account_last_name", "Last Name", value = res_auth$last_name %||% ""))
+          ),
+          selectInput(
+            "account_practice_type", "Practice Type",
+            choices = c(
+              "Select one" = "",
+              "Physician", "Nurse Practitioner", "Mental Health Therapist", "Other"
+            ),
+            selected = res_auth$practice_type %||% ""
+          ),
+          conditionalPanel(
+            condition = "input.account_practice_type == 'Other'",
+            textInput("account_practice_type_other", "Please specify", value = res_auth$practice_type_other %||% "")
+          ),
+          selectInput(
+            "account_practice_status", "Practice Status",
+            choices = c(
+              "Select one" = "",
+              "Just exploring",
+              "Planning to launch a direct care practice",
+              "Direct care practice launched within the last year",
+              "Direct care practice launched more than a year ago"
+            ),
+            selected = res_auth$practice_status %||% ""
+          ),
+          textInput(
+            "account_practice_specialty", "Practice Specialty",
+            value = res_auth$practice_specialty %||% "",
+            placeholder = "Primary Care, Pediatrics, Gynecology, etc."
+          ),
+          textInput(
+            "account_referral_source", "How did you hear about us?",
+            value = res_auth$referral_source %||% ""
+          )
+        )
+      ),
       uiOutput("account_profile_msg"),
       actionButton(
         "account_save_profile", "Save Profile",
@@ -245,9 +296,23 @@ app_server <- function(input, output, session, res_auth = NULL) {
       return()
     }
 
+    first_name <- trimws(input$account_first_name %||% "")
+    last_name <- trimws(input$account_last_name %||% "")
+    practice_type <- input$account_practice_type %||% ""
+    practice_type_other <- trimws(input$account_practice_type_other %||% "")
+    practice_status <- input$account_practice_status %||% ""
+    practice_specialty <- trimws(input$account_practice_specialty %||% "")
+    referral_source <- trimws(input$account_referral_source %||% "")
+
     con <- directCareAuth::db_connect()
     on.exit(DBI::dbDisconnect(con), add = TRUE)
-    directCareAuth::practice_update_profile(con, res_auth$practice_id, practice_name, address)
+    directCareAuth::practice_update_profile(
+      con, res_auth$practice_id, practice_name, address,
+      first_name = first_name, last_name = last_name,
+      practice_type = practice_type, practice_type_other = practice_type_other,
+      practice_status = practice_status, practice_specialty = practice_specialty,
+      referral_source = referral_source
+    )
     directCareAuth::auth_event_log(
       con, event_type = "profile_update",
       practice_id = res_auth$practice_id, email = res_auth$email
@@ -255,6 +320,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
 
     res_auth$practice_name <- practice_name
     res_auth$address <- address
+    res_auth$first_name <- first_name
+    res_auth$last_name <- last_name
+    res_auth$practice_type <- practice_type
+    res_auth$practice_type_other <- practice_type_other
+    res_auth$practice_status <- practice_status
+    res_auth$practice_specialty <- practice_specialty
+    res_auth$referral_source <- referral_source
     r$practice_name <- practice_name
     account_profile_msg(tags$p(
       class = "text-success small mb-0",

@@ -19,6 +19,13 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
         address = "123 Main St",
         plan_tier = "pro",
         subscription_status = "active",
+        first_name = "Jane",
+        last_name = "Smith",
+        practice_type = "Physician",
+        practice_type_other = "",
+        practice_status = "Just exploring",
+        practice_specialty = "Primary Care",
+        referral_source = "Word of mouth",
         stringsAsFactors = FALSE
       )
     },
@@ -37,6 +44,12 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
   expect_equal(result$user_info$address, "123 Main St")
   expect_equal(result$user_info$plan_tier, "pro")
   expect_equal(result$user_info$subscription_status, "active")
+  expect_equal(result$user_info$first_name, "Jane")
+  expect_equal(result$user_info$last_name, "Smith")
+  expect_equal(result$user_info$practice_type, "Physician")
+  expect_equal(result$user_info$practice_status, "Just exploring")
+  expect_equal(result$user_info$practice_specialty, "Primary Care")
+  expect_equal(result$user_info$referral_source, "Word of mouth")
 })
 
 test_that("check_credentials_db denies access on a wrong password and logs a failure with the ip", {

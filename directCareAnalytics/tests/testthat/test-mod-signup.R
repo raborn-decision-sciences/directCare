@@ -36,12 +36,14 @@ test_that("submit is a no-op (no DB call) when passwords do not match", {
 
 test_that("a successful signup moves to the plan picker and logs a signup event", {
   logged <- NULL
+  captured <- NULL
   local_mocked_bindings(
     db_connect = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
-    practice_create = function(con, practice_name, email, password) {
+    practice_create = function(con, practice_name, email, password, ...) {
+      captured <<- list(...)
       list(ok = TRUE, id = 7L)
     },
     auth_event_log = function(con, event_type, email = NA, practice_id = NA,
@@ -64,6 +66,43 @@ test_that("a successful signup moves to the plan picker and logs a signup event"
     expect_equal(logged$event_type, "signup")
     expect_equal(logged$practice_id, 7L)
     expect_equal(logged$email, "doc@example.com")
+    # The optional "tell us more" accordion was never touched -- everything
+    # should default to "", not block signup.
+    expect_equal(captured$first_name, "")
+    expect_equal(captured$practice_type, "")
+  })
+})
+
+test_that("filled-in optional profile fields are passed through to practice_create()", {
+  captured <- NULL
+  local_mocked_bindings(
+    db_connect = function() structure(list(), class = "mock_con"),
+    extract_client_ip = function(session) NA_character_,
+    signup_is_rate_limited = function(...) FALSE,
+    signup_is_rate_limited_by_ip = function(...) FALSE,
+    practice_create = function(con, practice_name, email, password, ...) {
+      captured <<- list(...)
+      list(ok = TRUE, id = 7L)
+    },
+    auth_event_log = function(...) invisible(NULL),
+    .package = "directCareAuth"
+  )
+  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+
+  testServer(mod_signup_server, {
+    session$setInputs(
+      practice_name = "River DPC", email = "doc@example.com",
+      password = "a-strong-password", confirm_password = "a-strong-password",
+      first_name = "Jane", last_name = "Smith", practice_type = "Physician",
+      practice_status = "Just exploring", practice_specialty = "Primary Care",
+      referral_source = "Word of mouth", submit = 1
+    )
+    expect_equal(captured$first_name, "Jane")
+    expect_equal(captured$last_name, "Smith")
+    expect_equal(captured$practice_type, "Physician")
+    expect_equal(captured$practice_status, "Just exploring")
+    expect_equal(captured$practice_specialty, "Primary Care")
+    expect_equal(captured$referral_source, "Word of mouth")
   })
 })
 
