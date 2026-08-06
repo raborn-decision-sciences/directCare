@@ -512,7 +512,7 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
           "Build My Plan",
           icon = bsicons::bs_icon("arrow-right-circle")
         ),
-        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        extra = .scenario_slots_ui("scenario", r$plan_tier)
       )
     })
 

@@ -219,8 +219,13 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
             updateNumericInput(session, "target_income", value = inputs$target_income)
           }
         }, once = TRUE)
-      }
+      },
+      has_access = function() .has_paid_plan(r$plan_tier),
+      on_access_denied = .show_plans_modal
     )
+    observeEvent(input$btn_see_plans_scenario, {
+      .show_plans_modal()
+    })
 
     # -- Dynamic overhead-source UI ----------------------------------------------
     n_ovhd_items <- reactiveVal(1L)
@@ -830,7 +835,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
           tagList(bs_icon("arrow-left"), " Back"),
           class = "btn-outline-secondary"
         ),
-        extra = directCareScenarios::mod_scenario_slots_ui(ns("scenario"))
+        extra = .scenario_slots_ui(ns("scenario"), r$plan_tier, btn_id = ns("btn_see_plans_scenario"))
       )
     })
 

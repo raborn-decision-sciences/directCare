@@ -83,6 +83,24 @@ test_that("btn_use_real works for a free-tier practice in demo mode", {
   )
 })
 
+test_that("nav_footer shows locked Save/Load for a free-tier practice, real ones for paid", {
+  r <- empty_r()
+  r$plan_tier <- "free"
+  testServer(mod_upload_server, args = list(r = r), {
+    html <- paste(as.character(nav_footer()), collapse = "")
+    expect_true(grepl("btn_see_plans_scenario", html, fixed = TRUE))
+    expect_false(grepl("scenario-save_click", html, fixed = TRUE))
+  })
+
+  r2 <- empty_r()
+  r2$plan_tier <- "pro"
+  testServer(mod_upload_server, args = list(r = r2), {
+    html <- paste(as.character(nav_footer()), collapse = "")
+    expect_true(grepl("scenario-save_click", html, fixed = TRUE))
+    expect_false(grepl("btn_see_plans_scenario", html, fixed = TRUE))
+  })
+})
+
 test_that("btn_back resets path_chosen to NULL", {
   r <- empty_r()
   testServer(mod_upload_server, args = list(r = r), {

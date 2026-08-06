@@ -508,7 +508,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
           tagList(bs_icon("bar-chart-line"), " Next: Summary ", bs_icon("arrow-right")),
           class = "btn-primary"
         ),
-        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        extra = .scenario_slots_ui("scenario", r$plan_tier)
       )
     })
 

@@ -549,7 +549,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
         # apply yet, since no path has been chosen. Save/Load stays
         # available regardless.
         return(.tour_nav_footer(
-          extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+          extra = .scenario_slots_ui("scenario", r$plan_tier)
         ))
       }
       if (path == "calculator") {
@@ -575,7 +575,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             class = "btn-primary"
           )
         },
-        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        extra = .scenario_slots_ui("scenario", r$plan_tier)
       )
     })
 

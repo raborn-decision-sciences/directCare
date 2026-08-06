@@ -310,7 +310,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           tagList(bs_icon("graph-up-arrow"), " Next: Projections ", bs_icon("arrow-right")),
           class = "btn-primary"
         ),
-        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        extra = .scenario_slots_ui("scenario", r$plan_tier)
       )
     })
 

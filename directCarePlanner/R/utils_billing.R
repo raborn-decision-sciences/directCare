@@ -195,3 +195,28 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
     )
   )
 }
+
+#' Save/Load scenario-slot buttons -- real ones for a paid practice, a
+#' locked placeholder for free
+#'
+#' See directCareAnalytics's identical helper for the full rationale.
+#' Planner has one global scenario-slots instance (Plan Inputs/Results
+#' both share the plain `"scenario"` id), no separate Calculator-style
+#' instance.
+#' @noRd
+.scenario_slots_ui <- function(id, plan_tier, btn_id = "btn_see_plans_scenario") {
+  if (.has_paid_plan(plan_tier)) {
+    directCareScenarios::mod_scenario_slots_ui(id)
+  } else {
+    .locked_scenario_slots_ui(btn_id)
+  }
+}
+
+#' @noRd
+.locked_scenario_slots_ui <- function(btn_id = "btn_see_plans_scenario") {
+  actionButton(
+    btn_id,
+    tagList(bsicons::bs_icon("lock-fill"), " Save/Load Scenario"),
+    class = "btn-outline-secondary"
+  )
+}

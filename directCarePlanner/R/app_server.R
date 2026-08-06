@@ -341,8 +341,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
     practice_id = function() r$practice_id,
     get_inputs_for_save = plan_inputs_result$get_inputs_for_save,
     get_dirty_signal = plan_inputs_result$get_dirty_signal,
-    on_load = plan_inputs_result$on_load
+    on_load = plan_inputs_result$on_load,
+    has_access = function() .has_paid_plan(r$plan_tier),
+    on_access_denied = .show_plans_modal
   )
+  observeEvent(input$btn_see_plans_scenario, {
+    .show_plans_modal()
+  })
 
   # -- Consolidated sticky nav bar: one central output, not one per tab -----
   # Each tab module returns its Back/Next/Download buttons (already wrapped

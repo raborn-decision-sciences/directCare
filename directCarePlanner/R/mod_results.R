@@ -307,7 +307,7 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             class = "btn-outline-primary"
           )
         },
-        extra = directCareScenarios::mod_scenario_slots_ui("scenario")
+        extra = .scenario_slots_ui("scenario", r$plan_tier)
       )
     })
 

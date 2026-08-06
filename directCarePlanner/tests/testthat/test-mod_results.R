@@ -77,6 +77,9 @@ test_that("gates Market Context and Download Report for a free-tier practice", {
     # gated trigger's should be present.
     expect_false(grepl("dl_report", footer_html, fixed = TRUE))
     expect_true(grepl("btn_see_plans_report", footer_html, fixed = TRUE))
+    # Same swap for the Save/Load scenario-slots widget.
+    expect_false(grepl("scenario-save_click", footer_html, fixed = TRUE))
+    expect_true(grepl("btn_see_plans_scenario", footer_html, fixed = TRUE))
   })
 })
 

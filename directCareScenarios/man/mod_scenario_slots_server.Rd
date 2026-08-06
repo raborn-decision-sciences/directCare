@@ -15,7 +15,9 @@ mod_scenario_slots_server(
   get_dirty_signal,
   on_load,
   extract_dirty_signal = function(x) x,
-  is_forecast = FALSE
+  is_forecast = FALSE,
+  has_access = function() TRUE,
+  on_access_denied = function() invisible(NULL)
 )
 }
 \arguments{
@@ -62,6 +64,24 @@ function (correct for the two JSONB tables, where the full loaded
 
 \item{is_forecast}{\code{TRUE} for \code{dca_forecast_scenarios}, \code{FALSE}
 (default) for the two JSONB tables.}
+
+\item{has_access}{A zero-arg function returning \code{TRUE}/\code{FALSE}, checked
+before either the Save or Load modal opens. Defaults to always-\code{TRUE}
+(unrestricted) -- this module has no concept of billing/plans itself;
+a host app that gates Save/Load passes its own paid-plan check here
+(e.g. \code{function() .has_paid_plan(r$plan_tier)}). Checked here, not
+left to the host's own UI alone, because this module's observers are
+registered once, unconditionally, regardless of what UI is currently
+shown -- a host swapping in a locked-looking button for \code{save_click}/
+\code{load_click} (see \code{mod_scenario_slots_ui()}'s host-side callers) stops
+a normal user from reaching the real modal, but doesn't stop a
+\code{Shiny.setInputValue()} call targeting this module's own input ids
+directly. Same "client-facing gate, not a security boundary" caveat
+as every other paywall gate in this codebase applies beyond that.}
+
+\item{on_access_denied}{A zero-arg function called instead of opening
+the real modal when \code{has_access()} is \code{FALSE} -- typically a host's
+own "here's what you're missing" modal. Defaults to a no-op.}
 }
 \value{
 \verb{list(loaded_label = <reactive>)}.

@@ -181,6 +181,22 @@ mod_scenario_banner_ui <- function(id) {
 #'   `inputs` list already matches `get_dirty_signal()`'s shape).
 #' @param is_forecast `TRUE` for `dca_forecast_scenarios`, `FALSE`
 #'   (default) for the two JSONB tables.
+#' @param has_access A zero-arg function returning `TRUE`/`FALSE`, checked
+#'   before either the Save or Load modal opens. Defaults to always-`TRUE`
+#'   (unrestricted) -- this module has no concept of billing/plans itself;
+#'   a host app that gates Save/Load passes its own paid-plan check here
+#'   (e.g. `function() .has_paid_plan(r$plan_tier)`). Checked here, not
+#'   left to the host's own UI alone, because this module's observers are
+#'   registered once, unconditionally, regardless of what UI is currently
+#'   shown -- a host swapping in a locked-looking button for `save_click`/
+#'   `load_click` (see `mod_scenario_slots_ui()`'s host-side callers) stops
+#'   a normal user from reaching the real modal, but doesn't stop a
+#'   `Shiny.setInputValue()` call targeting this module's own input ids
+#'   directly. Same "client-facing gate, not a security boundary" caveat
+#'   as every other paywall gate in this codebase applies beyond that.
+#' @param on_access_denied A zero-arg function called instead of opening
+#'   the real modal when `has_access()` is `FALSE` -- typically a host's
+#'   own "here's what you're missing" modal. Defaults to a no-op.
 #' @return `list(loaded_label = <reactive>)`.
 #' @export
 mod_scenario_slots_server <- function(id, table, get_con, practice_id,
@@ -190,7 +206,9 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
                                        get_dirty_signal,
                                        on_load,
                                        extract_dirty_signal = function(x) x,
-                                       is_forecast = FALSE) {
+                                       is_forecast = FALSE,
+                                       has_access = function() TRUE,
+                                       on_access_denied = function() invisible(NULL)) {
   shiny::moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
@@ -263,6 +281,10 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
 
     # -- Save flow ----------------------------------------------------------
     shiny::observeEvent(input$save_click, {
+      if (!isTRUE(has_access())) {
+        on_access_denied()
+        return(invisible(NULL))
+      }
       shiny::showModal(shiny::modalDialog(
         title = "Save Scenario",
         shiny::textInput(ns("save_label"), "Label", placeholder = "e.g. Optimistic"),
@@ -361,6 +383,10 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
 
     # -- Load flow ------------------------------------------------------------
     shiny::observeEvent(input$load_click, {
+      if (!isTRUE(has_access())) {
+        on_access_denied()
+        return(invisible(NULL))
+      }
       con <- get_con()
       on.exit(DBI::dbDisconnect(con), add = TRUE)
       slots <- scenario_list(con, table, practice_id())

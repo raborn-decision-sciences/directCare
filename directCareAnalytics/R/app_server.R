@@ -1283,8 +1283,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
     get_dirty_signal = projections_result$get_dirty_signal,
     extract_dirty_signal = projections_result$extract_dirty_signal,
     on_load = projections_result$on_load,
-    is_forecast = TRUE
+    is_forecast = TRUE,
+    has_access = function() .has_paid_plan(r$plan_tier),
+    on_access_denied = .show_plans_modal
   )
+  observeEvent(input$btn_see_plans_scenario, {
+    .show_plans_modal()
+  })
 
   # -- Consolidated sticky nav bar: one central output, not one per tab -----
   # Each tab module returns its Back/Next/Submit buttons (already wrapped in

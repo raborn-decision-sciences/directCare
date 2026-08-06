@@ -237,3 +237,47 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
     )
   )
 }
+
+#' Save/Load scenario-slot buttons -- real ones for a paid practice, a
+#' locked placeholder for free
+#'
+#' `directCareScenarios::mod_scenario_slots_ui(id)` renders unconditionally
+#' at every call site (DCA's Upload/Edit/Summary/Projections nav footers,
+#' plus its own copy inside the Calculator module) -- this is the one place
+#' that decides, per call site, whether the real buttons or a locked
+#' stand-in renders, matching every other v1 gate's "swap the UI, not just
+#' guard the server" treatment (see STRIPE_BILLING.md's gating scope).
+#'
+#' The actual enforcement lives server-side, in
+#' `mod_scenario_slots_server()`'s own `has_access`/`on_access_denied`
+#' params (STRIPE_BILLING.md notes why: that module's Save/Load observers
+#' are registered once, unconditionally, regardless of what this function
+#' renders) -- this UI swap alone is the "don't even show a free user a
+#' button that would just bounce them" half.
+#'
+#' @param id The scenario-slots module id -- plain `"scenario"` for DCA's
+#'   one global forecast-scenario instance (Upload/Edit/Summary/
+#'   Projections all share it), or `ns("scenario")` for the Calculator's
+#'   own self-namespaced instance.
+#' @param plan_tier `r$plan_tier`.
+#' @param btn_id The locked placeholder's button id -- plain
+#'   `"btn_see_plans_scenario"` (matching `id = "scenario"`'s own
+#'   unnamespaced convention, handled by one top-level observer in
+#'   app_server.R) unless overridden by the Calculator's own `ns(...)`.
+#' @noRd
+.scenario_slots_ui <- function(id, plan_tier, btn_id = "btn_see_plans_scenario") {
+  if (.has_paid_plan(plan_tier)) {
+    directCareScenarios::mod_scenario_slots_ui(id)
+  } else {
+    .locked_scenario_slots_ui(btn_id)
+  }
+}
+
+#' @noRd
+.locked_scenario_slots_ui <- function(btn_id = "btn_see_plans_scenario") {
+  actionButton(
+    btn_id,
+    tagList(bs_icon("lock-fill"), " Save/Load Scenario"),
+    class = "btn-outline-secondary"
+  )
+}
