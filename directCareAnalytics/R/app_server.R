@@ -185,8 +185,52 @@ app_server <- function(input, output, session, res_auth = NULL) {
       actionButton(
         "account_change_password", "Change Password",
         class = "btn-primary btn-sm mt-2"
-      )
+      ),
+      tags$hr(),
+      tags$h6(class = "fw-bold", "Billing"),
+      if (!is.null(r$stripe_customer_id) && nzchar(r$stripe_customer_id)) {
+        tagList(
+          tags$p(
+            class = "text-muted small mb-2",
+            "Current plan: ", tags$strong(tools::toTitleCase(r$plan_tier %||% "free"))
+          ),
+          actionButton(
+            "account_manage_billing", "Manage Billing",
+            icon = bs_icon("credit-card"),
+            class = "btn-outline-primary btn-sm"
+          )
+        )
+      } else {
+        tagList(
+          tags$p(class = "text-muted small mb-2", "You're on the Free plan."),
+          actionButton(
+            "account_see_plans", "See plans",
+            icon = bs_icon("arrow-up-right-circle"),
+            class = "btn-outline-primary btn-sm"
+          )
+        )
+      }
     ))
+  })
+
+  # -- Billing: Checkout/Portal entry points -----------------------------------
+  # Plain top-level ids, not module-namespaced -- see .show_plans_modal()'s
+  # own comment (utils_billing.R) for why that's correct regardless of
+  # which module triggered the modal these buttons live in.
+  observeEvent(input$btn_checkout_starter, {
+    .start_stripe_checkout(session, r$practice_id, r$email, STRIPE_LOOKUP_KEY_STARTER)
+  })
+  observeEvent(input$btn_checkout_pro, {
+    .start_stripe_checkout(session, r$practice_id, r$email, STRIPE_LOOKUP_KEY_PRO)
+  })
+  observeEvent(input$account_see_plans, {
+    .show_plans_modal()
+  })
+  observeEvent(input$account_manage_billing, {
+    .start_stripe_portal(
+      session, r$stripe_customer_id,
+      return_url = paste0(Sys.getenv("APP_BASE_URL", unset = ""), "/")
+    )
   })
 
   observeEvent(input$account_save_profile, {
@@ -319,6 +363,9 @@ app_server <- function(input, output, session, res_auth = NULL) {
     # Practice metadata -- both sourced from res_auth below, not user input
     practice_id = NULL, # character(DB serial id) \u2014 internal row-tagging value only, never shown/edited
     practice_name = NULL, # character \u2014 display label for reports
+    email = NULL, # character \u2014 login email; prefills Stripe Checkout's email field
+    plan_tier = "free", # character: "free" | "starter" | "pro" \u2014 written only by directCareBilling's webhook; feature gates read this, never write it (see STRIPE_BILLING.md Part 5)
+    stripe_customer_id = NULL, # character \u2014 written only by directCareBilling's webhook; NULL until the practice's first completed Checkout. Manage Billing (Account Settings) is hidden until this is set.
     panel_size = NULL, # numeric \u2014 current DPC panel size (members)
     membership_fee = NULL, # numeric \u2014 weighted avg monthly membership fee per member ($)
     membership_tiers = NULL, # list of {label, members, fee} \u2014 detail behind panel_size/membership_fee
@@ -373,6 +420,16 @@ app_server <- function(input, output, session, res_auth = NULL) {
     } else {
       as.character(res_auth$practice_id)
     }
+    # Falls back to "free" (the same default practices.plan_tier itself
+    # has) rather than NULL -- res_auth$plan_tier is briefly NULL on the
+    # very first reactive flush before shinymanager has actually resolved
+    # the login, and every gate check below reads this via
+    # .has_paid_plan() (utils_billing.R's "not free/NULL" check) that
+    # should fail closed either way, but an explicit "free" is clearer to
+    # read at each gate than relying on NULL being treated as unpaid.
+    r$plan_tier <- if (is.null(res_auth$plan_tier)) "free" else res_auth$plan_tier
+    r$email <- res_auth$email
+    r$stripe_customer_id <- res_auth$stripe_customer_id
   })
 
   # Fires once, only for demo sessions. Sets only the demo practice's

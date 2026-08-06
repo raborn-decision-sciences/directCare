@@ -10,6 +10,21 @@ NULL
 # render. Matches directCareAnalytics's R/utils_globals.R convention.
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' JS handler that redirects the browser to a Stripe-hosted URL
+#'
+#' Matches directCareAnalytics's R/utils_globals.R convention -- see that
+#' file's own roxygen comment for the full rationale.
+#' @noRd
+.redirect_script <- function() {
+  tags$script(HTML(
+    "$(document).on('shiny:connected', function() {
+      Shiny.addCustomMessageHandler('redirectTo', function(msg) {
+        window.top.location.href = msg.url;
+      });
+    });"
+  ))
+}
+
 #' Branded header shared by the login page and the signup page
 #'
 #' Matches directCareAnalytics's R/utils_globals.R convention -- see that

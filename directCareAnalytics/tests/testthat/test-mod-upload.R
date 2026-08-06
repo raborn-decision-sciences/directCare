@@ -26,11 +26,16 @@ make_file_input <- function(path) {
 # Shared empty-r factory. practice_id/practice_name are pre-seeded (not NULL)
 # since app_server.R -- not this module -- is what sources them from
 # res_auth now; this module only *reads* them (e.g. tagging ingested rows
-# with practice_id).
+# with practice_id). plan_tier = "pro" for the same reason -- this
+# represents a normal, fully-functional practice for tests that aren't
+# specifically exercising the paywall gate itself (see
+# "btn_use_real is gated for a free-tier, non-demo practice" below for
+# that case).
 empty_r <- function() {
   shiny::reactiveValues(
     practice_id = "test-practice",
     practice_name = "Test Practice",
+    plan_tier = "pro",
     panel_size = NULL,
     membership_fee = NULL,
     transactions = NULL,
@@ -48,6 +53,34 @@ test_that("btn_use_real sets path_chosen to 'upload'", {
     session$setInputs(btn_use_real = 1)
     expect_equal(path_chosen(), "upload")
   })
+})
+
+test_that("btn_use_real is gated for a free-tier, non-demo practice", {
+  r <- empty_r()
+  r$plan_tier <- "free"
+  testServer(mod_upload_server, args = list(r = r), {
+    session$setInputs(btn_use_real = 1)
+    expect_null(path_chosen())
+  })
+})
+
+test_that("btn_use_real works for a free-tier practice in demo mode", {
+  r <- empty_r()
+  r$plan_tier <- "free"
+  testServer(
+    mod_upload_server,
+    args = list(r = r, demo_mode = shiny::reactiveVal(TRUE)),
+    {
+      session$setInputs(btn_use_real = 1)
+      # Demo mode's own branch never sets path_chosen("upload") at all --
+      # it loads sample data and expects the caller to navigate to Edit
+      # directly (see the observeEvent's own comment) -- so the correct
+      # assertion here is that the paywall never fires, not that
+      # path_chosen() changes.
+      expect_null(path_chosen())
+      expect_true(!is.null(r$transactions))
+    }
+  )
 })
 
 test_that("btn_back resets path_chosen to NULL", {

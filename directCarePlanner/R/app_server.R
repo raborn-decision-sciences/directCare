@@ -117,8 +117,52 @@ app_server <- function(input, output, session, res_auth = NULL) {
       actionButton(
         "account_change_password", "Change Password",
         class = "btn-primary btn-sm mt-2"
-      )
+      ),
+      tags$hr(),
+      tags$h6(class = "fw-bold", "Billing"),
+      if (!is.null(r$stripe_customer_id) && nzchar(r$stripe_customer_id)) {
+        tagList(
+          tags$p(
+            class = "text-muted small mb-2",
+            "Current plan: ", tags$strong(tools::toTitleCase(r$plan_tier %||% "free"))
+          ),
+          actionButton(
+            "account_manage_billing", "Manage Billing",
+            icon = bs_icon("credit-card"),
+            class = "btn-outline-primary btn-sm"
+          )
+        )
+      } else {
+        tagList(
+          tags$p(class = "text-muted small mb-2", "You're on the Free plan."),
+          actionButton(
+            "account_see_plans", "See plans",
+            icon = bs_icon("arrow-up-right-circle"),
+            class = "btn-outline-primary btn-sm"
+          )
+        )
+      }
     ))
+  })
+
+  # -- Billing: Checkout/Portal entry points -----------------------------------
+  # Plain top-level ids, not module-namespaced -- see .show_plans_modal()'s
+  # own comment (utils_billing.R) for why that's correct regardless of
+  # which module triggered the modal these buttons live in.
+  observeEvent(input$btn_checkout_starter, {
+    .start_stripe_checkout(session, r$practice_id, r$email, STRIPE_LOOKUP_KEY_STARTER)
+  })
+  observeEvent(input$btn_checkout_pro, {
+    .start_stripe_checkout(session, r$practice_id, r$email, STRIPE_LOOKUP_KEY_PRO)
+  })
+  observeEvent(input$account_see_plans, {
+    .show_plans_modal()
+  })
+  observeEvent(input$account_manage_billing, {
+    .start_stripe_portal(
+      session, r$stripe_customer_id,
+      return_url = paste0(Sys.getenv("APP_BASE_URL", unset = ""), "/")
+    )
   })
 
   observeEvent(input$account_save_profile, {
@@ -242,6 +286,9 @@ app_server <- function(input, output, session, res_auth = NULL) {
     # revenue/projections rows with one the way DCA's data-ingest pipeline
     # does. Sourced from res_auth below, same as practice_name.
     practice_id = NULL,
+    email = NULL, # sourced from res_auth below; prefills Stripe Checkout's email field
+    plan_tier = "free", # "free" | "starter" | "pro" — written only by directCareBilling's webhook; sourced from res_auth below, same as practice_name
+    stripe_customer_id = NULL, # written only by directCareBilling's webhook; NULL until the practice's first completed Checkout. Manage Billing (Account Settings) is hidden until this is set.
     horizon_months = NULL,
     market_context = NULL, # dcPlanR_market_context, from build_market_context()
     revenue = NULL, # dcPlanR_revenue, from calc_mixed_revenue()
@@ -268,6 +315,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
     req(res_auth)
     r$practice_name <- res_auth$practice_name
     r$practice_id <- res_auth$practice_id
+    # Falls back to "free" (matches practices.plan_tier's own DB default)
+    # rather than NULL -- see directCareAnalytics's identical pattern for
+    # the full rationale.
+    r$plan_tier <- if (is.null(res_auth$plan_tier)) "free" else res_auth$plan_tier
+    r$email <- res_auth$email
+    r$stripe_customer_id <- res_auth$stripe_customer_id
   })
 
   plan_inputs_result <- mod_plan_inputs_server("plan_inputs", r, parent_session = session)

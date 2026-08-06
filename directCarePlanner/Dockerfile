@@ -16,6 +16,10 @@ COPY directCareScenarios /tmp/directCareScenarios
 RUN R -e "install.packages('/tmp/directCareScenarios', repos = NULL, type = 'source')" \
     && rm -rf /tmp/directCareScenarios
 
+COPY directCareBilling /tmp/directCareBilling
+RUN R -e "install.packages('/tmp/directCareBilling', repos = NULL, type = 'source')" \
+    && rm -rf /tmp/directCareBilling
+
 COPY directCarePlanner /app
 WORKDIR /app
 RUN R -e "install.packages('.', repos = NULL, type = 'source')"

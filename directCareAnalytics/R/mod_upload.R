@@ -95,36 +95,61 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
         # -- Path selection cards ------------------------------------------
         layout_columns(
           col_widths = c(4, 4, 4),
-          card(
-            class = "h-100",
-            card_header(
-              tagList(bs_icon("file-earmark-bar-graph"), " Use Real Data")
-            ),
-            card_body(
-              tags$p(
-                "Use your income and overhead data to analyse actual revenue ",
-                "and expenses. Best for practices that already use ",
-                "accounting software or maintain transaction records."
+          # Gated at pro+ (bookkeeping upload is a paid feature, see
+          # STRIPE_BILLING.md's v1 gating scope) -- demo sessions are
+          # always exempt, since demo_mode() never represents a real
+          # billable account. .has_paid_plan()/.locked_feature_card() live
+          # in utils_billing.R. The "Take the tour" link stays available
+          # even when locked -- the tour itself still works against demo
+          # data regardless of plan_tier, and seeing the real workflow is
+          # reasonable pre-purchase context, not something to gate.
+          if (!isTRUE(demo_mode()) && !.has_paid_plan(r$plan_tier)) {
+            .locked_feature_card(
+              title = "Use Real Data",
+              description = paste0(
+                "Use your income and overhead data to analyse actual ",
+                "revenue and expenses. Best for practices that already ",
+                "use accounting software or maintain transaction records."
               ),
-              tags$ul(
-                class = "text-muted small mb-3",
-                tags$li("Historical overhead breakdown"),
-                tags$li("Actual revenue trends"),
-                tags$li("Data-driven break-even forecast")
-              ),
-              actionButton(
-                ns("btn_use_real"),
-                "Use Bookkeeping Data",
-                icon = bs_icon("upload"),
-                class = "btn-primary w-100"
-              ),
-              actionLink(
+              ns = ns,
+              extra = actionLink(
                 ns("tour_historical"),
                 tagList(bs_icon("play-circle"), " Take the tour"),
                 class = "d-block text-center small text-muted mt-2"
               )
             )
-          ),
+          } else {
+            card(
+              class = "h-100",
+              card_header(
+                tagList(bs_icon("file-earmark-bar-graph"), " Use Real Data")
+              ),
+              card_body(
+                tags$p(
+                  "Use your income and overhead data to analyse actual revenue ",
+                  "and expenses. Best for practices that already use ",
+                  "accounting software or maintain transaction records."
+                ),
+                tags$ul(
+                  class = "text-muted small mb-3",
+                  tags$li("Historical overhead breakdown"),
+                  tags$li("Actual revenue trends"),
+                  tags$li("Data-driven break-even forecast")
+                ),
+                actionButton(
+                  ns("btn_use_real"),
+                  "Use Bookkeeping Data",
+                  icon = bs_icon("upload"),
+                  class = "btn-primary w-100"
+                ),
+                actionLink(
+                  ns("tour_historical"),
+                  tagList(bs_icon("play-circle"), " Take the tour"),
+                  class = "d-block text-center small text-muted mt-2"
+                )
+              )
+            )
+          },
           card(
             class = "h-100",
             card_header(
@@ -439,9 +464,24 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
           duration = 6
         )
         updateNavbarPage(parent_session %||% session, "main_nav", selected = "edit")
+      } else if (!.has_paid_plan(r$plan_tier)) {
+        # Defense in depth: the button itself is already swapped for a
+        # locked-feature card above when this condition holds, but this
+        # guards the actual transition too, in case that ever drifts out
+        # of sync or the id is triggered some other way (e.g. directly via
+        # Shiny.setInputValue()) -- see the same reasoning noted on every
+        # other gate in this app.
+        .show_plans_modal()
       } else {
         path_chosen("upload")
       }
+    })
+
+    # Triggered from .locked_feature_card()'s "See plans" button, wherever
+    # this module renders one (currently just the "Use Real Data" gate
+    # above).
+    observeEvent(input$btn_see_plans, {
+      .show_plans_modal()
     })
 
     observeEvent(input$btn_use_plan, {

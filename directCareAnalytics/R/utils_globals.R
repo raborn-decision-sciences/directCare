@@ -16,6 +16,30 @@ NULL
 # NULL-coalescing operator for input$ values that are NULL before first render
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' JS handler that redirects the browser to a Stripe-hosted URL
+#'
+#' Registers the client-side half of `.start_stripe_checkout()`/
+#' `stripe_create_portal_session()`'s redirect (utils_billing.R,
+#' app_server.R): both call `session$sendCustomMessage("redirectTo", ...)`
+#' after a Checkout/Portal Session is created server-side, since the
+#' target URL doesn't exist until that (network-calling) request returns --
+#' a plain `tags$a(href=...)` can't target it. `window.top.location.href`
+#' (not `window.location.href`) so this still navigates the whole tab even
+#' if Shiny is ever iframed. Needed on both the main app (app_ui.R) and the
+#' signup page (mod_signup.R's `signup_ui()`, not wrapped by
+#' shinymanager::secure_app() and so not sharing app_ui.R's own copy of
+#' this) -- factored out here so both include the exact same handler.
+#' @noRd
+.redirect_script <- function() {
+  tags$script(HTML(
+    "$(document).on('shiny:connected', function() {
+      Shiny.addCustomMessageHandler('redirectTo', function(msg) {
+        window.top.location.href = msg.url;
+      });
+    });"
+  ))
+}
+
 #' Branded header shared by the login page and the signup page
 #'
 #' Factored out of run_app.R's `tags_top` so the signup page (a plain Shiny

@@ -1,0 +1,239 @@
+# -- Paywall gating helpers ----------------------------------------------
+# Shared across every gate point in this app (currently just mod_upload.R's
+# "Use Real Data" entry point -- see STRIPE_BILLING.md's v1 gating scope
+# for the full list, most of which isn't wired up yet). Kept here, not in
+# `directCareBilling`, since that package is a plain backend integration
+# layer with no Shiny dependency (see its own DESCRIPTION) -- UI is each
+# app's own concern per STRIPE_BILLING.md Part 5.
+
+#' Whether a `plan_tier` value has access to gated (paid) features
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier` -- `"free"`,
+#'   `"starter"`, or `"pro"` today, but deliberately not an exhaustive
+#'   `%in%` allowlist of just those three: any *future* paid tier name
+#'   should also pass without this function needing an update, so the
+#'   actual test is "not free/NULL/unrecognized", not "is one of these
+#'   specific paid names".
+#' @return `TRUE`/`FALSE`.
+#' @noRd
+.has_paid_plan <- function(plan_tier) {
+  isTRUE(!is.null(plan_tier) && nzchar(plan_tier) && plan_tier != "free")
+}
+
+#' Stripe Price `lookup_key`s for the two paid tiers
+#'
+#' Hardcoded (not env-var-driven) deliberately -- these are values *this
+#' app* sends to Stripe when starting a Checkout Session, distinct from
+#' `directCareBilling`'s `STRIPE_PRICE_<TIER>` env vars, which the webhook
+#' instead uses to map a `lookup_key` *back* to a `plan_tier` once a
+#' purchase completes. Same string values on both sides is what makes a
+#' Starter purchase actually land as `plan_tier = "starter"`; if these ever
+#' change, `STRIPE_PRICE_STARTER`/`STRIPE_PRICE_PRO` (Docker secrets/env,
+#' see STRIPE_BILLING.md Part 4) must change to match.
+#' @noRd
+STRIPE_LOOKUP_KEY_STARTER <- "starter_monthly"
+#' @noRd
+STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
+
+#' Start a Stripe Checkout Session and redirect the browser to it
+#'
+#' Shared by every "Upgrade to ..." entry point (the plans modal below and
+#' the post-signup plan picker, mod_signup.R) -- one place that calls
+#' `directCareBilling::stripe_create_checkout_session()` and performs the
+#' actual browser redirect, so neither call site duplicates the
+#' success/cancel URL construction or error handling.
+#'
+#' A hosted Checkout Session URL isn't something `tags$a(href=...)` can
+#' target from inside a `showModal()`/`renderUI()` -- the redirect has to
+#' happen after the (synchronous, network-calling) session-creation request
+#' returns, so this sends a custom message to the client-side
+#' `redirectTo` handler (registered in both app_ui.R and mod_signup.R's
+#' `signup_ui()`) rather than rendering a link.
+#'
+#' @param session The current Shiny session (top-level or a module's --
+#'   `session$sendCustomMessage()` reaches the browser either way).
+#' @param practice_id,email The purchasing practice's id/email --
+#'   `client_reference_id`/prefilled email on the Checkout Session (see
+#'   `stripe_create_checkout_session()`'s own docs for why
+#'   `client_reference_id` matters).
+#' @param price_lookup_key One of the `STRIPE_LOOKUP_KEY_*` constants above.
+#' @noRd
+.start_stripe_checkout <- function(session, practice_id, email, price_lookup_key) {
+  base_url <- Sys.getenv("APP_BASE_URL", unset = "")
+  url <- tryCatch(
+    directCareBilling::stripe_create_checkout_session(
+      practice_id = practice_id,
+      price_lookup_key = price_lookup_key,
+      customer_email = email,
+      success_url = paste0(base_url, "/?billing=success"),
+      cancel_url = paste0(base_url, "/?billing=cancelled")
+    ),
+    error = function(e) {
+      warning("stripe_create_checkout_session() failed: ", conditionMessage(e))
+      NULL
+    }
+  )
+  if (is.null(url)) {
+    showNotification(
+      "Couldn't start checkout right now. Please try again in a moment.",
+      type = "error",
+      duration = 8
+    )
+    return(invisible(FALSE))
+  }
+  removeModal()
+  session$sendCustomMessage("redirectTo", list(url = url))
+  invisible(TRUE)
+}
+
+#' Start a Stripe Billing Portal Session and redirect the browser to it
+#'
+#' Same redirect mechanism as `.start_stripe_checkout()` -- see its own
+#' comment. Used only by Account Settings' "Manage Billing" button, which
+#' is itself only shown once `r$stripe_customer_id` is set (a practice with
+#' no completed Checkout has no Stripe Customer for the Portal to manage).
+#'
+#' @param session The current Shiny session.
+#' @param stripe_customer_id The practice's `cus_...` id (`r$stripe_customer_id`).
+#' @param return_url Where Stripe sends the browser back after the Portal.
+#' @noRd
+.start_stripe_portal <- function(session, stripe_customer_id, return_url) {
+  url <- tryCatch(
+    directCareBilling::stripe_create_portal_session(
+      stripe_customer_id = stripe_customer_id,
+      return_url = return_url
+    ),
+    error = function(e) {
+      warning("stripe_create_portal_session() failed: ", conditionMessage(e))
+      NULL
+    }
+  )
+  if (is.null(url)) {
+    showNotification(
+      "Couldn't open the billing portal right now. Please try again in a moment.",
+      type = "error",
+      duration = 8
+    )
+    return(invisible(FALSE))
+  }
+  removeModal()
+  session$sendCustomMessage("redirectTo", list(url = url))
+  invisible(TRUE)
+}
+
+#' Modal listing the plan tiers, shown from any "See plans" trigger
+#'
+#' Only ever shown to a free-tier practice (every call site gates on
+#' `!.has_paid_plan(r$plan_tier)` before showing it), so both upgrade
+#' buttons are always relevant -- no "already on this plan" branching
+#' needed. The two buttons use plain, unnamespaced ids ("btn_checkout_
+#' starter"/"btn_checkout_pro") rather than `ns(...)`-scoped ones:
+#' `showModal()` content is appended directly to `<body>`, not into the
+#' calling module's own DOM subtree, so Shiny's module namespacing doesn't
+#' apply to it regardless of which module (mod_upload.R, mod_results.R, ...)
+#' triggered the modal -- one pair of top-level `observeEvent()`s in
+#' app_server.R handles both, matching the Account Settings modal's own
+#' plain-id convention. Tier names/prices are hardcoded here rather than
+#' read from Stripe live -- this is marketing copy, not a place that needs
+#' to reflect a `lookup_key` repricing instantly; update both here and
+#' STRIPE_BILLING.md together if pricing changes.
+#' @noRd
+.show_plans_modal <- function() {
+  showModal(modalDialog(
+    title = tagList(bs_icon("stars"), " Plans"),
+    size = "l",
+    easyClose = TRUE,
+    layout_columns(
+      col_widths = c(4, 4, 4),
+      card(
+        card_header("Plan"),
+        card_body(
+          tags$p(class = "fw-bold fs-4 mb-1", "Free"),
+          tags$p(class = "text-muted small mb-0", "Limited planning tools and calculators.")
+        )
+      ),
+      card(
+        class = "border-primary",
+        card_header(tagList(bs_icon("graph-up-arrow"), " Starter")),
+        card_body(
+          tags$p(class = "fw-bold fs-4 mb-1", "$39/mo"),
+          tags$p(
+            class = "text-muted small mb-0",
+            "Bookkeeping uploads, saved practice profile, historical ",
+            "trends, break-even analysis, downloadable reports."
+          ),
+          actionButton(
+            "btn_checkout_starter", "Upgrade to Starter",
+            icon = bs_icon("arrow-up-right-circle"),
+            class = "btn-primary w-100 mt-2"
+          )
+        )
+      ),
+      card(
+        card_header(tagList(bs_icon("lightbulb"), " Pro")),
+        card_body(
+          tags$p(class = "fw-bold fs-4 mb-1", "$79/mo"),
+          tags$p(
+            class = "text-muted small mb-0",
+            "Everything in Starter, plus guided decision tools and ",
+            "AI-generated financial interpretation."
+          ),
+          actionButton(
+            "btn_checkout_pro", "Upgrade to Pro",
+            icon = bs_icon("arrow-up-right-circle"),
+            class = "btn-outline-primary w-100 mt-2"
+          )
+        )
+      )
+    ),
+    tags$p(
+      class = "text-center text-muted small mt-3 mb-0",
+      "You'll be taken to Stripe's secure checkout. Questions? ",
+      tags$a(
+        href = "mailto:anthony@raborndecisionsciences.com?subject=Question%20about%20plans",
+        "email us"
+      ),
+      "."
+    ),
+    footer = modalButton("Close")
+  ))
+}
+
+#' Card shown in place of a gated feature for a free-tier, non-demo user
+#'
+#' @param title Card header text.
+#' @param description Body copy explaining what the feature does.
+#' @param ns The calling module's namespacing function (`session$ns`), so
+#'   the "See plans" button gets a properly namespaced id per module.
+#' @param btn_id Suffix for the "See plans" button's id. Only needs
+#'   changing from the default if a single module ever renders more than
+#'   one locked card at once (none do today).
+#' @param extra Optional additional UI (e.g. a "Take the tour" link) shown
+#'   below the "See plans" button, for parity with the real card it
+#'   replaces.
+#' @param class Passed straight to the wrapping `card()` -- matches
+#'   whatever layout class the real card used (e.g. `"h-100"` inside a
+#'   `layout_columns()`).
+#' @noRd
+.locked_feature_card <- function(title, description, ns, btn_id = "btn_see_plans",
+                                  extra = NULL, class = "h-100") {
+  card(
+    class = class,
+    card_header(tagList(bs_icon("lock-fill"), " ", title)),
+    card_body(
+      tags$p(description),
+      tags$p(
+        class = "small fw-semibold mb-3",
+        style = "color: #B45309;",
+        bs_icon("stars"), " Starter or Pro plan required"
+      ),
+      actionButton(
+        ns(btn_id),
+        "See plans",
+        icon = bs_icon("arrow-up-right-circle"),
+        class = "btn-outline-primary w-100"
+      ),
+      extra
+    )
+  )
+}

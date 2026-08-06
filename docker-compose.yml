@@ -19,6 +19,7 @@ services:
       DB_USER: directcare
       DB_PASSWORD_FILE: /run/secrets/db_password
       ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
       FROM_EMAIL: noreply@directcareanalytics.com
       APP_BASE_URL: https://app.directcareanalytics.com
     # Compose's file-based secrets preserve the *host-side* file's owner/
@@ -40,6 +41,7 @@ services:
     secrets:
       - db_password
       - zeptomail_token
+      - stripe_secret_key
     depends_on:
       - db
 
@@ -58,12 +60,44 @@ services:
       DB_USER: directcare
       DB_PASSWORD_FILE: /run/secrets/db_password
       ZEPTOMAIL_TOKEN_FILE: /run/secrets/zeptomail_token
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
       FROM_EMAIL: noreply@directcareanalytics.com
       APP_BASE_URL: https://planner.directcareanalytics.com
     # Same reasoning as dca's secrets block above.
     secrets:
       - db_password
       - zeptomail_token
+      - stripe_secret_key
+    depends_on:
+      - db
+
+  billing:
+    build:
+      context: .
+      dockerfile: billing-service/Dockerfile
+    image: directcare/billing:latest
+    restart: unless-stopped
+    # Same reasoning as dca's `ports:` omission above -- Caddy is the only
+    # intended entry point (billing.directcareanalytics.com).
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: directcare
+      DB_USER: directcare
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+      # lookup_key -> plan_tier mapping (STRIPE_BILLING.md Part 3) -- must
+      # match the STRIPE_LOOKUP_KEY_STARTER/_PRO constants both apps send
+      # when creating a Checkout Session (utils_billing.R). Plain env vars,
+      # not secrets -- lookup_keys aren't sensitive, same reasoning as
+      # FROM_EMAIL/APP_BASE_URL above.
+      STRIPE_PRICE_STARTER: starter_monthly
+      STRIPE_PRICE_PRO: pro_monthly
+    secrets:
+      - db_password
+      - stripe_secret_key
+      - stripe_webhook_secret
     depends_on:
       - db
 
@@ -100,3 +134,7 @@ secrets:
     file: ./secrets/db_password.txt
   zeptomail_token:
     file: ./secrets/zeptomail_token.txt
+  stripe_secret_key:
+    file: ./secrets/stripe_secret_key.txt
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret.txt

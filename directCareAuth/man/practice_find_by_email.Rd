@@ -13,7 +13,11 @@ practice_find_by_email(con, email)
 }
 \value{
 A data frame with 0 or 1 rows and columns \code{id}, \code{practice_name},
-\code{email}, \code{password_hash}, \code{address}.
+\code{email}, \code{password_hash}, \code{address}, \code{plan_tier}, \code{subscription_status}.
+The last two are only ever written by \code{directCareBilling}'s webhook
+handler (see STRIPE_BILLING.md) -- this function just surfaces them for
+\code{check_credentials_db()} to fold into \code{user_info}, from which
+shinymanager copies them into \code{res_auth} for the apps' feature gates.
 }
 \description{
 Look up a practice by login email

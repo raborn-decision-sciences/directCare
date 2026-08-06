@@ -15,6 +15,11 @@ fixture_populated_r <- function() {
 
   reactiveValues(
     practice_name = "Test Practice",
+    # Represents a normal, fully-functional practice for tests that
+    # aren't specifically exercising the paywall gate itself (see
+    # "gates Market Context and Download Report for a free-tier
+    # practice" below for that case).
+    plan_tier = "pro",
     horizon_months = 3,
     market_context = list(
       geography = list(county_name = "Fulton County", state_abb = "GA", metro_fips = "12060"),
@@ -53,6 +58,25 @@ test_that("renders results content once a plan has been built", {
     expect_true(grepl("Scenario Projections", html))
     expect_true(grepl("Capital Requirements", html))
     expect_true(grepl("Interpretation", html))
+  })
+})
+
+test_that("gates Market Context and Download Report for a free-tier practice", {
+  r <- fixture_populated_r()
+  r$plan_tier <- "free"
+
+  testServer(mod_results_server, args = list(r = r), {
+    html <- paste(as.character(output$content), collapse = "")
+    expect_false(grepl("Fulton County", html))
+    expect_true(grepl("Starter or Pro plan required", html))
+
+    footer_html <- paste(as.character(nav_footer()), collapse = "")
+    # "Unlock Download Report" itself contains "Download Report", so check
+    # the actual element rendered rather than that substring: the real
+    # download link's id ("...-dl_report") should be absent, and the
+    # gated trigger's should be present.
+    expect_false(grepl("dl_report", footer_html, fixed = TRUE))
+    expect_true(grepl("btn_see_plans_report", footer_html, fixed = TRUE))
   })
 })
 

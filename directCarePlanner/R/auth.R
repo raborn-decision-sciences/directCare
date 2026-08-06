@@ -3,10 +3,13 @@
 #' Passed as `check_credentials` to `shinymanager::secure_server()`, via a
 #' closure in `run_app.R` that captures the client IP from `session`
 #' (`check_credentials` itself, as shinymanager calls it, only receives
-#' `user`/`password` -- no session access). Beta: `subscription_status` is
-#' not checked here -- all accounts stay 'trial' and access is gated on a
-#' valid email/password pair only. Wire in a status check once billing is
-#' added.
+#' `user`/`password` -- no session access). `plan_tier`/`subscription_status`
+#' are surfaced in `user_info` (shinymanager copies every key generically
+#' into `res_auth`) but never checked *here* -- login itself is never
+#' gated on billing status, only individual features are, downstream, via
+#' `r$plan_tier` (see STRIPE_BILLING.md Part 5). A free-tier or
+#' payment-lapsed practice can always log in; it just can't use gated
+#' features until it upgrades/renews.
 #'
 #' Failed attempts and successful logins are recorded via
 #' `directCareAuth::auth_event_log()`; a login is locked out before its
@@ -47,7 +50,10 @@ check_credentials_db <- function(user, password, ip = NA_character_) {
       practice_id = practice$id,
       practice_name = practice$practice_name,
       email = practice$email,
-      address = practice$address
+      address = practice$address,
+      plan_tier = practice$plan_tier,
+      subscription_status = practice$subscription_status,
+      stripe_customer_id = practice$stripe_customer_id
     )
   )
 }

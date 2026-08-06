@@ -1,12 +1,16 @@
 # Builds the self-hosting Docker images (docker/base.Dockerfile plus both
-# app Dockerfiles) and brings up db+dca+planner via Compose, then polls
-# each app's root URL for a 200 response as a liveness smoke test. Caddy is
+# app Dockerfiles, plus billing-service/Dockerfile) and brings up
+# db+dca+planner+billing via Compose, then polls each app's root URL (and
+# billing's /healthz) for a 200 response as a liveness smoke test. Caddy is
 # skipped here -- it needs real DNS/TLS it won't have on a CI runner, so
-# docker-compose.ci.yml publishes dca/planner ports directly instead.
+# docker-compose.ci.yml publishes dca/planner/billing ports directly
+# instead.
 #
 # This does not test an actual shinymanager login round-trip (the
-# `practices` table is empty in a fresh CI database) -- it only confirms
-# both images build and both apps come up and serve their login page.
+# `practices` table is empty in a fresh CI database), nor a real Stripe
+# webhook delivery (ephemeral placeholder Stripe secrets below, no real
+# Stripe account involved) -- it only confirms all three images build and
+# all three services come up and respond.
 
 on:
   push:
@@ -20,6 +24,8 @@ on:
       - "directCarePlanR/**"
       - "directCareData/**"
       - "directCareScenarios/**"
+      - "directCareBilling/**"
+      - "billing-service/**"
       - "db/**"
       - "docker-compose.yml"
       - "docker-compose.ci.yml"
@@ -38,6 +44,8 @@ on:
       - "directCarePlanR/**"
       - "directCareData/**"
       - "directCareScenarios/**"
+      - "directCareBilling/**"
+      - "billing-service/**"
       - "db/**"
       - "docker-compose.yml"
       - "docker-compose.ci.yml"
@@ -74,17 +82,20 @@ jobs:
         run: |
           mkdir -p secrets
           openssl rand -base64 32 > secrets/db_password.txt
-          # Placeholder only -- CI never exercises the actual ZeptoMail send
-          # path (no email-sending E2E test), this just lets the containers
-          # boot without a missing-secret-file error.
+          # Placeholders only -- CI never exercises the actual ZeptoMail
+          # send path or a real Stripe call (no email/Stripe E2E test),
+          # these just let the containers boot without a
+          # missing-secret-file error.
           echo "ci-placeholder-not-a-real-token" > secrets/zeptomail_token.txt
+          echo "sk_test_ci_placeholder" > secrets/stripe_secret_key.txt
+          echo "whsec_ci_placeholder" > secrets/stripe_webhook_secret.txt
 
-      - name: Start db, dca, planner (no caddy in CI)
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner
+      - name: Start db, dca, planner, billing (no caddy in CI)
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner billing
 
-      - name: Wait for apps to serve their login page
+      - name: Wait for services to respond
         run: |
-          for url in http://localhost:3838 http://localhost:3939; do
+          for url in http://localhost:3838 http://localhost:3939 http://localhost:8000/healthz; do
             echo "Waiting on $url"
             ok=""
             for i in $(seq 1 30); do

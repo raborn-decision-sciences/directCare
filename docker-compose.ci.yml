@@ -1,8 +1,8 @@
-# CI/local-testing override: publishes dca/planner ports directly to the
-# host so they can be curled without Caddy (which needs real DNS/TLS it
-# won't have in CI). Not used in production.
+# CI/local-testing override: publishes dca/planner/billing ports directly
+# to the host so they can be curled without Caddy (which needs real DNS/TLS
+# it won't have in CI). Not used in production.
 #
-# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d db dca planner billing
 services:
   dca:
     ports:
@@ -17,3 +17,7 @@ services:
       - "3939:3838"
     environment:
       GOLEM_CONFIG_ACTIVE: default
+
+  billing:
+    ports:
+      - "8000:8000"

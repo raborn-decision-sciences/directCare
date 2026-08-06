@@ -296,7 +296,10 @@ golem_add_external_resources <- function() {
           sync();
         }
       })();"
-    ))
+    )),
+    # Client-side half of the Stripe Checkout/Portal redirect (see
+    # .redirect_script()'s own comment, utils_globals.R).
+    .redirect_script()
   )
 }
 

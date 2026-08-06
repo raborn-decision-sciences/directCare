@@ -138,17 +138,33 @@ mod_results_server <- function(id, r, parent_session = NULL) {
           col_widths = c(4, 8),
           fill = FALSE,
           fillable = FALSE,
-          card(
-            card_header(bsicons::bs_icon("geo-alt"), " Market Context"),
-            card_body(
-              tags$p(tags$strong("Location: "), r$market_context$geography$county_name, ", ", r$market_context$geography$state_abb),
-              tags$p(tags$strong("Population: "), format(r$market_context$population_income$population, big.mark = ",")),
-              tags$p(tags$strong("Median household income: "), .fmt_dollar(r$market_context$population_income$median_household_income)),
-              tags$p(tags$strong("Uninsured rate: "), scales::percent(r$market_context$uninsured$uninsured_rate, accuracy = 0.1)),
-              tags$p(tags$strong("Physician density: "), round(r$market_context$physician_density$physician_density_per_10k, 1), " per 10,000 population"),
-              tags$p(tags$strong("Known nearby direct care practices: "), nrow(r$market_context$landscape))
+          # Gated at pro+ (Market Context is a paid feature, see
+          # STRIPE_BILLING.md's v1 gating scope). .has_paid_plan()/
+          # .locked_feature_card() live in utils_billing.R.
+          if (!.has_paid_plan(r$plan_tier)) {
+            .locked_feature_card(
+              title = "Market Context",
+              description = paste0(
+                "See local population, income, insurance coverage, and ",
+                "nearby direct care competition for your practice's area."
+              ),
+              ns = ns,
+              btn_id = "btn_see_plans_market",
+              class = NULL
             )
-          ),
+          } else {
+            card(
+              card_header(bsicons::bs_icon("geo-alt"), " Market Context"),
+              card_body(
+                tags$p(tags$strong("Location: "), r$market_context$geography$county_name, ", ", r$market_context$geography$state_abb),
+                tags$p(tags$strong("Population: "), format(r$market_context$population_income$population, big.mark = ",")),
+                tags$p(tags$strong("Median household income: "), .fmt_dollar(r$market_context$population_income$median_household_income)),
+                tags$p(tags$strong("Uninsured rate: "), scales::percent(r$market_context$uninsured$uninsured_rate, accuracy = 0.1)),
+                tags$p(tags$strong("Physician density: "), round(r$market_context$physician_density$physician_density_per_10k, 1), " per 10,000 population"),
+                tags$p(tags$strong("Known nearby direct care practices: "), nrow(r$market_context$landscape))
+              )
+            )
+          },
           card(
             full_screen = TRUE,
             card_header(bsicons::bs_icon("graph-up-arrow"), " Scenario Projections"),
@@ -233,12 +249,27 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         DT::formatCurrency("amount", digits = 0)
     })
 
+    # Triggered from the "See plans" buttons swapped in for gated features
+    # below (Market Context card, Download Report button) -- both are the
+    # same modal, defined once in utils_billing.R.
+    observeEvent(input$btn_see_plans_market, {
+      .show_plans_modal()
+    })
+    observeEvent(input$btn_see_plans_report, {
+      .show_plans_modal()
+    })
+
     output$dl_report <- downloadHandler(
       filename = function() {
         safe_name <- gsub("[^A-Za-z0-9_-]", "-", r$practice_name %||% "practice")
         paste0("plan-", safe_name, "-", format(Sys.Date(), "%Y%m%d"), ".pdf")
       },
       content = function(file) {
+        # Defense in depth: nav_footer below already swaps this entire
+        # button for a "See plans" trigger when ungated, so a free-tier
+        # practice can't normally reach this handler at all -- this just
+        # guards the case where the href is somehow still requested.
+        req(.has_paid_plan(r$plan_tier))
         data <- directCarePlanR::build_report_data(
           market_context = r$market_context,
           revenue = r$revenue,
@@ -263,11 +294,19 @@ mod_results_server <- function(id, r, parent_session = NULL) {
           tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
           class = "btn-outline-secondary"
         ),
-        forward = downloadButton(
-          ns("dl_report"),
-          tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
-          class = "btn-primary"
-        ),
+        forward = if (.has_paid_plan(r$plan_tier)) {
+          downloadButton(
+            ns("dl_report"),
+            tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
+            class = "btn-primary"
+          )
+        } else {
+          actionButton(
+            ns("btn_see_plans_report"),
+            tagList(bsicons::bs_icon("lock-fill"), " Unlock Download Report"),
+            class = "btn-outline-primary"
+          )
+        },
         extra = directCareScenarios::mod_scenario_slots_ui("scenario")
       )
     })

@@ -92,12 +92,18 @@ password_is_strong <- function(password) {
 #' @param con An open `DBI` connection (see [db_connect()]).
 #' @param email The email address to look up.
 #' @return A data frame with 0 or 1 rows and columns `id`, `practice_name`,
-#'   `email`, `password_hash`, `address`.
+#'   `email`, `password_hash`, `address`, `plan_tier`, `subscription_status`,
+#'   `stripe_customer_id`. The last three are only ever written by
+#'   `directCareBilling`'s webhook handler (see STRIPE_BILLING.md) -- this
+#'   function just surfaces them for `check_credentials_db()` to fold into
+#'   `user_info`, from which shinymanager copies them into `res_auth` for the
+#'   apps' feature gates and `stripe_create_portal_session()` calls.
 #' @export
 practice_find_by_email <- function(con, email) {
   DBI::dbGetQuery(
     con,
-    "SELECT id, practice_name, email, password_hash, address
+    "SELECT id, practice_name, email, password_hash, address,
+            plan_tier, subscription_status, stripe_customer_id
        FROM practices WHERE email = $1",
     params = list(email)
   )

@@ -17,6 +17,7 @@ Imports:
     config (>= 0.3.2),
     DBI,
     directCareAuth,
+    directCareBilling,
     directCarePlanR,
     directCareScenarios,
     DT,
@@ -36,6 +37,7 @@ Encoding: UTF-8
 Config/roxygen2/version: 8.0.0
 Remotes:
     raborn-decision-sciences/directCare/directCareAuth,
+    raborn-decision-sciences/directCare/directCareBilling,
     raborn-decision-sciences/directCare/directCareData,
     raborn-decision-sciences/directCare/directCarePlanR,
     raborn-decision-sciences/directCare/directCareScenarios

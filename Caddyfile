@@ -189,3 +189,14 @@ planner.directcareanalytics.com {
 	import maintenance_page
 	reverse_proxy planner:3838
 }
+
+# Stripe webhook receiver (STRIPE_BILLING.md Part 4) -- its own subdomain,
+# not a path under app./planner., so this service's TLS cert/access logs
+# stay cleanly separated and neither Shiny app's container needs to know
+# this route exists. No maintenance_page import: a brief 502 here should
+# surface to Stripe as a real failure (so its own retry schedule kicks in),
+# not get masked by a 200 the way a human visitor's browser should see.
+billing.directcareanalytics.com {
+	import security_headers
+	reverse_proxy billing:8000
+}

@@ -17,6 +17,8 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
         email = "doc@example.com",
         password_hash = "hashed-value",
         address = "123 Main St",
+        plan_tier = "pro",
+        subscription_status = "active",
         stringsAsFactors = FALSE
       )
     },
@@ -33,6 +35,8 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
   expect_equal(result$user_info$practice_name, "River DPC")
   expect_equal(result$user_info$email, "doc@example.com")
   expect_equal(result$user_info$address, "123 Main St")
+  expect_equal(result$user_info$plan_tier, "pro")
+  expect_equal(result$user_info$subscription_status, "active")
 })
 
 test_that("check_credentials_db denies access on a wrong password and logs a failure with the ip", {
