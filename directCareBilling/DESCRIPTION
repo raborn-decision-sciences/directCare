@@ -1,0 +1,26 @@
+Package: directCareBilling
+Title: Shared Stripe Subscription Billing for directCare Apps
+Version: 0.0.0.9000
+Authors@R:
+    person("Anthony W.", "Raborn", , "anthony@raborndecisionsciences.com", role = c("aut", "cre"))
+Description: Shared Stripe integration layer for the one subscription per
+    practice that gates paid features across both directCareAnalytics and
+    directCarePlanner -- Checkout/Billing Portal session creation, webhook
+    signature verification, and webhook event dispatch into the shared
+    Postgres `practices` table. Database functions take an already-open
+    DBI connection (see directCareAuth::db_connect()). See
+    STRIPE_BILLING.md at the repo root for the full design.
+License: Apache License (>= 2) | file LICENSE
+Imports:
+    DBI,
+    httr2,
+    openssl
+Suggests:
+    jsonlite,
+    testthat (>= 3.0.0),
+    withr
+Config/testthat/edition: 3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+URL: https://raborn-decision-sciences.github.io/directCareBilling/
