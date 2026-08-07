@@ -167,7 +167,12 @@ app_server <- function(input, output, session, res_auth = NULL) {
       ),
       tags$hr(),
       tags$h6(class = "fw-bold", "Billing"),
-      if (!is.null(r$stripe_customer_id) && nzchar(r$stripe_customer_id)) {
+      # Gate on plan_tier, not stripe_customer_id -- a practice that started
+      # (or completed, then got moved back to Free) a Checkout Session keeps
+      # its stripe_customer_id forever once set, but the Portal has nothing
+      # useful to manage without an active paid subscription behind it. See
+      # STRIPE_BILLING.md; .has_paid_plan() lives in utils_billing.R.
+      if (.has_paid_plan(r$plan_tier)) {
         tagList(
           tags$p(
             class = "text-muted small mb-2",
