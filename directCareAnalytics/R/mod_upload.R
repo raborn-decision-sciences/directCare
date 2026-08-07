@@ -466,7 +466,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
         # shortcut.
         showNotification(
           paste0(
-            "Demo mode: loaded sample bookkeeping data for you — ",
+            "Demo mode: loaded sample bookkeeping data for you -- ",
             "browsing your own file isn't available in demo mode."
           ),
           type = "message",
@@ -1143,7 +1143,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
           class = "small text-muted mt-2 mb-0",
           bs_icon("info-circle"),
           " All five columns above are required. GnuCash's own CSV export ",
-          "includes them by default (plus others, which are ignored) — ",
+          "includes them by default (plus others, which are ignored) -- ",
           "column names are case-sensitive."
         ),
         tags$p(
@@ -1180,7 +1180,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
     tags$div(
       class = "alert alert-warning small py-2 px-3 mb-3",
       bs_icon("exclamation-triangle"),
-      tags$strong(" Experimental — "),
+      tags$strong(" Experimental -- "),
       "built from QuickBooks Online's documented export format, but not yet ",
       "tested against a real QuickBooks export. Please double-check the ",
       "results (especially overhead vs. income totals) before relying on them."
@@ -1198,21 +1198,21 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
             tags$p(
               class = "mb-1",
               "In QuickBooks Online: ",
-              tags$em("Reports → Transaction List by Date → Export to CSV"),
+              tags$em("Reports -> Transaction List by Date -> Export to CSV"),
               ". The file must include these columns:",
               tags$ul(
                 class = "mb-0 mt-1 ps-3",
                 tags$li(
                   tags$code("Date"),
-                  " — transaction date"
+                  " -- transaction date"
                 ),
                 tags$li(
                   tags$code("Account"),
-                  " — the account name (e.g. Rent Expense)"
+                  " -- the account name (e.g. Rent Expense)"
                 ),
                 tags$li(
                   tags$code("Amount"),
-                  " — signed amount (negative = money out, positive = ",
+                  " -- signed amount (negative = money out, positive = ",
                   "money in)"
                 )
               )
@@ -1269,7 +1269,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
           bs_icon("lightbulb"),
           " Money leaving the practice (bills, checks, expenses) is negative; ",
           "money coming in (invoices, sales receipts, deposits) is positive ",
-          "— that sign determines whether each row is overhead or income."
+          "-- that sign determines whether each row is overhead or income."
         )
       )
     ),
@@ -1280,7 +1280,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
       icon = icon("upload"),
       class = "btn-primary w-100"
     ),
-    div(class = "my-2 text-center text-muted small", "— or —"),
+    div(class = "my-2 text-center text-muted small", "-- or --"),
     actionButton(
       ns("btn_manual_entry"),
       "Enter Data Manually",
@@ -1366,7 +1366,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
           tags$em("Amount column"),
           "/",
           tags$em("Type column"),
-          " boxes below — a header of ",
+          " boxes below -- a header of ",
           tags$code("Date"),
           " will not match a box set to ",
           tags$code("date"),
@@ -1392,7 +1392,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
           class = "small text-muted mb-0",
           bs_icon("lightbulb"),
           " Amounts should be positive for both income and expense rows ",
-          "— the type column (not the sign) determines how each row ",
+          "-- the type column (not the sign) determines how each row ",
           "is classified."
         )
       )

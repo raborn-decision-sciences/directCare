@@ -571,7 +571,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           sel <- input$ovhd_pie_period
           if (!is.null(sel) && nzchar(sel)) {
             d <- dplyr::filter(d, period_start == as.Date(sel))
-            title <- paste0(title, " — ", fmt_period(as.Date(sel)))
+            title <- paste0(title, " -- ", fmt_period(as.Date(sel)))
           }
         }
         return(.pie_plot(d, pal, title, is_dark))
@@ -655,7 +655,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
           sel <- input$inc_pie_period
           if (!is.null(sel) && nzchar(sel)) {
             d <- dplyr::filter(d, period_start == as.Date(sel))
-            title <- paste0(title, " — ", fmt_period(as.Date(sel)))
+            title <- paste0(title, " -- ", fmt_period(as.Date(sel)))
           }
         }
         return(.pie_plot(d, pal, title, is_dark))
@@ -743,7 +743,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       out[["% of Total"]] <- if (tot_all != 0) {
         scales::percent(out$Total / tot_all, accuracy = 1)
       } else {
-        "—"
+        "--"
       }
       out$Total <- fmt_dollar(out$Total)
       names(out)[names(out) == "label"] <- label_header
@@ -757,7 +757,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       label <- if (is_pie && identical(scope, "period")) {
         sel <- input$ovhd_pie_period
         if (!is.null(sel) && nzchar(sel)) {
-          paste0("Category totals — ", fmt_period(as.Date(sel)))
+          paste0("Category totals -- ", fmt_period(as.Date(sel)))
         } else {
           "Category totals"
         }
@@ -776,7 +776,7 @@ mod_summary_server <- function(id, r, parent_session = NULL) {
       label <- if (is_pie && identical(scope, "period")) {
         sel <- input$inc_pie_period
         if (!is.null(sel) && nzchar(sel)) {
-          paste0("Source totals — ", fmt_period(as.Date(sel)))
+          paste0("Source totals -- ", fmt_period(as.Date(sel)))
         } else {
           "Source totals"
         }

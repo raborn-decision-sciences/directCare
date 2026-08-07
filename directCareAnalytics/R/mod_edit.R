@@ -975,7 +975,7 @@ mod_edit_server <- function(id, r, parent_session = NULL) {
                 p(
                   class = "text-muted small",
                   "Rename how overhead categories and income sources appear",
-                  " in the Summary and charts — the underlying data is unchanged."
+                  " in the Summary and charts -- the underlying data is unchanged."
                 ),
                 uiOutput(ns("label_editor_ui")),
                 actionButton(

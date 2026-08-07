@@ -173,7 +173,7 @@
     description = paste0(
       "Each GnuCash account was automatically matched to an expense ",
       "category. Anything the app couldn't confidently match is tagged ",
-      "“other” -- you'll get a chance to fix that on the next tab."
+      "\"other\" -- you'll get a chance to fix that on the next tab."
     ),
     position = "top"
   )

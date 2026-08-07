@@ -24,7 +24,7 @@ mod_calculator_ui <- function(id) {
             paste0(
               "Enter your monthly overhead, membership details, and income ",
               "target. The calculator instantly shows your current net position ",
-              "and what it takes to reach your goal — no forecast model needed."
+              "and what it takes to reach your goal -- no forecast model needed."
             )
           )
         ),
@@ -53,7 +53,7 @@ mod_calculator_ui <- function(id) {
           ),
           tags$p(
             class = "small text-muted mb-2",
-            "Add one or more membership tiers below. Click “Add Tier” to ",
+            "Add one or more membership tiers below. Click \"Add Tier\" to ",
             "include additional age groups or plan levels."
           ),
           uiOutput(ns("tier_ui")),
@@ -73,7 +73,7 @@ mod_calculator_ui <- function(id) {
           tags$p(
             class = "small text-muted mb-2",
             "Optional. Add fee-for-service, grants, or any other revenue ",
-            "sources — break a broad source into multiple rows if you want ",
+            "sources -- break a broad source into multiple rows if you want ",
             "a finer split."
           ),
           uiOutput(ns("income_source_ui")),
@@ -602,7 +602,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
           ),
           value_box(
             "Panel size",
-            if (members > 0) members else "—",
+            if (members > 0) members else "--",
             theme = "info",
             height = "90px"
           )
@@ -627,7 +627,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
             paste0(
               " ",
               fmt_dollar(other_inc),
-              "/mo in other income is already applied to overhead below — ",
+              "/mo in other income is already applied to overhead below -- ",
               "the scenarios show what membership dues need to cover the rest."
             )
           )
@@ -648,7 +648,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                 if (!is.na(members_for_breakeven)) {
                   members_for_breakeven
                 } else {
-                  "—"
+                  "--"
                 }
               ),
               if (!is.na(members_for_breakeven) && members > 0) {
@@ -690,7 +690,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                 if (!is.na(fee_for_breakeven)) {
                   fmt_dollar(fee_for_breakeven)
                 } else {
-                  "—"
+                  "--"
                 }
               ),
               if (!is.na(fee_for_breakeven) && avg_fee > 0) {
@@ -742,7 +742,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                     if (!is.na(members_for_target)) {
                       members_for_target
                     } else {
-                      "—"
+                      "--"
                     }
                   ),
                   if (!is.na(members_for_target) && members > 0) {
@@ -776,7 +776,7 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
                     if (!is.na(fee_for_target)) {
                       fmt_dollar(fee_for_target)
                     } else {
-                      "—"
+                      "--"
                     }
                   ),
                   if (!is.na(fee_for_target) && avg_fee > 0) {
