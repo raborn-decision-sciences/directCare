@@ -208,6 +208,22 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             .paragraphs_to_html(r$interpretations$revenue),
             tags$h6(class = "mt-3", "Projections"),
             .paragraphs_to_html(r$interpretations$projection),
+            if (!.has_pro_plan(r$plan_tier)) {
+              # Which Pro perk to advertise depends on which one would
+              # actually have fired for this plan -- goal-seek only ever
+              # says anything when the base scenario doesn't recover
+              # (mirrors mod_plan_inputs.R's base_recovers gate), the
+              # sensitivity breakdown otherwise.
+              .pro_upsell_note(
+                ns,
+                if (is.na(recovery_idx)) {
+                  "Pro also tells you what it would take -- an overhead cut, a faster ramp, or both -- to recover within your horizon."
+                } else {
+                  "Pro also breaks down which assumption -- membership ramp speed or overhead -- drives more of the conservative-to-optimistic spread."
+                },
+                btn_id = "btn_see_plans_pro_sensitivity"
+              )
+            },
             tags$h6(class = "mt-3", "Capital"),
             .paragraphs_to_html(r$interpretations$capital)
           )
@@ -260,9 +276,13 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         DT::formatCurrency("amount", digits = 0)
     })
 
-    # Triggered from the "See plans" buttons swapped in for gated features
-    # below (Market Context card, Download Report button) -- both are the
+    # Triggered from the "See plans" buttons/links swapped in for gated
+    # features below (Market Context card, Download Report button, the
+    # Projections interpretation's Pro upsell note) -- all three open the
     # same modal, defined once in utils_billing.R.
+    observeEvent(input$btn_see_plans_pro_sensitivity, {
+      .show_plans_modal()
+    })
     observeEvent(input$btn_see_plans_market, {
       .show_plans_modal()
     })

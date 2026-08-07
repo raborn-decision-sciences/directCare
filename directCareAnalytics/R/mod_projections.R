@@ -23,6 +23,13 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
+    # Triggered from the break-even goal-seek upsell note's "See Pro plan"
+    # link (utils_billing.R's .pro_upsell_note()) -- same modal every other
+    # "See plans" trigger in the app opens.
+    observeEvent(input$btn_see_plans_pro_goal_seek, {
+      .show_plans_modal()
+    })
+
     # -- Saved scenario slots (dca_forecast_scenarios) -------------------------
     # Raw per-row field lists (not overhead_events_df()/fee_events_df()
     # below, which drop tier_idx/new_fee once reduced to a computed
@@ -1419,6 +1426,30 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       apply_membership_fee_events(res, fee_events_df())
     })
 
+    # Pro-exclusive: what income/overhead growth-rate change would reach
+    # break-even within the forecast horizon, when adj_breakeven() doesn't.
+    # Computed against the raw breakeven_result() (not adj_breakeven()),
+    # since goal_seek_breakeven() re-derives the growth adjustment itself
+    # for each candidate rate -- see its own comment for why. Only
+    # computed in the case where it would say anything (interpret_breakeven()
+    # ignores it otherwise too), so a Starter/Free practice, or a Pro one
+    # that's already at break-even, never pays for the extra binary search.
+    breakeven_goal_seek <- reactive({
+      req(adj_breakeven())
+      if (!.has_pro_plan(r$plan_tier) || !is.na(adj_breakeven()$breakeven_date)) {
+        return(NULL)
+      }
+      oa <- overhead_assumptions()
+      goal_seek_breakeven(
+        breakeven_result(),
+        current_income_growth_pct = input$income_growth %||% 0,
+        current_overhead_growth_pct = oa$growth_pct,
+        overhead_flat = oa$flat,
+        overhead_events = overhead_events_df(),
+        fee_events = fee_events_df()
+      )
+    })
+
     adj_revenue <- reactive({
       req(revenue_result())
       res <- apply_growth_assumptions(
@@ -1583,15 +1614,28 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
 
     output$breakeven_interpretation <- renderUI({
       req(adj_breakeven())
-      HTML(interpret_breakeven(
-        adj_breakeven(),
-        r$practice_name,
-        sustained = breakeven_is_sustained(adj_breakeven()),
-        panel_size = r$panel_size,
-        membership_fee = r$membership_fee,
-        membership_tiers = r$membership_tiers,
-        confidence_level = input$confidence
-      ))
+      tagList(
+        HTML(interpret_breakeven(
+          adj_breakeven(),
+          r$practice_name,
+          sustained = breakeven_is_sustained(adj_breakeven()),
+          panel_size = r$panel_size,
+          membership_fee = r$membership_fee,
+          membership_tiers = r$membership_tiers,
+          confidence_level = input$confidence,
+          goal_seek = breakeven_goal_seek()
+        )),
+        # Nothing to upsell once break-even is already reached -- unlike
+        # Planner, DCA has no second Pro perk (a decomposition-style
+        # feature) to advertise in that case.
+        if (!.has_pro_plan(r$plan_tier) && is.na(adj_breakeven()$breakeven_date)) {
+          .pro_upsell_note(
+            ns,
+            "Pro also tells you what growth-rate change -- in income, overhead, or both -- would reach break-even within your forecast horizon.",
+            btn_id = "btn_see_plans_pro_goal_seek"
+          )
+        }
+      )
     })
 
     # -- Revenue UI -----------------------------------------------------------

@@ -312,3 +312,101 @@ test_that("apply_membership_fee_events ignores zero and non-finite deltas", {
   adj <- apply_membership_fee_events(result, events)
   expect_equal(adj$forecast_data$revenue_forecast, fd0$revenue_forecast)
 })
+
+# -- goal_seek_breakeven ------------------------------------------------------
+
+# Flat-revenue-and-overhead fixture: make_breakeven_result()'s revenue is
+# always increasing, which makes it hard to construct a "never reaches
+# break-even, but is close enough that a modest growth-rate change would
+# fix it" case deterministically -- flat series make the achievable/
+# not-achievable boundary easy to reason about directly.
+make_flat_breakeven_result <- function(revenue = 1800, overhead = 2000, n_forecast = 12L) {
+  fd <- tibble::tibble(
+    period_start = seq(as.Date("2025-07-01"), by = "month", length.out = n_forecast),
+    revenue_forecast = rep(revenue, n_forecast),
+    revenue_lower = rep(revenue * 0.9, n_forecast),
+    revenue_upper = rep(revenue * 1.1, n_forecast),
+    overhead_forecast = rep(overhead, n_forecast),
+    overhead_lower = rep(overhead * 0.9, n_forecast),
+    overhead_upper = rep(overhead * 1.1, n_forecast),
+    net_forecast = rep(revenue - overhead, n_forecast)
+  )
+  list(
+    breakeven_date = as.Date(NA),
+    periods_to_breakeven = NA_integer_,
+    current_surplus_deficit = revenue - overhead,
+    current_revenue = revenue,
+    current_overhead = overhead,
+    current_overhead_avg = overhead,
+    overhead_avg_n = 4L,
+    confidence_interval = c(lower = as.Date(NA), upper = as.Date(NA)),
+    forecast_data = fd,
+    method = "linear",
+    frequency = "monthly",
+    data_warnings = NULL
+  )
+}
+
+test_that("goal_seek_breakeven() reports both levers achievable for a small gap", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result)
+
+  expect_s3_class(gs, "dcAnalytics_goal_seek")
+  expect_identical(gs$target_period, 12L)
+  expect_true(gs$income$achievable)
+  expect_true(gs$income$new_growth_pct > 0)
+  expect_true(gs$overhead$achievable)
+  expect_true(gs$overhead$new_growth_pct < 0)
+})
+
+test_that("goal_seek_breakeven() reports neither lever achievable for a huge gap", {
+  result <- make_flat_breakeven_result(revenue = 500, overhead = 5000)
+
+  gs <- goal_seek_breakeven(result)
+
+  expect_false(gs$income$achievable)
+  expect_false(gs$overhead$achievable)
+})
+
+test_that("goal_seek_breakeven() omits the overhead lever when overhead_flat is set", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result, overhead_flat = 2000)
+
+  expect_true(gs$income$achievable)
+  expect_null(gs$overhead)
+})
+
+test_that("goal_seek_breakeven() returns NULL for a NULL breakeven_result", {
+  expect_null(goal_seek_breakeven(NULL))
+})
+
+# -- .describe_breakeven_goal_seek --------------------------------------------
+
+test_that(".describe_breakeven_goal_seek() describes both levers when achievable", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_breakeven_goal_seek(gs, pu)
+
+  expect_true(grepl("either change alone would do it", text))
+  expect_true(grepl("raise assumed income growth", text))
+  expect_true(grepl("lower assumed overhead growth", text))
+})
+
+test_that(".describe_breakeven_goal_seek() reports non-achievability plainly", {
+  result <- make_flat_breakeven_result(revenue = 500, overhead = 5000)
+  gs <- goal_seek_breakeven(result)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_breakeven_goal_seek(gs, pu)
+
+  expect_true(grepl("wouldn't reach break-even", text))
+})
+
+test_that(".describe_breakeven_goal_seek() returns NULL for a NULL goal-seek result", {
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+  expect_null(.describe_breakeven_goal_seek(NULL, pu))
+})

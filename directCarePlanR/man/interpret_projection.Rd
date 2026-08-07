@@ -4,10 +4,28 @@
 \alias{interpret_projection}
 \title{Interpret a Financial Projection}
 \usage{
-interpret_projection(projection)
+interpret_projection(
+  projection,
+  sensitivity_decomposition = NULL,
+  goal_seek = NULL
+)
 }
 \arguments{
 \item{projection}{A tibble as returned by \code{\link[=project_scenarios]{project_scenarios()}}.}
+
+\item{sensitivity_decomposition}{Optional
+\code{dcPlanR_sensitivity_decomposition} object, as returned by
+\code{\link[=decompose_projection_sensitivity]{decompose_projection_sensitivity()}}. When supplied, an additional
+paragraph names which assumption (membership ramp speed or overhead)
+drives more of the conservative-to-optimistic spread. \code{NULL} (the
+default) omits that paragraph entirely, preserving this function's
+original output for callers that don't compute a decomposition.}
+
+\item{goal_seek}{Optional \code{dcPlanR_goal_seek} object, as returned by
+\code{\link[=goal_seek_projection_recovery]{goal_seek_projection_recovery()}}. Only used when the base scenario
+does not recover within the horizon -- ignored otherwise, so it's safe
+to always pass one in regardless of which case applies. \code{NULL} (the
+default) omits that paragraph.}
 }
 \value{
 A character string of narrative text, with paragraphs separated

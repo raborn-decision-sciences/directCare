@@ -21,6 +21,21 @@
   isTRUE(!is.null(plan_tier) && nzchar(plan_tier) && plan_tier != "free")
 }
 
+#' Whether a `plan_tier` value has access to Pro-exclusive features
+#'
+#' Unlike `.has_paid_plan()`, this genuinely distinguishes Starter from
+#' Pro -- see the sensitivity-decomposition feature gated on it in
+#' mod_plan_inputs.R/mod_results.R, the first feature in this codebase
+#' that actually differs between the two paid tiers (see TODO.md's
+#' "In-app Plans modal oversells Pro" entry for the history here).
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier`.
+#' @return `TRUE`/`FALSE`.
+#' @noRd
+.has_pro_plan <- function(plan_tier) {
+  isTRUE(!is.null(plan_tier) && identical(plan_tier, "pro"))
+}
+
 #' Stripe Price `lookup_key`s for the two paid tiers
 #'
 #' See directCareAnalytics's identical constants for the full rationale
@@ -210,6 +225,29 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
       ),
       extra
     )
+  )
+}
+
+#' Small inline upsell note for a Pro-only addition to content every tier
+#' already sees
+#'
+#' Unlike `.locked_feature_card()`, which replaces an entire gated feature,
+#' this sits alongside content that's already free (e.g. the base
+#' Projections interpretation) -- it's advertising an extra paragraph, not
+#' standing in for a missing one.
+#'
+#' @param ns The calling module's namespacing function (`session$ns`).
+#' @param text Body copy describing what upgrading to Pro adds.
+#' @param btn_id Suffix for the "See plans" link's id. Must be unique per
+#'   call site within the same module if it renders more than one.
+#' @noRd
+.pro_upsell_note <- function(ns, text, btn_id = "btn_see_plans_pro") {
+  tags$p(
+    class = "small text-muted mt-2 mb-0",
+    bsicons::bs_icon("stars"), " ",
+    text,
+    " ",
+    actionLink(ns(btn_id), "See Pro plan", class = "small")
   )
 }
 

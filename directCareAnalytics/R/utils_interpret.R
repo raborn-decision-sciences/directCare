@@ -100,6 +100,11 @@
 }
 
 
+#' @param goal_seek Optional `dcAnalytics_goal_seek` object, as returned by
+#'   [goal_seek_breakeven()]. Only used when `result$breakeven_date` is
+#'   `NA` (break-even not reached within the forecast horizon) -- ignored
+#'   otherwise, so it's safe to always pass one in regardless of which case
+#'   applies. `NULL` (the default) omits that paragraph.
 #' @noRd
 interpret_breakeven <- function(
   result,
@@ -108,7 +113,8 @@ interpret_breakeven <- function(
   panel_size = NULL,
   membership_fee = NULL,
   membership_tiers = NULL,
-  confidence_level = 0.95
+  confidence_level = 0.95,
+  goal_seek = NULL
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(htmltools::htmlEscape(practice_name), " ")
@@ -349,6 +355,15 @@ interpret_breakeven <- function(
   tier_sentence <- .tier_context_html(membership_tiers, membership_fee)
   warnings_html <- .data_warnings_html(result)
 
+  # Only meaningful when break-even hasn't been reached -- ignored
+  # otherwise even if a caller passes one in, since "what would it take to
+  # reach break-even" doesn't apply once it's already been achieved.
+  goal_seek_html <- if (is.na(result$breakeven_date) && !is.null(goal_seek)) {
+    .describe_breakeven_goal_seek(goal_seek, pu)
+  } else {
+    NULL
+  }
+
   paste(
     "<p>",
     status_sentence,
@@ -358,6 +373,7 @@ interpret_breakeven <- function(
     } else {
       ""
     },
+    if (!is.null(goal_seek_html)) goal_seek_html else "",
     if (nzchar(tier_sentence)) paste0("<p>", tier_sentence, "</p>") else "",
     if (nzchar(member_sentence)) paste0("<p>", member_sentence, "</p>") else "",
     if (nzchar(warnings_html)) warnings_html else "",

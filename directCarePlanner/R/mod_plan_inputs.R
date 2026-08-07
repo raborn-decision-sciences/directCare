@@ -427,9 +427,48 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         return(invisible(NULL))
       }
 
+      # Pro-exclusive: which assumption (ramp speed vs. overhead) drives
+      # more of the conservative-to-optimistic spread. Computed here (not
+      # inside interpret_projection() itself) because it needs the raw
+      # `assumptions` list, which callers of that function don't otherwise
+      # have to supply. run_plan() swallows and notifies on any
+      # dcPlanR_* error the same as the calls above; a failure here
+      # degrades to the plain 3-paragraph interpretation, not a crash.
+      sensitivity_decomposition <- if (.has_pro_plan(r$plan_tier)) {
+        run_plan(directCarePlanR::decompose_projection_sensitivity(
+          assumptions,
+          horizon_months = iv("horizon_months")
+        ))
+      } else {
+        NULL
+      }
+
+      # Pro-exclusive: what it would take (overhead cut and/or a faster
+      # ramp) for the base scenario to recover within the horizon, when it
+      # currently doesn't. Only computed in that case -- interpret_projection()
+      # ignores a goal_seek argument when the base scenario already
+      # recovers, so skipping the (cheap but pointless) computation here
+      # just saves the wasted binary search.
+      base_recovers <- {
+        base_proj <- projections[projections$scenario == "base", ]
+        any(base_proj$cumulative_net_income >= 0)
+      }
+      goal_seek <- if (.has_pro_plan(r$plan_tier) && !base_recovers) {
+        run_plan(directCarePlanR::goal_seek_projection_recovery(
+          assumptions,
+          horizon_months = iv("horizon_months")
+        ))
+      } else {
+        NULL
+      }
+
       interpretations <- list(
         revenue = directCarePlanR::interpret_revenue(revenue),
-        projection = directCarePlanR::interpret_projection(projections),
+        projection = directCarePlanR::interpret_projection(
+          projections,
+          sensitivity_decomposition,
+          goal_seek
+        ),
         capital = directCarePlanR::interpret_capital(startup_costs, personal_runway)
       )
 
