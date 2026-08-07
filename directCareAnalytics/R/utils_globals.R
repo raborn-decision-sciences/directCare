@@ -48,6 +48,13 @@ NULL
 #' apart visually over time. `dark_mode_id` defaults to the login page's
 #' unnamespaced "dark_mode" (matching app_server.R's own toggle handling);
 #' the signup module passes its own namespaced id instead.
+#'
+#' The RDS favicon and brand palette are deliberately identical across the
+#' whole product family (see both apps' `rds_theme()`), so the title text
+#' was the only thing telling DCA's and Planner's login/signup/password-
+#' reset pages apart -- easy to miss at a glance since both start with
+#' "Direct Care". The icon+tagline pair below is this app's own visual
+#' identifier, distinct from Planner's (see its own `.auth_page_chrome()`).
 #' @noRd
 .auth_page_chrome <- function(title, dark_mode_id = "dark_mode") {
   tags$div(
@@ -63,6 +70,11 @@ NULL
       # light-navy color would go dark-on-dark once dark mode is picked.
       style = "margin-top:8px;font-weight:600;color:var(--bs-emphasis-color);",
       title
+    ),
+    tags$p(
+      class = "text-muted small mb-0",
+      style = "max-width:320px;margin:2px auto 0;",
+      bs_icon("graph-up-arrow"), " Know your break-even, revenue trend, and path to your income goal."
     )
   )
 }

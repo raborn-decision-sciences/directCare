@@ -28,7 +28,10 @@ NULL
 #' Branded header shared by the login page and the signup page
 #'
 #' Matches directCareAnalytics's R/utils_globals.R convention -- see that
-#' file's own roxygen comment for the full rationale.
+#' file's own roxygen comment for the full rationale, including why the
+#' icon+tagline pair below exists (this app's own visual identifier,
+#' distinct from DCA's, since the RDS favicon/palette are identical across
+#' the product family).
 #' @noRd
 .auth_page_chrome <- function(title, dark_mode_id = "dark_mode") {
   tags$div(
@@ -41,6 +44,11 @@ NULL
     tags$h4(
       style = "margin-top:8px;font-weight:600;color:var(--bs-emphasis-color);",
       title
+    ),
+    tags$p(
+      class = "text-muted small mb-0",
+      style = "max-width:320px;margin:2px auto 0;",
+      bs_icon("compass"), " Model your launch costs, revenue, and timeline before you open."
     )
   )
 }
