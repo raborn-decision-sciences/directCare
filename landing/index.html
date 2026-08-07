@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Direct Care Analytics — Know Your Numbers Before You Open</title>
-<meta name="description" content="Direct Care Analytics turns your income and overhead data into plain-language projections of when your DPC practice will break even, how your revenue is trending, and how many members you need to hit your income goals.">
+<title>Direct Care Suite — Plan, Launch, and Track Your Direct Care Practice</title>
+<meta name="description" content="Two tools from Raborn Decision Sciences: Direct Care Practice Launch Planner models your startup costs, revenue, and timeline before you open, and Direct Care Analytics turns your bookkeeping data into break-even and revenue projections once you're seeing patients.">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,6 +76,20 @@
     color: var(--teal);
   }
 
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-loginlink {
+    color: #CBD5E1;
+    font-size: 0.875rem;
+    text-decoration: none;
+  }
+
+  .nav-loginlink:hover { color: var(--white); }
+
   .nav-cta {
     background: var(--teal);
     color: var(--navy);
@@ -124,139 +138,170 @@
   .hero-sub {
     font-size: 1.125rem;
     color: #94A3B8;
-    max-width: 620px;
+    max-width: 640px;
     margin: 0 auto 2.5rem;
     line-height: 1.7;
   }
 
-  .hero-slots {
+  .hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .btn-primary,
+  .btn-secondary {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(244,158,11,0.15);
-    border: 1px solid rgba(244,158,11,0.4);
-    color: var(--amber);
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    padding: 0.4rem 1rem;
-    border-radius: 999px;
-    margin-bottom: 2rem;
-  }
-
-  .slot-dot {
-    width: 7px;
-    height: 7px;
-    background: var(--amber);
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-  }
-
-  /* SIGNUP FORM */
-  .signup-form {
-    max-width: 480px;
-    margin: 0 auto;
-  }
-
-  .signup-form .name-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-
-  @media (max-width: 480px) {
-    .signup-form .name-row { grid-template-columns: 1fr; }
-  }
-
-  .signup-form .field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .signup-form label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #94A3B8;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-
-  .signup-form label em {
-    color: var(--teal);
-    font-style: normal;
-    margin-left: 2px;
-  }
-
-  .signup-form input[type="text"],
-  .signup-form input[type="email"] {
-    padding: 0.75rem 1rem;
-    border-radius: 6px;
-    border: 1.5px solid #334155;
-    background: #1E3044;
-    color: var(--white);
     font-family: var(--font);
+    font-weight: 700;
     font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.15s;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .signup-form input[type="text"]::placeholder,
-  .signup-form input[type="email"]::placeholder { color: #64748B; }
-
-  .signup-form input[type="text"]:focus,
-  .signup-form input[type="email"]:focus { border-color: var(--teal); }
-
-  .signup-form select {
-    padding: 0.75rem 1rem;
+    padding: 0.85rem 1.75rem;
+    border: none;
     border-radius: 6px;
-    border: 1.5px solid #334155;
-    background: #1E3044;
-    color: var(--white);
-    font-family: var(--font);
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.15s;
-    width: 100%;
-    box-sizing: border-box;
     cursor: pointer;
-  }
-
-  .signup-form select:focus { border-color: var(--teal); }
-  .signup-form select option { color: var(--text); }
-
-  .signup-form .field-note {
-    font-size: 0.75rem;
-    color: #64748B;
-    margin-top: -0.2rem;
-    line-height: 1.4;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
   }
 
   .btn-primary {
     background: var(--teal);
     color: var(--navy);
-    font-family: var(--font);
-    font-weight: 700;
-    font-size: 0.95rem;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.15s;
-    white-space: nowrap;
-    width: 100%;
-    margin-top: 0.25rem;
   }
 
   .btn-primary:hover { background: var(--teal-dark); color: var(--white); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--white);
+    border: 1.5px solid #334155;
+  }
+
+  .btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* SCREENSHOT / APP MOCKUP */
+  .screenshot-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    background: #1E3044;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    overflow: hidden;
+  }
+
+  .screenshot-bar {
+    background: #162636;
+    padding: 0.6rem 1rem;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #FF5F57; }
+  .dot-y { background: #FEBC2E; }
+  .dot-g { background: #28C840; }
+
+  .screenshot-body {
+    padding: 1.5rem 2rem 2rem;
+    text-align: left;
+    color: #CBD5E1;
+    font-size: 0.85rem;
+    min-height: 200px;
+  }
+
+  .mock-nav {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 0;
+  }
+
+  .mock-tab {
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    color: #94A3B8;
+    border-radius: 4px 4px 0 0;
+    cursor: default;
+  }
+
+  .mock-tab.active {
+    background: #0D9488;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .mock-results {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 640px) {
+    .mock-results { grid-template-columns: 1fr; }
+  }
+
+  .mock-card {
+    background: #162636;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+  }
+
+  .mock-card-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748B;
+    margin-bottom: 0.4rem;
+  }
+
+  .mock-card-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0D9488;
+    line-height: 1.1;
+  }
+
+  .mock-card-sub {
+    font-size: 0.7rem;
+    color: #94A3B8;
+    margin-top: 0.25rem;
+  }
+
+  .mock-chart {
+    background: #162636;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .mock-chart-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748B;
+    margin-bottom: 0.75rem;
+  }
+
+  .mock-chart svg { display: block; width: 100%; }
+
+  .mock-narrative {
+    background: #162636;
+    border-left: 3px solid #0D9488;
+    border-radius: 0 6px 6px 0;
+    padding: 0.85rem 1rem;
+    font-size: 0.78rem;
+    color: #CBD5E1;
+    line-height: 1.6;
+  }
 
   /* PROBLEM STRIP */
   .problem-strip {
@@ -276,13 +321,7 @@
 
   .problem-strip strong { color: var(--white); }
 
-  /* FEATURES */
-  .features {
-    padding: 4.5rem 2rem;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
+  /* SECTION HEADERS */
   .section-label {
     font-family: var(--mono);
     font-size: 0.75rem;
@@ -300,6 +339,118 @@
     color: var(--navy);
     margin-bottom: 3rem;
     line-height: 1.2;
+  }
+
+  /* TWO-APP CARDS */
+  .apps-section {
+    padding: 4.5rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.75rem;
+  }
+
+  .app-card {
+    background: var(--white);
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-card.featured {
+    border-color: var(--teal);
+    box-shadow: 0 4px 20px rgba(20,184,166,0.12);
+  }
+
+  .app-card-stage {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--teal);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .app-card h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.6rem;
+  }
+
+  .app-card p.app-desc {
+    color: var(--gray);
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+  }
+
+  .app-card ul {
+    list-style: none;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+  }
+
+  .app-card li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--slate);
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+  }
+
+  .app-card .check {
+    color: var(--teal);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .app-card-ctas {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: auto;
+  }
+
+  .app-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--teal);
+    color: var(--navy);
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .app-btn:hover { background: var(--teal-dark); color: var(--white); }
+
+  .app-loginlink {
+    font-size: 0.85rem;
+    color: var(--gray);
+    text-decoration: none;
+  }
+
+  .app-loginlink:hover { color: var(--teal-dark); text-decoration: underline; }
+
+  /* FEATURES */
+  .features {
+    padding: 4.5rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
   }
 
   .features-grid {
@@ -438,6 +589,14 @@
     font-size: 1rem;
   }
 
+  .bottom-cta .hero-ctas { margin-bottom: 1.5rem; }
+
+  .bottom-cta .fine-print {
+    font-size: 0.8rem;
+    color: #64748B;
+    margin-bottom: 0;
+  }
+
   /* FOOTER */
   footer {
     background: #0F1E2B;
@@ -454,126 +613,6 @@
   footer a {
     color: var(--teal);
     text-decoration: none;
-  }
-
-  /* SCREENSHOT / APP MOCKUP */
-  .screenshot-wrap {
-    max-width: 860px;
-    margin: 3rem auto 0;
-    background: #1E3044;
-    border-radius: 10px;
-    border: 1px solid #334155;
-    overflow: hidden;
-  }
-
-  .screenshot-bar {
-    background: #162636;
-    padding: 0.6rem 1rem;
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-
-  .dot { width: 10px; height: 10px; border-radius: 50%; }
-  .dot-r { background: #FF5F57; }
-  .dot-y { background: #FEBC2E; }
-  .dot-g { background: #28C840; }
-
-  .screenshot-body {
-    padding: 1.5rem 2rem 2rem;
-    text-align: left;
-    color: #CBD5E1;
-    font-size: 0.85rem;
-    min-height: 200px;
-  }
-
-  .mock-nav {
-    display: flex;
-    gap: 0.25rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid #334155;
-    padding-bottom: 0;
-  }
-
-  .mock-tab {
-    padding: 0.4rem 1rem;
-    font-size: 0.75rem;
-    color: #94A3B8;
-    border-radius: 4px 4px 0 0;
-    cursor: default;
-  }
-
-  .mock-tab.active {
-    background: #0D9488;
-    color: #fff;
-    font-weight: 600;
-  }
-
-  .mock-results {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-  }
-
-  @media (max-width: 640px) {
-    .mock-results { grid-template-columns: 1fr; }
-  }
-
-  .mock-card {
-    background: #162636;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 1rem 1.1rem;
-  }
-
-  .mock-card-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748B;
-    margin-bottom: 0.4rem;
-  }
-
-  .mock-card-value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #0D9488;
-    line-height: 1.1;
-  }
-
-  .mock-card-sub {
-    font-size: 0.7rem;
-    color: #94A3B8;
-    margin-top: 0.25rem;
-  }
-
-  .mock-chart {
-    background: #162636;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 1rem 1.1rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .mock-chart-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748B;
-    margin-bottom: 0.75rem;
-  }
-
-  .mock-chart svg { display: block; width: 100%; }
-
-  .mock-narrative {
-    background: #162636;
-    border-left: 3px solid #0D9488;
-    border-radius: 0 6px 6px 0;
-    padding: 0.85rem 1rem;
-    font-size: 0.78rem;
-    color: #CBD5E1;
-    line-height: 1.6;
   }
 
   /* DATA SOURCES */
@@ -628,10 +667,9 @@
       display: block;
     }
     nav { padding: 0.75rem 1rem; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .slot-dot { animation: none; }
+    .nav-links { gap: 0.75rem; }
+    .nav-loginlink { display: none; }
+    .app-card-ctas { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -640,81 +678,25 @@
 <nav>
   <a href="/" class="nav-brand">
     <img src="assets/favicon.svg" alt="Raborn Decision Sciences mark" class="nav-mark">
-    <span class="nav-name">Direct Care <span>Analytics</span></span>
+    <span class="nav-name">Direct Care <span>Suite</span></span>
   </a>
-  <a href="#beta" class="nav-cta">Beta Full</a>
+  <div class="nav-links">
+    <a href="https://app.directcareanalytics.com" class="nav-loginlink">Log in</a>
+    <a href="#apps" class="nav-cta">Get Started</a>
+  </div>
 </nav>
 
 <section class="hero">
-  <p class="hero-eyebrow">Beta signups are currently paused</p>
+  <p class="hero-eyebrow">By Raborn Decision Sciences</p>
   <h1>Know your numbers <em>before</em> you open &mdash; and after.</h1>
   <p class="hero-sub">
-    Direct Care Analytics turns your income and overhead data into plain-language projections
-    of when your DPC practice will break even, how your revenue is trending, and how many
-    members you need to hit your income goals.
+    Two tools, one clear financial picture for your direct care practice: model your launch
+    before you sign a lease, then track break-even and revenue once you're seeing patients.
   </p>
 
-  <div class="hero-slots">
-    <div class="slot-dot"></div>
-    All beta slots are currently filled
-  </div>
-
-  <div id="beta">
-    <form class="signup-form"
-      action='https://forms.zohopublic.com/anthonyraborndecis1/form/DirectCareAnalyticsWaitlist/formperma/2kXUtKMUil3d5j4KvHZ5ywzuJS0PwGDYsFUVeUI9YYg/htmlRecords/submit'
-      name='form' method='POST' accept-charset='UTF-8' enctype='multipart/form-data'>
-      <input type="hidden" name="zf_referrer_name" value="">
-      <input type="hidden" name="zf_redirect_url" value="">
-      <input type="hidden" name="zc_gad" value="">
-      <div class="name-row">
-        <div class="field">
-          <label for="wl_first">First name <em>*</em></label>
-          <input type="text" id="wl_first" name="SingleLine2" maxlength="255" required placeholder="Jane">
-        </div>
-        <div class="field">
-          <label for="wl_last">Last name <em>*</em></label>
-          <input type="text" id="wl_last" name="SingleLine3" maxlength="255" required placeholder="Smith">
-        </div>
-      </div>
-      <div class="field">
-        <label for="wl_email">Email <em>*</em></label>
-        <input type="email" id="wl_email" name="Email" maxlength="255" required placeholder="jane@example.com">
-      </div>
-      <div class="field">
-        <label for="wl_practice_type">Practice type <em>*</em></label>
-        <select id="wl_practice_type" name="Dropdown" required>
-          <option value="" disabled selected>Select one</option>
-          <option value="Physician">Physician</option>
-          <option value="Nurse Practitioner">Nurse Practitioner</option>
-          <option value="Mental Health Therapist">Mental Health Therapist</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <div class="field practice-other-wrap" style="display:none;">
-        <label for="wl_practice_type_other">Please specify <em>*</em></label>
-        <input type="text" id="wl_practice_type_other" maxlength="255" placeholder="Your role">
-      </div>
-      <div class="field">
-        <label for="wl_practice_status">Practice status <em>*</em></label>
-        <select id="wl_practice_status" name="Dropdown1" required>
-          <option value="" disabled selected>Select one</option>
-          <option value="Just exploring">Just exploring</option>
-          <option value="Planning to launch a direct care practice">Planning to launch a direct care practice</option>
-          <option value="Direct care practice launched within the last year">Direct care practice launched within the last year</option>
-          <option value="Direct care practice launched more than a year ago">Direct care practice launched more than a year ago</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="wl_specialty">Practice specialty <em>*</em></label>
-        <input type="text" id="wl_specialty" name="SingleLine1" maxlength="255" required placeholder="Primary Care, Pediatrics, Gynecology, etc.">
-        <p class="field-note">Provide your practice specialty.</p>
-      </div>
-      <div class="field">
-        <label for="wl_referral">How did you hear about us?</label>
-        <input type="text" id="wl_referral" name="SingleLine" maxlength="255" placeholder="A specific Facebook group, word-of-mouth, etc.">
-      </div>
-      <button type="submit" class="btn-primary">Join the waitlist</button>
-    </form>
+  <div class="hero-ctas">
+    <a href="https://planner.directcareanalytics.com/?signup=1" class="btn-primary">Plan My Launch</a>
+    <a href="https://app.directcareanalytics.com/?signup=1" class="btn-secondary">Track My Practice</a>
   </div>
 
   <div class="screenshot-wrap">
@@ -794,15 +776,60 @@
 
 <section class="problem-strip">
   <p>
-    Most direct care physicians launch with a spreadsheet, a gut feeling, and a hope that
-    membership grows fast enough. <strong>Direct Care Analytics replaces that uncertainty
+    Most direct care clinicians launch with a spreadsheet, a gut feeling, and a hope that
+    membership grows fast enough. <strong>The Direct Care Suite replaces that uncertainty
     with a structured, data-driven picture of your practice's financial trajectory</strong>
     &mdash; whether you're still planning or already open.
   </p>
 </section>
 
+<section class="apps-section" id="apps">
+  <p class="section-label">Two tools, one suite</p>
+  <h2 class="section-title">Pick the stage you're at.</h2>
+  <div class="apps-grid">
+    <div class="app-card">
+      <p class="app-card-stage">Before you open</p>
+      <h3>Direct Care Practice Launch Planner</h3>
+      <p class="app-desc">
+        Model your startup costs, revenue ramp, and location market context before you sign a
+        lease or see your first patient. Find out how many members you need and how long it'll
+        take to get there.
+      </p>
+      <ul>
+        <li><span class="check">&#x2713;</span> Startup cost and overhead estimation</li>
+        <li><span class="check">&#x2713;</span> Membership growth and revenue ramp modeling</li>
+        <li><span class="check">&#x2713;</span> Location-based market context</li>
+        <li><span class="check">&#x2713;</span> Downloadable launch plan report</li>
+      </ul>
+      <div class="app-card-ctas">
+        <a href="https://planner.directcareanalytics.com/?signup=1" class="app-btn">Get Started &#8594;</a>
+        <a href="https://planner.directcareanalytics.com" class="app-loginlink">Log in</a>
+      </div>
+    </div>
+    <div class="app-card featured">
+      <p class="app-card-stage">After you open</p>
+      <h3>Direct Care Analytics</h3>
+      <p class="app-desc">
+        Turn your income and overhead data into plain-language projections of when your
+        practice will break even, how revenue is trending, and how many members you need to
+        hit your income goals.
+      </p>
+      <ul>
+        <li><span class="check">&#x2713;</span> Break-even analysis</li>
+        <li><span class="check">&#x2713;</span> Revenue trend tracking from real bookkeeping data</li>
+        <li><span class="check">&#x2713;</span> Income goal targeting</li>
+        <li><span class="check">&#x2713;</span> Downloadable PDF report</li>
+      </ul>
+      <div class="app-card-ctas">
+        <a href="https://app.directcareanalytics.com/?signup=1" class="app-btn">Get Started &#8594;</a>
+        <a href="https://app.directcareanalytics.com" class="app-loginlink">Log in</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="features">
-  <p class="section-label">What it does</p>
+  <p class="section-label">What Direct Care Analytics does</p>
   <h2 class="section-title">From your data to a clear financial picture</h2>
 
   <div class="features-grid">
@@ -829,7 +856,7 @@
     <div class="feature-card">
       <div class="feature-icon">&#x2388;</div>
       <h3>Works before you launch</h3>
-      <p>No real data yet? Enter estimated inputs for a planning-mode analysis. Switch to actual bookkeeping data when you're ready.</p>
+      <p>No real data yet? Enter estimated inputs for a planning-mode analysis, or start with the Launch Planner and move to Analytics once you're seeing patients.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon">&#x2630;</div>
@@ -866,11 +893,11 @@
 <section class="for-section">
   <div class="for-inner">
     <p class="section-label">Who it's for</p>
-    <h2 class="section-title" style="text-align:left; margin-bottom:0;">Built for physicians making the leap to direct care.</h2>
+    <h2 class="section-title" style="text-align:left; margin-bottom:0;">Built for clinicians making the leap to direct care.</h2>
     <ul class="for-list">
-      <li><span class="check">&#x2713;</span> Physicians planning a DPC or cash-pay practice and wanting to stress-test the numbers first</li>
+      <li><span class="check">&#x2713;</span> Clinicians planning a DPC or cash-pay practice and wanting to stress-test the numbers first</li>
       <li><span class="check">&#x2713;</span> Recently opened practices trying to understand when they'll break even</li>
-      <li><span class="check">&#x2713;</span> Direct care physicians without finance staff who need a clear picture of their trajectory</li>
+      <li><span class="check">&#x2713;</span> Direct care clinicians without finance staff who need a clear picture of their trajectory</li>
       <li><span class="check">&#x2713;</span> Any direct care model: DPC, concierge, cash-pay specialty, hybrid membership</li>
     </ul>
   </div>
@@ -882,110 +909,30 @@
     <h3>Anthony Raborn</h3>
     <p class="founder-role">Founder, Raborn Decision Sciences</p>
     <p>
-      I built Direct Care Analytics with my wife, a direct care gynecologist who faced exactly
+      I built the Direct Care Suite with my wife, a direct care gynecologist who faced exactly
       this problem when opening her practice: smart, data-capable, and flying blind on the
-      financial picture. If that sounds familiar, this tool was made for you.
+      financial picture. If that sounds familiar, these tools were made for you.
     </p>
   </div>
 </section>
 
 <section class="bottom-cta">
-  <h2>Beta signups are currently paused.</h2>
-  <p>We've filled our initial cohort of beta testers. Join the waitlist to stay informed as the app develops.</p>
-  <form class="signup-form"
-    action='https://forms.zohopublic.com/anthonyraborndecis1/form/DirectCareAnalyticsWaitlist/formperma/2kXUtKMUil3d5j4KvHZ5ywzuJS0PwGDYsFUVeUI9YYg/htmlRecords/submit'
-    name='form' method='POST' accept-charset='UTF-8' enctype='multipart/form-data'>
-    <input type="hidden" name="zf_referrer_name" value="">
-    <input type="hidden" name="zf_redirect_url" value="">
-    <input type="hidden" name="zc_gad" value="">
-    <div class="name-row">
-      <div class="field">
-        <label for="wl_first_b">First name <em>*</em></label>
-        <input type="text" id="wl_first_b" name="SingleLine2" maxlength="255" required placeholder="Jane">
-      </div>
-      <div class="field">
-        <label for="wl_last_b">Last name <em>*</em></label>
-        <input type="text" id="wl_last_b" name="SingleLine3" maxlength="255" required placeholder="Smith">
-      </div>
-    </div>
-    <div class="field">
-      <label for="wl_email_b">Email <em>*</em></label>
-      <input type="email" id="wl_email_b" name="Email" maxlength="255" required placeholder="jane@example.com">
-    </div>
-    <div class="field">
-      <label for="wl_practice_type_b">Practice type <em>*</em></label>
-      <select id="wl_practice_type_b" name="Dropdown" required>
-        <option value="" disabled selected>Select one</option>
-        <option value="Physician">Physician</option>
-        <option value="Nurse Practitioner">Nurse Practitioner</option>
-        <option value="Mental Health Therapist">Mental Health Therapist</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-    <div class="field practice-other-wrap" style="display:none;">
-      <label for="wl_practice_type_other_b">Please specify <em>*</em></label>
-      <input type="text" id="wl_practice_type_other_b" maxlength="255" placeholder="Your role">
-    </div>
-    <div class="field">
-      <label for="wl_practice_status_b">Practice status <em>*</em></label>
-      <select id="wl_practice_status_b" name="Dropdown1" required>
-        <option value="" disabled selected>Select one</option>
-        <option value="Just exploring">Just exploring</option>
-        <option value="Planning to launch a direct care practice">Planning to launch a direct care practice</option>
-        <option value="Direct care practice launched within the last year">Direct care practice launched within the last year</option>
-        <option value="Direct care practice launched more than a year ago">Direct care practice launched more than a year ago</option>
-      </select>
-    </div>
-    <div class="field">
-      <label for="wl_specialty_b">Practice specialty <em>*</em></label>
-      <input type="text" id="wl_specialty_b" name="SingleLine1" maxlength="255" required placeholder="Primary Care, Pediatrics, Gynecology, etc.">
-      <p class="field-note">Provide your practice specialty.</p>
-    </div>
-    <div class="field">
-      <label for="wl_referral_b">How did you hear about us?</label>
-      <input type="text" id="wl_referral_b" name="SingleLine" maxlength="255" placeholder="A specific Facebook group, word-of-mouth, etc.">
-    </div>
-    <button type="submit" class="btn-primary">Join the waitlist</button>
-  </form>
+  <h2>Ready for a clear financial picture?</h2>
+  <p>Start free. Upgrade to Starter or Pro whenever you're ready for more.</p>
+  <div class="hero-ctas">
+    <a href="https://planner.directcareanalytics.com/?signup=1" class="btn-primary">Plan My Launch</a>
+    <a href="https://app.directcareanalytics.com/?signup=1" class="btn-secondary">Track My Practice</a>
+  </div>
+  <p class="fine-print">No credit card required to start on the Free plan.</p>
 </section>
 
 <footer>
   <p>
     &copy; 2026 <a href="https://raborndecisionsciences.com">Raborn Decision Sciences</a>
-    &mdash; Direct Care Analytics is a product of Raborn Decision Sciences LLC.
+    &mdash; Direct Care Analytics and Direct Care Practice Launch Planner are products of
+    Raborn Decision Sciences LLC.
   </p>
 </footer>
-
-<script>
-  document.querySelectorAll('.signup-form').forEach(function (form) {
-    var select = form.querySelector('select[name="Dropdown"]');
-    if (!select) return;
-
-    var otherWrap = select.closest('.field').nextElementSibling;
-    var otherInput = otherWrap ? otherWrap.querySelector('input') : null;
-    if (!otherWrap || !otherInput) return;
-
-    select.addEventListener('change', function () {
-      if (select.value === 'Other') {
-        otherWrap.style.display = '';
-        otherInput.setAttribute('required', 'required');
-      } else {
-        otherWrap.style.display = 'none';
-        otherInput.removeAttribute('required');
-        otherInput.value = '';
-      }
-    });
-
-    form.addEventListener('submit', function () {
-      if (select.value === 'Other' && otherInput.value.trim()) {
-        var customOption = document.createElement('option');
-        customOption.value = otherInput.value.trim();
-        customOption.selected = true;
-        select.appendChild(customOption);
-      }
-    });
-  });
-</script>
 
 </body>
 </html>
