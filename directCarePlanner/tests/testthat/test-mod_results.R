@@ -93,3 +93,18 @@ test_that(".paragraphs_to_html() returns NULL for empty input", {
   expect_null(.paragraphs_to_html(NULL))
   expect_null(.paragraphs_to_html(""))
 })
+
+# ── .humanize_cost_items() (startup-cost category label overrides) ──────
+
+test_that(".humanize_cost_items returns default labels with no overrides", {
+  expect_equal(.humanize_cost_items("ehr_setup"), "EHR setup")
+  expect_equal(.humanize_cost_items("equipment"), "Equipment")
+})
+
+test_that(".humanize_cost_items applies overrides and falls back for unmapped keys", {
+  overrides <- c(ehr_setup = "Practice Software")
+  expect_equal(.humanize_cost_items("ehr_setup", overrides), "Practice Software")
+  expect_equal(.humanize_cost_items("equipment", overrides), "Equipment")
+  expect_equal(.humanize_cost_items("unknown_slug", overrides), "unknown_slug")
+})
+

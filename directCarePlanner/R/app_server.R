@@ -368,6 +368,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
     projections = NULL, # dcPlanR_scenario_projection tibble, from project_scenarios()
     capital = NULL, # list(startup_costs = , personal_runway = )
     interpretations = NULL, # list(revenue = , projection = , capital = ), plain text
+    cost_item_labels = NULL, # named chr vector: startup-cost slug -> custom display label (matches directCareAnalytics's category_labels/source_labels pattern)
 
     # "light" or "dark" -- referenced (unused) inside renderPlot() purely
     # to register a reactive dependency; see directCareAnalytics's

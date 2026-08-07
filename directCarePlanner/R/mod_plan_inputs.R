@@ -139,7 +139,27 @@ mod_plan_inputs_ui <- function(id) {
             numericInput(ns("runway_other"), "Other ($)", value = 0, min = 0, step = 25),
             uiOutput(ns("runway_total_ui"))
           ),
-          numericInput(ns("months_coverage"), "Months of coverage needed", value = 6, min = 1, step = 1)
+          numericInput(ns("months_coverage"), "Months of coverage needed", value = 6, min = 1, step = 1),
+          accordion(
+            open = FALSE,
+            class = "mt-3",
+            accordion_panel(
+              "Customize category labels",
+              icon = bsicons::bs_icon("tags"),
+              tags$p(
+                class = "text-muted small",
+                "Rename how startup cost items appear in the Results table",
+                " and the downloaded report — the underlying numbers are unchanged."
+              ),
+              uiOutput(ns("cost_label_editor_ui")),
+              actionButton(
+                ns("btn_save_cost_labels"),
+                "Save Labels",
+                icon = bsicons::bs_icon("check2"),
+                class = "btn-secondary btn-sm w-100 mt-1"
+              )
+            )
+          )
         )
       )
     ),
@@ -258,6 +278,50 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         class = "border-top pt-2 mt-1 small fw-semibold",
         "Monthly living expenses total: ", .fmt_dollar(runway_total_r())
       )
+    })
+
+    # -- Customize startup-cost item display labels ----------------------
+    # .cost_item_labels / .humanize_cost_items() live in mod_results.R
+    # (same package namespace, no import needed) -- this is the one place
+    # Planner has a slug -> display-label mapping that actually reaches a
+    # downstream table/report, matching directCareAnalytics's
+    # .cat_labels/.pretty_cat pattern for its own "Customize Category
+    # Labels" editor. Overhead/personal-runway itemized inputs have no
+    # equivalent: both collapse to a single total before .build_plan()
+    # ever calls the directCarePlanR package, so there's no per-category
+    # display anywhere downstream to rename.
+    output$cost_label_editor_ui <- renderUI({
+      slugs <- names(.cost_item_labels)
+      cur <- r$cost_item_labels %||% .cost_item_labels
+      tagList(
+        lapply(slugs, function(slug) {
+          default <- .cost_item_labels[[slug]]
+          textInput(
+            ns(paste0("cost_label_", slug)),
+            default,
+            value = isolate(input[[paste0("cost_label_", slug)]]) %||%
+              (if (slug %in% names(cur)) cur[[slug]] else default),
+            placeholder = default
+          )
+        })
+      )
+    })
+
+    observeEvent(input$btn_save_cost_labels, {
+      slugs <- names(.cost_item_labels)
+      new_labels <- stats::setNames(
+        vapply(
+          slugs,
+          function(slug) {
+            v <- input[[paste0("cost_label_", slug)]] %||% ""
+            if (nzchar(trimws(v))) v else .cost_item_labels[[slug]]
+          },
+          character(1)
+        ),
+        slugs
+      )
+      r$cost_item_labels <- new_labels
+      showNotification("Category labels updated.", type = "message", duration = 2)
     })
 
     # Extracted from the submit button's own observer so a loaded scenario

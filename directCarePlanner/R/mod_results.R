@@ -53,8 +53,16 @@
   # "total" instead of the 5 itemized categories above.
   total = "Total startup costs"
 )
-.humanize_cost_items <- function(names_vec) {
-  labels <- unname(.cost_item_labels[names_vec])
+# `overrides` is an optional named chr vector (slug -> custom label),
+# typically `r$cost_item_labels` set via the "Customize Category Labels"
+# editor in Plan Inputs' Capital Requirements card (matches
+# directCareAnalytics's .pretty_cat() override pattern).
+.humanize_cost_items <- function(names_vec, overrides = NULL) {
+  labels_map <- .cost_item_labels
+  if (!is.null(overrides)) {
+    labels_map[names(overrides)] <- overrides
+  }
+  labels <- unname(labels_map[names_vec])
   missing <- is.na(labels)
   labels[missing] <- names_vec[missing]
   labels
@@ -239,7 +247,10 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     output$startup_table <- DT::renderDT({
       req(r$capital$startup_costs)
       items <- r$capital$startup_costs$line_items
-      df <- data.frame(item = .humanize_cost_items(names(items)), amount = as.numeric(items))
+      df <- data.frame(
+        item = .humanize_cost_items(names(items), r$cost_item_labels),
+        amount = as.numeric(items)
+      )
       DT::datatable(
         df,
         options = list(dom = "t", paging = FALSE),
@@ -270,11 +281,25 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         # practice can't normally reach this handler at all -- this just
         # guards the case where the href is somehow still requested.
         req(.has_paid_plan(r$plan_tier))
+        # report.typ's own humanize() only knows how to prettify the raw
+        # slug (e.g. "ehr_setup" -> "EHR Setup") -- it has no idea a
+        # custom label was saved in-app. Rename line_items to the
+        # resolved display labels before they reach build_report_data()
+        # so the PDF matches what's shown on-screen; re-running an
+        # already-human label through humanize() is a no-op (no
+        # underscores left to split on), so this is safe either way.
+        capital_for_report <- r$capital
+        if (!is.null(capital_for_report$startup_costs$line_items)) {
+          names(capital_for_report$startup_costs$line_items) <- .humanize_cost_items(
+            names(capital_for_report$startup_costs$line_items),
+            r$cost_item_labels
+          )
+        }
         data <- directCarePlanR::build_report_data(
           market_context = r$market_context,
           revenue = r$revenue,
           projections = r$projections,
-          capital = r$capital,
+          capital = capital_for_report,
           interpretations = r$interpretations,
           practice_name = r$practice_name
         )

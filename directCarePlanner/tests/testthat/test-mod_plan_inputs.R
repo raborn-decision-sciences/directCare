@@ -192,6 +192,29 @@ test_that("a non-5-digit ZIP shows an error notification and leaves state untouc
   })
 })
 
+test_that("cost_label_editor_ui renders a field per startup-cost slug", {
+  r <- reactiveValues(cost_item_labels = NULL)
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    html <- paste(as.character(output$cost_label_editor_ui), collapse = "")
+    expect_true(grepl("cost_label_ehr_setup", html, fixed = TRUE))
+    expect_true(grepl("cost_label_equipment", html, fixed = TRUE))
+    expect_true(grepl("cost_label_total", html, fixed = TRUE))
+  })
+})
+
+test_that("saving cost labels writes r$cost_item_labels, falling back to defaults for blanks", {
+  r <- reactiveValues(cost_item_labels = NULL)
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    session$setInputs(cost_label_ehr_setup = "Practice Software", cost_label_equipment = "")
+    session$setInputs(btn_save_cost_labels = 1)
+
+    expect_equal(r$cost_item_labels[["ehr_setup"]], "Practice Software")
+    expect_equal(r$cost_item_labels[["equipment"]], "Equipment")
+  })
+})
+
 test_that("an unresolvable ZIP leaves state untouched", {
   r <- reactiveValues(market_context = NULL)
 
