@@ -512,6 +512,152 @@
     flex-shrink: 0;
   }
 
+  /* PRICING */
+  .pricing-section {
+    padding: 4.5rem 2rem;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  .price-card {
+    background: var(--white);
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .price-card.featured {
+    border-color: var(--teal);
+    box-shadow: 0 4px 20px rgba(20,184,166,0.12);
+    position: relative;
+  }
+
+  .price-card-badge {
+    position: absolute;
+    top: -0.7rem;
+    left: 2rem;
+    background: var(--teal);
+    color: var(--navy);
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  .price-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 0.5rem;
+  }
+
+  .price-card .price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .price-card .price .amount {
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .price-card .price .period {
+    font-size: 0.9rem;
+    color: var(--gray);
+  }
+
+  .price-card .price-desc {
+    font-size: 0.85rem;
+    color: var(--gray);
+    margin-bottom: 1.5rem;
+    min-height: 2.6em;
+  }
+
+  .price-card ul {
+    list-style: none;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+  }
+
+  .price-card li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.875rem;
+    color: var(--slate);
+    margin-bottom: 0.65rem;
+    line-height: 1.5;
+  }
+
+  .price-card li.excluded {
+    color: #94A3B8;
+  }
+
+  .price-card .check {
+    color: var(--teal);
+  }
+
+  .price-card .cross {
+    color: #CBD5E1;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-top: 0.05rem;
+    flex-shrink: 0;
+  }
+
+  .price-card-cta {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .price-card:not(.featured) .price-card-cta {
+    background: transparent;
+    color: var(--navy);
+    border: 1.5px solid #CBD5E1;
+  }
+
+  .price-card:not(.featured) .price-card-cta:hover { border-color: var(--teal); color: var(--teal-dark); }
+
+  .price-card.featured .price-card-cta {
+    background: var(--teal);
+    color: var(--navy);
+    border: 1.5px solid var(--teal);
+  }
+
+  .price-card.featured .price-card-cta:hover { background: var(--teal-dark); border-color: var(--teal-dark); color: var(--white); }
+
+  .pricing-note {
+    text-align: center;
+    color: var(--gray);
+    font-size: 0.85rem;
+    max-width: 640px;
+    margin: 2rem auto 0;
+    line-height: 1.6;
+  }
+
   /* FOUNDER */
   .founder {
     padding: 4.5rem 2rem;
@@ -669,6 +815,7 @@
     <span class="nav-name">Direct Care <span>Suite</span></span>
   </a>
   <div class="nav-links">
+    <a href="#pricing" class="nav-loginlink">Pricing</a>
     <a href="https://app.directcareanalytics.com" class="nav-loginlink">Log in</a>
     <a href="#apps" class="nav-cta">Get Started</a>
   </div>
@@ -853,6 +1000,60 @@
       <li><span class="check">&#x2713;</span> Any direct care model: DPC, concierge, cash-pay specialty, hybrid membership</li>
     </ul>
   </div>
+</section>
+
+<section class="pricing-section" id="pricing">
+  <p class="section-label">Simple, suite-wide pricing</p>
+  <h2 class="section-title">One plan unlocks both apps.</h2>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <h3>Free</h3>
+      <div class="price"><span class="amount">$0</span><span class="period">/mo</span></div>
+      <p class="price-desc">Try the calculators with no commitment.</p>
+      <ul>
+        <li><span class="check">&#x2713;</span> Quick Calculator &amp; planning tools</li>
+        <li><span class="check">&#x2713;</span> Manual data entry</li>
+        <li><span class="check">&#x2713;</span> Plain-language interpretation of your results</li>
+        <li class="excluded"><span class="cross">&#x2013;</span> Bookkeeping upload &amp; revenue tracking</li>
+        <li class="excluded"><span class="cross">&#x2013;</span> Location market context</li>
+        <li class="excluded"><span class="cross">&#x2013;</span> Saved scenarios</li>
+      </ul>
+      <a href="#apps" class="price-card-cta">Start Free</a>
+    </div>
+    <div class="price-card featured">
+      <span class="price-card-badge">Most popular</span>
+      <h3>Starter</h3>
+      <div class="price"><span class="amount">$39</span><span class="period">/mo</span></div>
+      <p class="price-desc">Everything you need to track a real practice.</p>
+      <ul>
+        <li><span class="check">&#x2713;</span> Quick Calculator &amp; planning tools</li>
+        <li><span class="check">&#x2713;</span> Manual data entry</li>
+        <li><span class="check">&#x2713;</span> Plain-language interpretation of your results</li>
+        <li><span class="check">&#x2713;</span> Bookkeeping upload &amp; revenue tracking</li>
+        <li><span class="check">&#x2713;</span> Location market context</li>
+        <li><span class="check">&#x2713;</span> Saved scenarios you can reload later</li>
+      </ul>
+      <a href="#apps" class="price-card-cta">Get Started</a>
+    </div>
+    <div class="price-card">
+      <h3>Pro</h3>
+      <div class="price"><span class="amount">$79</span><span class="period">/mo</span></div>
+      <p class="price-desc">Everything in Starter, for practices that want the higher tier.</p>
+      <ul>
+        <li><span class="check">&#x2713;</span> Quick Calculator &amp; planning tools</li>
+        <li><span class="check">&#x2713;</span> Manual data entry</li>
+        <li><span class="check">&#x2713;</span> Plain-language interpretation of your results</li>
+        <li><span class="check">&#x2713;</span> Bookkeeping upload &amp; revenue tracking</li>
+        <li><span class="check">&#x2713;</span> Location market context</li>
+        <li><span class="check">&#x2713;</span> Saved scenarios you can reload later</li>
+      </ul>
+      <a href="#apps" class="price-card-cta">Get Started</a>
+    </div>
+  </div>
+  <p class="pricing-note">
+    One subscription covers both Launch Planner and Analytics -- no need to pay twice.
+    Choose your plan after you sign up; you can change or cancel anytime from Account Settings.
+  </p>
 </section>
 
 <section class="founder">
