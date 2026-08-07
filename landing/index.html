@@ -214,94 +214,82 @@
     min-height: 200px;
   }
 
-  .mock-nav {
+  /* Real app screenshot chrome -- structure/labels/colors match the live
+     app's actual navbar and rds_theme() palette, not fabricated ones. */
+  .shot-tabs {
     display: flex;
-    gap: 0.25rem;
-    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    padding: 0 0 0.85rem;
+    margin-bottom: 1rem;
     border-bottom: 1px solid #334155;
-    padding-bottom: 0;
-  }
-
-  .mock-tab {
-    padding: 0.4rem 1rem;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #94A3B8;
-    border-radius: 4px 4px 0 0;
-    cursor: default;
   }
 
-  .mock-tab.active {
-    background: #0D9488;
-    color: #fff;
+  .shot-tabs .active { color: #F8FAFC; font-weight: 600; }
+
+  .shot-subtabs {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    color: #94A3B8;
+  }
+
+  .shot-subtabs .active {
+    color: #2DD4BF;
     font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #2DD4BF;
   }
 
-  .mock-results {
+  .shot-cards {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 1rem;
+    gap: 0.85rem;
     margin-bottom: 1.25rem;
   }
 
   @media (max-width: 640px) {
-    .mock-results { grid-template-columns: 1fr; }
+    .shot-cards { grid-template-columns: 1fr; }
   }
 
-  .mock-card {
-    background: #162636;
-    border: 1px solid #334155;
+  .shot-card {
     border-radius: 8px;
-    padding: 1rem 1.1rem;
+    padding: 0.9rem 1.1rem;
   }
 
-  .mock-card-label {
-    font-size: 0.65rem;
+  .shot-card.teal { background: #2DD4BF; }
+  .shot-card.slate { background: #64748B; }
+  .shot-card.blue { background: #2563EB; }
+
+  .shot-card-label {
+    font-size: 0.62rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748B;
-    margin-bottom: 0.4rem;
+    letter-spacing: 0.06em;
+    color: rgba(15,23,42,0.65);
+    margin-bottom: 0.3rem;
+    font-weight: 700;
   }
 
-  .mock-card-value {
-    font-size: 1.6rem;
+  .shot-card.blue .shot-card-label { color: rgba(255,255,255,0.8); }
+
+  .shot-card-value {
+    font-size: 1.35rem;
     font-weight: 700;
-    color: #0D9488;
+    color: #0F172A;
     line-height: 1.1;
   }
 
-  .mock-card-sub {
-    font-size: 0.7rem;
-    color: #94A3B8;
-    margin-top: 0.25rem;
-  }
+  .shot-card.blue .shot-card-value { color: #fff; }
 
-  .mock-chart {
-    background: #162636;
-    border: 1px solid #334155;
+  .shot-chart-frame {
+    background: #fff;
     border-radius: 8px;
-    padding: 1rem 1.1rem;
-    margin-bottom: 1.25rem;
+    overflow: hidden;
   }
 
-  .mock-chart-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #64748B;
-    margin-bottom: 0.75rem;
-  }
-
-  .mock-chart svg { display: block; width: 100%; }
-
-  .mock-narrative {
-    background: #162636;
-    border-left: 3px solid #0D9488;
-    border-radius: 0 6px 6px 0;
-    padding: 0.85rem 1rem;
-    font-size: 0.78rem;
-    color: #CBD5E1;
-    line-height: 1.6;
-  }
+  .shot-chart-frame img { display: block; width: 100%; height: auto; }
 
   /* PROBLEM STRIP */
   .problem-strip {
@@ -706,69 +694,33 @@
       <div class="dot dot-g"></div>
     </div>
     <div class="screenshot-body">
-      <div class="mock-nav">
-        <div class="mock-tab">Upload</div>
-        <div class="mock-tab">Edit</div>
-        <div class="mock-tab">Summary</div>
-        <div class="mock-tab active">Projections</div>
+      <div class="shot-tabs">
+        <span>Upload</span>
+        <span>Review &amp; Edit</span>
+        <span>Summary</span>
+        <span class="active">Projections</span>
       </div>
-      <div class="mock-results">
-        <div class="mock-card">
-          <div class="mock-card-label">Break-even</div>
-          <div class="mock-card-value">23 members</div>
-          <div class="mock-card-sub">~7 months at current growth</div>
+      <div class="shot-subtabs">
+        <span>Break-even</span>
+        <span class="active">Revenue Forecast</span>
+        <span>Income Target</span>
+      </div>
+      <div class="shot-cards">
+        <div class="shot-card teal">
+          <div class="shot-card-label">Current monthly revenue</div>
+          <div class="shot-card-value">$2,715.00</div>
         </div>
-        <div class="mock-card">
-          <div class="mock-card-label">12-month revenue</div>
-          <div class="mock-card-value">$68,400</div>
-          <div class="mock-card-sub">trending +12% vs. last quarter</div>
+        <div class="shot-card slate">
+          <div class="shot-card-label">Projected in 36 months</div>
+          <div class="shot-card-value">$22,922.00</div>
         </div>
-        <div class="mock-card">
-          <div class="mock-card-label">Members to goal</div>
-          <div class="mock-card-value">41 members</div>
-          <div class="mock-card-sub">to reach $120k take-home</div>
+        <div class="shot-card blue">
+          <div class="shot-card-label">Method</div>
+          <div class="shot-card-value">Linear</div>
         </div>
       </div>
-      <div class="mock-chart">
-        <div class="mock-chart-label">Revenue trajectory &mdash; 12-month forecast</div>
-        <svg viewBox="0 0 760 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <!-- grid lines -->
-          <line x1="0" y1="72" x2="760" y2="72" stroke="#334155" stroke-width="1"/>
-          <line x1="0" y1="48" x2="760" y2="48" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
-          <line x1="0" y1="24" x2="760" y2="24" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
-          <!-- confidence band -->
-          <polygon points="0,68 63,62 127,57 190,50 253,44 317,37 380,31 443,25 507,20 570,15 633,10 697,6 760,3 760,18 697,22 633,26 570,31 507,36 443,41 380,47 317,53 253,60 190,66 127,70 63,74 0,78"
-            fill="#0D9488" opacity="0.15"/>
-          <!-- forecast line -->
-          <polyline points="0,68 63,62 127,57 190,50 253,44 317,37 380,31 443,25 507,20 570,15 633,10 697,6 760,3"
-            fill="none" stroke="#0D9488" stroke-width="2.5" stroke-linejoin="round"/>
-          <!-- actual dots (first 4 months) -->
-          <circle cx="0"   cy="68" r="3.5" fill="#0D9488"/>
-          <circle cx="63"  cy="62" r="3.5" fill="#0D9488"/>
-          <circle cx="127" cy="57" r="3.5" fill="#0D9488"/>
-          <circle cx="190" cy="50" r="3.5" fill="#0D9488"/>
-          <!-- month labels -->
-          <text x="0"   y="86" fill="#64748B" font-size="9" text-anchor="middle">Jan</text>
-          <text x="63"  y="86" fill="#64748B" font-size="9" text-anchor="middle">Feb</text>
-          <text x="127" y="86" fill="#64748B" font-size="9" text-anchor="middle">Mar</text>
-          <text x="190" y="86" fill="#64748B" font-size="9" text-anchor="middle">Apr</text>
-          <text x="253" y="86" fill="#64748B" font-size="9" text-anchor="middle">May</text>
-          <text x="317" y="86" fill="#64748B" font-size="9" text-anchor="middle">Jun</text>
-          <text x="380" y="86" fill="#64748B" font-size="9" text-anchor="middle">Jul</text>
-          <text x="443" y="86" fill="#64748B" font-size="9" text-anchor="middle">Aug</text>
-          <text x="507" y="86" fill="#64748B" font-size="9" text-anchor="middle">Sep</text>
-          <text x="570" y="86" fill="#64748B" font-size="9" text-anchor="middle">Oct</text>
-          <text x="633" y="86" fill="#64748B" font-size="9" text-anchor="middle">Nov</text>
-          <text x="697" y="86" fill="#64748B" font-size="9" text-anchor="middle">Dec</text>
-        </svg>
-      </div>
-      <div class="mock-narrative">
-        <strong style="color:#0D9488;">Break-even interpretation &mdash;</strong>
-        At your current overhead of $5,200/month and an average membership fee of $125/month,
-        you need <strong>23 members</strong> to cover costs. Based on your recent growth of
-        3&ndash;4 new members per month, you are on track to break even in approximately
-        <strong>7 months</strong>. Your revenue is trending upward and no corrective action
-        is indicated at this time.
+      <div class="shot-chart-frame">
+        <img src="assets/dca-revenue-forecast.png" alt="Direct Care Analytics revenue forecast chart, generated from real practice bookkeeping data, showing monthly revenue trending from about $2,700 to a projected $22,900 over 36 months">
       </div>
     </div>
   </div>
