@@ -340,7 +340,89 @@ apply_membership_fee_events <- function(result, events = NULL) {
 }
 
 
-# -- Goal-seek: what growth-rate change reaches break-even -------------------
+# -- Goal-seek: what growth-rate change reaches a forecast goal --------------
+
+#' Binary-search a growth rate that reaches a goal within a period horizon
+#'
+#' Shared bisection core behind [goal_seek_breakeven()] and
+#' [goal_seek_target()] -- income-growth up, overhead-growth down, holding
+#' the other fixed. `recompute` encapsulates whichever
+#' `apply_growth_assumptions()`/`apply_overhead_events()`/
+#' `apply_membership_fee_events()` pipeline the caller needs (break-even and
+#' income-target differ slightly: target also needs
+#' `target_income_override`), and `extract_periods` pulls the right
+#' `periods_to_*` field out of the result. Search range matches the
+#' `income_growth`/`overhead_growth` sliders' [-60, 60] range in
+#' `mod_projections.R`. Monotonic in both directions (higher income growth
+#' or lower overhead growth only ever helps or leaves the crossing period
+#' unchanged), which is what makes bisection valid here -- same approach as
+#' directCarePlanR's `goal_seek_projection_recovery()`.
+#'
+#' @param recompute `function(income_pct, overhead_pct)` returning an
+#'   adjusted forecast result for those two growth rates.
+#' @param extract_periods `function(result)` returning the relevant
+#'   `periods_to_*` field (integer or `NA`).
+#' @param current_income_growth_pct,current_overhead_growth_pct Numeric
+#'   annual growth rates (%) currently in effect -- the search starts from
+#'   these and only moves in the helpful direction.
+#' @param overhead_searchable Logical; `FALSE` skips the overhead lever
+#'   entirely (e.g. a flat overhead model has no growth rate to solve for).
+#' @param horizon_periods Integer number of forecast periods the goal
+#'   should be reached within.
+#'
+#' @return A list with `income` and `overhead` (`NULL` when
+#'   `overhead_searchable` is `FALSE`), each a list with `achievable` and,
+#'   when `TRUE`, `new_growth_pct`.
+#'
+#' @noRd
+.goal_seek_growth_rate <- function(
+  recompute,
+  extract_periods,
+  current_income_growth_pct,
+  current_overhead_growth_pct,
+  overhead_searchable,
+  horizon_periods
+) {
+  .periods_at <- function(income_pct, overhead_pct) {
+    p <- extract_periods(recompute(income_pct, overhead_pct))
+    if (is.null(p) || is.na(p)) NA_integer_ else as.integer(p)
+  }
+
+  .solve_income <- function() {
+    at_cap <- .periods_at(60, current_overhead_growth_pct)
+    if (is.na(at_cap) || at_cap > horizon_periods) {
+      return(list(achievable = FALSE))
+    }
+    lo <- current_income_growth_pct
+    hi <- 60
+    for (i in seq_len(25)) {
+      mid <- (lo + hi) / 2
+      r <- .periods_at(mid, current_overhead_growth_pct)
+      if (!is.na(r) && r <= horizon_periods) hi <- mid else lo <- mid
+    }
+    list(achievable = TRUE, new_growth_pct = round(hi, 1))
+  }
+
+  .solve_overhead <- function() {
+    at_floor <- .periods_at(current_income_growth_pct, -60)
+    if (is.na(at_floor) || at_floor > horizon_periods) {
+      return(list(achievable = FALSE))
+    }
+    lo <- -60
+    hi <- current_overhead_growth_pct
+    for (i in seq_len(25)) {
+      mid <- (lo + hi) / 2
+      r <- .periods_at(current_income_growth_pct, mid)
+      if (!is.na(r) && r <= horizon_periods) lo <- mid else hi <- mid
+    }
+    list(achievable = TRUE, new_growth_pct = round(lo, 1))
+  }
+
+  list(
+    income = .solve_income(),
+    overhead = if (overhead_searchable) .solve_overhead() else NULL
+  )
+}
 
 #' Find what growth-rate change would reach break-even within the horizon
 #'
@@ -358,13 +440,10 @@ apply_membership_fee_events <- function(result, events = NULL) {
 #'   `directCareForecastR::forecast_breakeven()`, i.e. BEFORE any
 #'   growth-rate or event adjustment.
 #' @param current_income_growth_pct,current_overhead_growth_pct Numeric
-#'   annual growth rates (%) currently in effect -- the search starts from
-#'   these and only moves in the helpful direction (income up, overhead
-#'   down), matching the `income_growth`/`overhead_growth` sliders'
-#'   [-60, 60] range in `mod_projections.R`.
+#'   annual growth rates (%) currently in effect.
 #' @param overhead_flat Passed through to `apply_growth_assumptions()`;
 #'   when non-`NULL`, overhead is a flat model and the overhead lever isn't
-#'   searchable (there's no growth rate to solve for).
+#'   searchable.
 #' @param overhead_events,fee_events Passed through to
 #'   `apply_overhead_events()`/`apply_membership_fee_events()`, held fixed
 #'   at the caller's current settings while searching.
@@ -393,7 +472,7 @@ goal_seek_breakeven <- function(
   }
   horizon_periods <- horizon_periods %||% nrow(breakeven_result$forecast_data)
 
-  .periods_to_breakeven_at <- function(income_pct, overhead_pct) {
+  recompute <- function(income_pct, overhead_pct) {
     res <- apply_growth_assumptions(
       breakeven_result,
       income_growth_pct = income_pct,
@@ -401,68 +480,109 @@ goal_seek_breakeven <- function(
       overhead_flat = overhead_flat
     )
     res <- apply_overhead_events(res, overhead_events)
-    res <- apply_membership_fee_events(res, fee_events)
-    ptb <- res$periods_to_breakeven
-    if (is.null(ptb) || is.na(ptb)) NA_integer_ else as.integer(ptb)
+    apply_membership_fee_events(res, fee_events)
   }
 
-  # Bisection for the smallest income-growth increase from
-  # current_income_growth_pct such that break-even is reached by
-  # horizon_periods. Monotonic (higher income growth only ever helps or
-  # leaves the crossing period unchanged), which is what makes bisection
-  # valid here -- same approach as directCarePlanR's
-  # goal_seek_projection_recovery().
-  .solve_income <- function() {
-    at_cap <- .periods_to_breakeven_at(60, current_overhead_growth_pct)
-    if (is.na(at_cap) || at_cap > horizon_periods) {
-      return(list(achievable = FALSE))
-    }
-    lo <- current_income_growth_pct
-    hi <- 60
-    for (i in seq_len(25)) {
-      mid <- (lo + hi) / 2
-      r <- .periods_to_breakeven_at(mid, current_overhead_growth_pct)
-      if (!is.na(r) && r <= horizon_periods) hi <- mid else lo <- mid
-    }
-    list(achievable = TRUE, new_growth_pct = round(hi, 1))
-  }
-
-  .solve_overhead <- function() {
-    at_floor <- .periods_to_breakeven_at(current_income_growth_pct, -60)
-    if (is.na(at_floor) || at_floor > horizon_periods) {
-      return(list(achievable = FALSE))
-    }
-    lo <- -60
-    hi <- current_overhead_growth_pct
-    for (i in seq_len(25)) {
-      mid <- (lo + hi) / 2
-      r <- .periods_to_breakeven_at(current_income_growth_pct, mid)
-      if (!is.na(r) && r <= horizon_periods) lo <- mid else hi <- mid
-    }
-    list(achievable = TRUE, new_growth_pct = round(lo, 1))
-  }
+  gs <- .goal_seek_growth_rate(
+    recompute = recompute,
+    extract_periods = function(res) res$periods_to_breakeven,
+    current_income_growth_pct = current_income_growth_pct,
+    current_overhead_growth_pct = current_overhead_growth_pct,
+    overhead_searchable = is.null(overhead_flat),
+    horizon_periods = horizon_periods
+  )
 
   structure(
-    list(
-      target_period = horizon_periods,
-      income = .solve_income(),
-      overhead = if (is.null(overhead_flat)) .solve_overhead() else NULL
-    ),
+    c(list(target_period = horizon_periods), gs),
     class = "dcAnalytics_goal_seek"
   )
 }
 
-#' Turn a break-even goal-seek result into narrative HTML
+#' Find what growth-rate change would reach the income target within the horizon
 #'
-#' @param gs A `dcAnalytics_goal_seek` object, as returned by
-#'   [goal_seek_breakeven()].
-#' @param pu Period-unit list, as returned by `.period_units()`.
+#' Same idea as [goal_seek_breakeven()], applied to an income-target
+#' forecast instead: how much higher an income growth rate, or how much
+#' lower an overhead growth rate, alone would need to be for
+#' `periods_to_target` to land within the horizon. Mirrors `adj_target()`'s
+#' own pipeline, including `target_income_override` (target forecasts need
+#' it to keep `required_revenue` consistent -- see
+#' `apply_growth_assumptions()`).
 #'
-#' @return An HTML string (a single `<p>...</p>`), or `NULL` if neither
-#'   lever is achievable (nothing constructive to suggest).
+#' @param target_result Raw list from
+#'   `directCareForecastR::forecast_target()`, i.e. BEFORE any growth-rate
+#'   or event adjustment.
+#' @param current_income_growth_pct,current_overhead_growth_pct Numeric
+#'   annual growth rates (%) currently in effect.
+#' @param overhead_flat,target_income_override Passed through to
+#'   `apply_growth_assumptions()`; a non-`NULL` `overhead_flat` makes the
+#'   overhead lever unsearchable, same as `goal_seek_breakeven()`.
+#' @param overhead_events,fee_events Passed through to
+#'   `apply_overhead_events()`/`apply_membership_fee_events()`, held fixed.
+#' @param horizon_periods Integer number of forecast periods the target
+#'   should be reached within. Defaults to
+#'   `nrow(target_result$forecast_data)`.
+#'
+#' @return A `dcAnalytics_goal_seek`-classed list, same shape as
+#'   [goal_seek_breakeven()]'s return value. `NULL` if `target_result` is
+#'   `NULL`.
 #'
 #' @noRd
-.describe_breakeven_goal_seek <- function(gs, pu) {
+goal_seek_target <- function(
+  target_result,
+  current_income_growth_pct = 0,
+  current_overhead_growth_pct = 0,
+  overhead_flat = NULL,
+  target_income_override = NULL,
+  overhead_events = NULL,
+  fee_events = NULL,
+  horizon_periods = NULL
+) {
+  if (is.null(target_result)) {
+    return(NULL)
+  }
+  horizon_periods <- horizon_periods %||% nrow(target_result$forecast_data)
+
+  recompute <- function(income_pct, overhead_pct) {
+    res <- apply_growth_assumptions(
+      target_result,
+      income_growth_pct = income_pct,
+      overhead_growth_pct = overhead_pct,
+      overhead_flat = overhead_flat,
+      target_income_override = target_income_override
+    )
+    res <- apply_overhead_events(res, overhead_events)
+    apply_membership_fee_events(res, fee_events)
+  }
+
+  gs <- .goal_seek_growth_rate(
+    recompute = recompute,
+    extract_periods = function(res) res$periods_to_target,
+    current_income_growth_pct = current_income_growth_pct,
+    current_overhead_growth_pct = current_overhead_growth_pct,
+    overhead_searchable = is.null(overhead_flat),
+    horizon_periods = horizon_periods
+  )
+
+  structure(
+    c(list(target_period = horizon_periods), gs),
+    class = "dcAnalytics_goal_seek"
+  )
+}
+
+#' Turn a goal-seek result into narrative HTML
+#'
+#' @param gs A `dcAnalytics_goal_seek` object, as returned by
+#'   [goal_seek_breakeven()] or [goal_seek_target()].
+#' @param pu Period-unit list, as returned by `.period_units()`.
+#' @param goal_label Text naming the goal being sought, e.g. `"break-even"`
+#'   or `"the income target"` -- interpolated directly into the sentence.
+#'
+#' @return An HTML string (a single `<p>...</p>`), or `NULL` if `gs` is
+#'   `NULL` or neither lever is achievable (nothing constructive to
+#'   suggest).
+#'
+#' @noRd
+.describe_goal_seek <- function(gs, pu, goal_label) {
   if (is.null(gs)) {
     return(NULL)
   }
@@ -473,9 +593,9 @@ goal_seek_breakeven <- function(
   if (!income_ok && !overhead_ok) {
     return(paste0(
       "<p class='text-muted small'>Even an aggressive growth-rate change ",
-      "wouldn't reach break-even within this forecast window on its own ",
-      "-- consider a longer horizon or a more fundamental change to the ",
-      "revenue or cost structure.</p>"
+      "wouldn't reach ", goal_label, " within this forecast window on its ",
+      "own -- consider a longer horizon or a more fundamental change to ",
+      "the revenue or cost structure.</p>"
     ))
   }
 
@@ -501,12 +621,12 @@ goal_seek_breakeven <- function(
 
   intro <- if (length(clauses) > 1L) {
     paste0(
-      "To reach break-even within ", gs$target_period, " ", pu$plural,
+      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
       ", either change alone would do it: you'd need to "
     )
   } else {
     paste0(
-      "To reach break-even within ", gs$target_period, " ", pu$plural,
+      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
       " on this assumption alone, you'd need to "
     )
   }

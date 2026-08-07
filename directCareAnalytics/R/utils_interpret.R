@@ -359,7 +359,7 @@ interpret_breakeven <- function(
   # otherwise even if a caller passes one in, since "what would it take to
   # reach break-even" doesn't apply once it's already been achieved.
   goal_seek_html <- if (is.na(result$breakeven_date) && !is.null(goal_seek)) {
-    .describe_breakeven_goal_seek(goal_seek, pu)
+    .describe_goal_seek(goal_seek, pu, "break-even")
   } else {
     NULL
   }
@@ -381,6 +381,103 @@ interpret_breakeven <- function(
     method_sentence,
     "</p>"
   )
+}
+
+#' Compare saved scenarios' break-even timing
+#'
+#' Pro-exclusive: names which of 2-3 saved forecast scenarios reaches
+#' break-even soonest and by how much, using each scenario's own
+#' snapshotted (growth-adjusted) break-even result --
+#' `directCareScenarios::scenario_save_forecast()` bundles both inputs and
+#' computed results at save time (see `SAVED_SCENARIOS.md`'s "Why BYTEA"
+#' section), which is exactly what makes this cheap: no recomputation,
+#' just reading and diffing numbers already on disk.
+#'
+#' @param scenarios A list of `list(label = <chr>, result =
+#'   <adj_breakeven()-shaped list>)`, length 2 or 3 (the app's saved-
+#'   scenario slot cap). Each `result` must be non-`NULL` -- the caller is
+#'   responsible for filtering out scenarios that were saved before ever
+#'   running a Break-even forecast, since those have no `adj_breakeven`
+#'   snapshot to compare.
+#'
+#' @return An HTML string (a single `<p>...</p>`), or `NULL` if fewer than
+#'   2 scenarios were supplied.
+#'
+#' @noRd
+compare_breakeven_scenarios <- function(scenarios) {
+  if (length(scenarios) < 2L) {
+    return(NULL)
+  }
+
+  # Periods are only directly comparable in count when every scenario was
+  # forecast at the same frequency (weekly vs. monthly periods aren't the
+  # same unit) -- falls back to a generic "period" label and skips the
+  # numeric gap when they differ, which in practice means a practice
+  # switched data cadence between saves.
+  freqs <- vapply(scenarios, function(s) s$result$frequency %||% NA_character_, character(1))
+  same_freq <- length(unique(freqs)) == 1L && !anyNA(freqs)
+  pu <- if (same_freq) {
+    .period_units(scenarios[[1]]$result)
+  } else {
+    list(singular = "period", plural = "periods")
+  }
+
+  .lbl <- function(s) paste0("<strong>", htmltools::htmlEscape(s$label), "</strong>")
+  .mo <- function(n) paste0(n, " ", if (n != 1L) pu$plural else pu$singular)
+
+  reached <- Filter(function(s) !is.na(s$result$periods_to_breakeven), scenarios)
+  not_reached <- Filter(function(s) is.na(s$result$periods_to_breakeven), scenarios)
+
+  if (length(reached) == 0L) {
+    labels <- paste(vapply(scenarios, .lbl, character(1)), collapse = " and ")
+    return(paste0(
+      "<p>None of your saved scenarios (", labels, ") reach break-even ",
+      "within their forecast windows. The goal-seek breakdown above can ",
+      "show what would need to change for your current one.</p>"
+    ))
+  }
+
+  ord <- order(vapply(reached, function(s) s$result$periods_to_breakeven, numeric(1)))
+  reached <- reached[ord]
+  best <- reached[[1]]
+
+  lead <- paste0(
+    "Of your saved scenarios, ", .lbl(best), " reaches break-even soonest",
+    if (same_freq) paste0(", in ", pu$singular, " ", best$result$periods_to_breakeven) else "",
+    "."
+  )
+
+  follow_sentences <- if (length(reached) > 1L) {
+    vapply(reached[-1], function(s) {
+      if (same_freq) {
+        gap <- s$result$periods_to_breakeven - best$result$periods_to_breakeven
+        paste0(
+          .lbl(s), " follows ", .mo(gap), " later, in ", pu$singular, " ",
+          s$result$periods_to_breakeven, "."
+        )
+      } else {
+        paste0(
+          .lbl(s), " reaches break-even in ", pu$singular, " ",
+          s$result$periods_to_breakeven, "."
+        )
+      }
+    }, character(1))
+  } else {
+    character(0)
+  }
+
+  not_reached_sentence <- if (length(not_reached) > 0L) {
+    labels <- paste(vapply(not_reached, .lbl, character(1)), collapse = " and ")
+    if (length(not_reached) > 1L) {
+      paste0(labels, " do not reach break-even within their forecast windows.")
+    } else {
+      paste0(labels, " does not reach break-even within its forecast window.")
+    }
+  } else {
+    NULL
+  }
+
+  paste0("<p>", paste(c(lead, follow_sentences, not_reached_sentence), collapse = " "), "</p>")
 }
 
 
@@ -529,6 +626,11 @@ interpret_revenue <- function(
 }
 
 
+#' @param goal_seek Optional `dcAnalytics_goal_seek` object, as returned by
+#'   [goal_seek_target()]. Only used when `result$target_date` is `NA`
+#'   (target not reached within the forecast horizon) -- ignored
+#'   otherwise, so it's safe to always pass one in regardless of which
+#'   case applies. `NULL` (the default) omits that paragraph.
 #' @noRd
 interpret_target <- function(
   result,
@@ -537,7 +639,8 @@ interpret_target <- function(
   sustained = NA,
   panel_size = NULL,
   membership_fee = NULL,
-  membership_tiers = NULL
+  membership_tiers = NULL,
+  goal_seek = NULL
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(htmltools::htmlEscape(practice_name), " ")
@@ -847,11 +950,21 @@ interpret_target <- function(
 
   tier_sentence_tgt <- .tier_context_html(membership_tiers, membership_fee)
 
+  # Only meaningful when the target hasn't been reached -- ignored
+  # otherwise even if a caller passes one in, since "what would it take to
+  # reach the target" doesn't apply once it's already been met.
+  goal_seek_html <- if (is.na(result$target_date) && !is.null(goal_seek)) {
+    .describe_goal_seek(goal_seek, pu, "the income target")
+  } else {
+    NULL
+  }
+
   paste0(
     "<p>",
     gap_sentence,
     "</p>",
     if (nzchar(target_sentence)) paste0("<p>", target_sentence, "</p>") else "",
+    if (!is.null(goal_seek_html)) goal_seek_html else "",
     if (nzchar(tier_sentence_tgt)) {
       paste0("<p>", tier_sentence_tgt, "</p>")
     } else {

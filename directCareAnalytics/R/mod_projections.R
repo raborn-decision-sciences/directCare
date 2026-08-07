@@ -23,10 +23,17 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    # Triggered from the break-even goal-seek upsell note's "See Pro plan"
-    # link (utils_billing.R's .pro_upsell_note()) -- same modal every other
-    # "See plans" trigger in the app opens.
+    # Triggered from the break-even/income-target goal-seek and scenario-
+    # comparison upsell notes' "See Pro plan" links (utils_billing.R's
+    # .pro_upsell_note()) -- same modal every other "See plans" trigger in
+    # the app opens.
     observeEvent(input$btn_see_plans_pro_goal_seek, {
+      .show_plans_modal()
+    })
+    observeEvent(input$btn_see_plans_pro_target_goal_seek, {
+      .show_plans_modal()
+    })
+    observeEvent(input$btn_see_plans_pro_scenario_compare, {
       .show_plans_modal()
     })
 
@@ -1450,6 +1457,40 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       )
     })
 
+    # Pro-exclusive: compare saved forecast scenarios' break-even timing.
+    # req(adj_breakeven()) isn't needed for correctness here (this reads
+    # straight from the DB, not from the current session's forecast), but
+    # it does double as this reactive's only invalidation trigger --
+    # mod_scenario_slots_server() doesn't expose a "scenario list changed"
+    # signal, so re-running whenever the user (re-)runs a forecast is a
+    # cheap, good-enough proxy for "state may have changed" rather than
+    # querying on every render. Returns `count` (so the free/starter
+    # upsell teaser can tell "0 or 1 saved" apart from "2+ saved but not
+    # Pro") and `narrative` (NULL unless Pro and 2+ scenarios have a
+    # comparable adj_breakeven snapshot).
+    scenario_compare_state <- reactive({
+      req(adj_breakeven())
+      req(r$practice_id)
+      con <- directCareAuth::db_connect()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      listed <- directCareScenarios::scenario_list(con, "dca_forecast_scenarios", r$practice_id)
+      if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
+        return(list(count = nrow(listed), narrative = NULL))
+      }
+      loaded <- lapply(listed$id, function(id) directCareScenarios::scenario_load_forecast(con, id))
+      scenarios <- lapply(loaded, function(x) {
+        list(label = x$label, result = x$bundle$results$adj_breakeven)
+      })
+      # Scenarios saved before the practice ever ran a Break-even forecast
+      # have no adj_breakeven snapshot to compare -- drop them rather than
+      # erroring.
+      scenarios <- Filter(function(s) !is.null(s$result), scenarios)
+      list(
+        count = nrow(listed),
+        narrative = if (length(scenarios) >= 2L) compare_breakeven_scenarios(scenarios) else NULL
+      )
+    })
+
     adj_revenue <- reactive({
       req(revenue_result())
       res <- apply_growth_assumptions(
@@ -1478,6 +1519,25 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       res$target_income <- as.numeric(input$target_income %||% 0)
       res <- apply_overhead_events(res, overhead_events_df())
       apply_membership_fee_events(res, fee_events_df())
+    })
+
+    # Pro-exclusive: same idea as breakeven_goal_seek, applied to the
+    # income-target forecast -- see its own comment for the rationale.
+    target_goal_seek <- reactive({
+      req(adj_target())
+      if (!.has_pro_plan(r$plan_tier) || !is.na(adj_target()$target_date)) {
+        return(NULL)
+      }
+      oa <- overhead_assumptions()
+      goal_seek_target(
+        target_result(),
+        current_income_growth_pct = input$income_growth %||% 0,
+        current_overhead_growth_pct = oa$growth_pct,
+        overhead_flat = oa$flat,
+        target_income_override = input$target_income,
+        overhead_events = overhead_events_df(),
+        fee_events = fee_events_df()
+      )
     })
 
     # -- Break-even UI --------------------------------------------------------
@@ -1585,7 +1645,8 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           card(
             card_header("Interpretation"),
             card_body(uiOutput(ns("breakeven_interpretation")))
-          )
+          ),
+          uiOutput(ns("scenario_comparison_card"))
         ),
       )
     })
@@ -1625,9 +1686,10 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           confidence_level = input$confidence,
           goal_seek = breakeven_goal_seek()
         )),
-        # Nothing to upsell once break-even is already reached -- unlike
-        # Planner, DCA has no second Pro perk (a decomposition-style
-        # feature) to advertise in that case.
+        # Nothing to upsell once break-even is already reached -- the
+        # scenario-comparison card below is the relevant Pro upsell in
+        # that case instead (goal-seek only has something to say when
+        # break-even isn't reached).
         if (!.has_pro_plan(r$plan_tier) && is.na(adj_breakeven()$breakeven_date)) {
           .pro_upsell_note(
             ns,
@@ -1636,6 +1698,26 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           )
         }
       )
+    })
+
+    output$scenario_comparison_card <- renderUI({
+      state <- scenario_compare_state()
+      if (!is.null(state$narrative)) {
+        card(
+          card_header(bs_icon("bar-chart-line"), " Scenario Comparison"),
+          card_body(HTML(state$narrative))
+        )
+      } else if (!.has_pro_plan(r$plan_tier) && state$count >= 2L) {
+        card(
+          card_body(
+            .pro_upsell_note(
+              ns,
+              "Pro also compares your saved scenarios' break-even timing, naming which one gets there soonest.",
+              btn_id = "btn_see_plans_pro_scenario_compare"
+            )
+          )
+        )
+      }
     })
 
     # -- Revenue UI -----------------------------------------------------------
@@ -1871,15 +1953,25 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
 
     output$target_interpretation <- renderUI({
       req(adj_target())
-      HTML(interpret_target(
-        adj_target(),
-        r$practice_name,
-        input$target_income,
-        sustained = target_is_sustained(adj_target()),
-        panel_size = r$panel_size,
-        membership_fee = r$membership_fee,
-        membership_tiers = r$membership_tiers
-      ))
+      tagList(
+        HTML(interpret_target(
+          adj_target(),
+          r$practice_name,
+          input$target_income,
+          sustained = target_is_sustained(adj_target()),
+          panel_size = r$panel_size,
+          membership_fee = r$membership_fee,
+          membership_tiers = r$membership_tiers,
+          goal_seek = target_goal_seek()
+        )),
+        if (!.has_pro_plan(r$plan_tier) && is.na(adj_target()$target_date)) {
+          .pro_upsell_note(
+            ns,
+            "Pro also tells you what growth-rate change -- in income, overhead, or both -- would reach your income target within your forecast horizon.",
+            btn_id = "btn_see_plans_pro_target_goal_seek"
+          )
+        }
+      )
     })
 
     # Reactives built with eventReactive()/req() throw a silent
