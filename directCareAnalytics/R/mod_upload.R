@@ -136,16 +136,19 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
                   tags$li("Actual revenue trends"),
                   tags$li("Data-driven break-even forecast")
                 ),
-                actionButton(
-                  ns("btn_use_real"),
-                  "Use Bookkeeping Data",
-                  icon = bs_icon("upload"),
-                  class = "btn-primary w-100"
-                ),
-                actionLink(
-                  ns("tour_historical"),
-                  tagList(bs_icon("play-circle"), " Take the tour"),
-                  class = "d-block text-center small text-muted mt-2"
+                tags$div(
+                  class = "mt-auto",
+                  actionButton(
+                    ns("btn_use_real"),
+                    "Use Bookkeeping Data",
+                    icon = bs_icon("upload"),
+                    class = "btn-primary w-100"
+                  ),
+                  actionLink(
+                    ns("tour_historical"),
+                    tagList(bs_icon("play-circle"), " Take the tour"),
+                    class = "d-block text-center small text-muted mt-2"
+                  )
                 )
               )
             )
@@ -167,16 +170,19 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
                 tags$li("Set membership fee and panel-size goals"),
                 tags$li("Generate a synthetic financial scenario")
               ),
-              actionButton(
-                ns("btn_use_plan"),
-                "Start Planning",
-                icon = bs_icon("pencil"),
-                class = "btn-outline-primary w-100"
-              ),
-              actionLink(
-                ns("tour_plan"),
-                tagList(bs_icon("play-circle"), " Take the tour"),
-                class = "d-block text-center small text-muted mt-2"
+              tags$div(
+                class = "mt-auto",
+                actionButton(
+                  ns("btn_use_plan"),
+                  "Start Planning",
+                  icon = bs_icon("pencil"),
+                  class = "btn-outline-primary w-100"
+                ),
+                actionLink(
+                  ns("tour_plan"),
+                  tagList(bs_icon("play-circle"), " Take the tour"),
+                  class = "d-block text-center small text-muted mt-2"
+                )
               )
             )
           ),
@@ -197,16 +203,19 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
                 tags$li("Set an income target"),
                 tags$li("See break-even and target scenarios instantly")
               ),
-              actionButton(
-                ns("btn_use_calculator"),
-                "Open Calculator",
-                icon = bs_icon("calculator"),
-                class = "btn-outline-secondary w-100"
-              ),
-              actionLink(
-                ns("tour_calculator"),
-                tagList(bs_icon("play-circle"), " Take the tour"),
-                class = "d-block text-center small text-muted mt-2"
+              tags$div(
+                class = "mt-auto",
+                actionButton(
+                  ns("btn_use_calculator"),
+                  "Open Calculator",
+                  icon = bs_icon("calculator"),
+                  class = "btn-outline-secondary w-100"
+                ),
+                actionLink(
+                  ns("tour_calculator"),
+                  tagList(bs_icon("play-circle"), " Take the tour"),
+                  class = "d-block text-center small text-muted mt-2"
+                )
               )
             )
           )

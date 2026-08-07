@@ -227,13 +227,21 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
         style = "color: #B45309;",
         bs_icon("stars"), " Starter or Pro plan required"
       ),
-      actionButton(
-        ns(btn_id),
-        "See plans",
-        icon = bs_icon("arrow-up-right-circle"),
-        class = "btn-outline-primary w-100"
-      ),
-      extra
+      # mt-auto pins this to the bottom of the (flex-column) card body, so
+      # its button+link line up with the other path-selection cards'
+      # regardless of how many lines `description` wraps to -- see
+      # mod_upload.R's own path-selection cards for the sibling markup this
+      # has to match.
+      tags$div(
+        class = "mt-auto",
+        actionButton(
+          ns(btn_id),
+          "See plans",
+          icon = bs_icon("arrow-up-right-circle"),
+          class = "btn-outline-primary w-100"
+        ),
+        extra
+      )
     )
   )
 }
