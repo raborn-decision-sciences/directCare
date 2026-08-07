@@ -146,6 +146,7 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
     layout_columns(
       col_widths = c(4, 4, 4),
       card(
+        class = "h-100",
         card_header("Plan"),
         card_body(
           tags$p(class = "fw-bold fs-4 mb-1", "Free"),
@@ -153,7 +154,7 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
         )
       ),
       card(
-        class = "border-primary",
+        class = "h-100 border-primary",
         card_header(tagList(bs_icon("graph-up-arrow"), " Starter")),
         card_body(
           tags$p(class = "fw-bold fs-4 mb-1", "$39/mo"),
@@ -162,14 +163,33 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
             "Bookkeeping uploads, saved practice profile, historical ",
             "trends, break-even analysis, downloadable reports."
           ),
-          actionButton(
-            "btn_checkout_starter", "Upgrade to Starter",
-            icon = bs_icon("arrow-up-right-circle"),
-            class = "btn-primary w-100 mt-2"
+          # mt-auto pins the button to the bottom of the (flex-column, h-100)
+          # card body, so it lines up with Pro's regardless of which
+          # description wraps to more lines -- same technique as
+          # mod_upload.R's path-selection cards (see .locked_feature_card()'s
+          # own comment for the fuller rationale).
+          tags$div(
+            class = "mt-auto",
+            # white-space:nowrap isn't a Bootstrap .btn default -- without
+            # it, this wraps mid-word the moment the 3-column
+            # layout_columns() squeezes narrower than the icon+label's
+            # natural width (confirmed live: "Upgrade" alone still wrapped
+            # to "Upg"/"rade" at narrow widths before this was added).
+            # btn-sm's tighter padding buys back the horizontal room a 3-up
+            # column at "l" modal size doesn't have to spare -- plain
+            # .btn's default 1.5rem side padding left "Upgrade"+icon
+            # clipped even with wrapping fixed.
+            actionButton(
+              "btn_checkout_starter", "Upgrade",
+              icon = bs_icon("arrow-up-right-circle"),
+              class = "btn-primary btn-sm w-100 mt-2",
+              style = "white-space: nowrap;"
+            )
           )
         )
       ),
       card(
+        class = "h-100",
         card_header(tagList(bs_icon("lightbulb"), " Pro")),
         card_body(
           tags$p(class = "fw-bold fs-4 mb-1", "$79/mo"),
@@ -178,20 +198,24 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
             "Everything in Starter, plus guided decision tools and ",
             "AI-generated financial interpretation."
           ),
-          actionButton(
-            "btn_checkout_pro", "Upgrade to Pro",
-            icon = bs_icon("arrow-up-right-circle"),
-            class = "btn-outline-primary w-100 mt-2"
+          tags$div(
+            class = "mt-auto",
+            actionButton(
+              "btn_checkout_pro", "Upgrade",
+              icon = bs_icon("arrow-up-right-circle"),
+              class = "btn-outline-primary btn-sm w-100 mt-2",
+              style = "white-space: nowrap;"
+            )
           )
         )
       )
     ),
     tags$p(
       class = "text-center text-muted small mt-3 mb-0",
-      "You'll be taken to Stripe's secure checkout. Questions? ",
+      "You'll be taken to Stripe's secure checkout. Have questions about plans? ",
       tags$a(
         href = "mailto:anthony@raborndecisionsciences.com?subject=Question%20about%20plans",
-        "email us"
+        "Email us"
       ),
       "."
     ),
