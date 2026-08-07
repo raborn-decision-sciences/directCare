@@ -232,9 +232,29 @@
 }
 
 #' @noRd
-.build_tour_h5 <- function() {
-  # Summary tab.
-  guide <- .tour_guide("tour_h5")
+#'
+#' @param include_chart_type_step Whether to include the "Bar or pie" step
+#'   targeting `summary-inc_chart_type`. That control is rendered by
+#'   mod_summary.R only `if (!is.null(r$income) && nrow(r$income) > 0L)` --
+#'   true for a CSV upload (real transaction rows), but never true for a
+#'   practice that reached Summary via Upload's "Enter Data Manually"
+#'   path instead (mod_manual_entry.R only ever populates the
+#'   period-aggregated `r$income_monthly`, never transaction-level
+#'   `r$income`). The Help modal explicitly documents manual entry as an
+#'   equally valid way into this same "Historical Data" tour (see its
+#'   "Review & Edit -> Summary -> Projections" flow text), so this chapter
+#'   has to work for both -- omitting a step whose target never exists is
+#'   simpler and more robust than trying to make driver.js degrade
+#'   gracefully when a highlight target is missing. app_server.R's
+#'   `edit-btn_next_to_summary` handler picks which variant to advance
+#'   into based on `r$income`'s actual state at that moment.
+.build_tour_h5 <- function(include_chart_type_step = TRUE) {
+  # Summary tab. Distinct id per variant -- each Cicerone id backs its own
+  # JS Driver instance/message-handler registration (see app_server.R's
+  # `.tour_switch()` comment), and only one of the two variants is ever
+  # used in a given session, but giving them the same id would still be an
+  # avoidable footgun.
+  guide <- .tour_guide(if (include_chart_type_step) "tour_h5" else "tour_h5_manual")
   guide$step(
     el = "summary-ovhd_plot",
     title = "Overhead trend",
@@ -250,18 +270,20 @@
     description = "The same view for revenue, broken down by income source.",
     position = "bottom"
   )
-  guide$step(
-    el = "summary-inc_chart_type",
-    title = "Bar or pie, full data or by period",
-    description = paste0(
-      "Both cards have matching controls: switch between a bar chart and a ",
-      "pie chart, and (in pie view) between the full data range and a single ",
-      "period. Toggle <strong>By category</strong> / ",
-      "<strong>By source</strong> to see one line item at a time instead of ",
-      "the combined trend."
-    ),
-    position = "bottom"
-  )
+  if (include_chart_type_step) {
+    guide$step(
+      el = "summary-inc_chart_type",
+      title = "Bar or pie, full data or by period",
+      description = paste0(
+        "Both cards have matching controls: switch between a bar chart and a ",
+        "pie chart, and (in pie view) between the full data range and a single ",
+        "period. Toggle <strong>By category</strong> / ",
+        "<strong>By source</strong> to see one line item at a time instead of ",
+        "the combined trend."
+      ),
+      position = "bottom"
+    )
+  }
   guide$step(
     el = "summary-btn_next_to_projections",
     title = "Continue",

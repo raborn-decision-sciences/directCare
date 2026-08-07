@@ -638,6 +638,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
   guide_h3 <- .build_tour_h3()
   guide_h4 <- .build_tour_h4()
   guide_h5 <- .build_tour_h5()
+  # For a practice that reached Summary via Upload's "Enter Data Manually"
+  # path instead of a CSV upload -- omits the "Bar or pie" step, whose
+  # target (mod_summary.R's `inc_chart_type`) only renders when
+  # transaction-level `r$income` rows exist, which manual entry never
+  # populates. See .build_tour_h5()'s own comment (utils_tours.R) and the
+  # `edit-btn_next_to_summary` handler below, which picks between the two.
+  guide_h5_manual <- .build_tour_h5(include_chart_type_step = FALSE)
   guide_p1 <- .build_tour_p1()
   guide_p2 <- .build_tour_p2()
   guide_p3 <- .build_tour_p3()
@@ -875,6 +882,35 @@ app_server <- function(input, output, session, res_auth = NULL) {
     },
     ignoreInit = TRUE
   )
+  # "Enter Data Manually" -- the other option on the same h1 screen (see the
+  # Help modal's own "CSV upload ... or ... Manual entry" text for the
+  # Historical Data workflow) -- has no chapter of its own between here and
+  # Summary; the manual-entry form's own submit handler
+  # (mod_manual_entry.R's `btn_submit_manual`) jumps straight to the
+  # Summary tab, bypassing Review & Edit entirely (it never goes through
+  # `edit-btn_next_to_summary`, unlike the CSV path). Reset the current
+  # (h1) chapter here rather than leaving its popover stuck pointing at
+  # "Use Bookkeeping Data" while the user has already navigated away from
+  # it -- `active_tour` stays "historical" so the summary hand-off below
+  # still fires once they submit.
+  observeEvent(
+    input[["upload-btn_manual_entry"]],
+    {
+      if (identical(active_tour(), "historical")) {
+        .tour_reset_current()
+      }
+    },
+    ignoreInit = TRUE
+  )
+  observeEvent(
+    input[["upload-manual-btn_submit_manual"]],
+    # Always the no-toggle variant: manual entry only ever populates
+    # period-aggregated r$income_monthly, never transaction-level
+    # r$income, so the "Bar or pie" step's target never exists for this
+    # path -- see .build_tour_h5()'s comment (utils_tours.R).
+    .tour_advance("historical", guide_h5_manual, "summary-ovhd_plot"),
+    ignoreInit = TRUE
+  )
   # Both of h2's steps (csv_file, btn_upload) coexist in the same static
   # upload form, so this is a plain in-chapter move_forward() -- no re-init
   # (and no compaction risk) needed between two steps that never stop
@@ -900,7 +936,15 @@ app_server <- function(input, output, session, res_auth = NULL) {
   )
   observeEvent(
     input[["edit-btn_next_to_summary"]],
-    .tour_advance("historical", guide_h5, "summary-ovhd_plot"),
+    {
+      # Matches mod_summary.R's own gating condition on the "Bar or pie"
+      # toggle guide_h5's third step targets -- see .build_tour_h5()'s
+      # comment (utils_tours.R) for why manual-entry data needs the
+      # shorter variant.
+      has_txn_income <- !is.null(r$income) && nrow(r$income) > 0L
+      target_guide <- if (has_txn_income) guide_h5 else guide_h5_manual
+      .tour_advance("historical", target_guide, "summary-ovhd_plot")
+    },
     ignoreInit = TRUE
   )
   observeEvent(
