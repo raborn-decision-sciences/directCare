@@ -149,7 +149,7 @@ mod_plan_inputs_ui <- function(id) {
               tags$p(
                 class = "text-muted small",
                 "Rename how startup cost items appear in the Results table",
-                " and the downloaded report — the underlying numbers are unchanged."
+                " and the downloaded report -- the underlying numbers are unchanged."
               ),
               uiOutput(ns("cost_label_editor_ui")),
               actionButton(
