@@ -98,11 +98,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
         accordion_panel(
           title = "More about your practice (optional)",
           icon = bs_icon("info-circle"),
-          tags$div(
-            class = "d-flex gap-2",
-            tags$div(class = "flex-fill", textInput("account_first_name", "First Name", value = res_auth$first_name %||% "")),
-            tags$div(class = "flex-fill", textInput("account_last_name", "Last Name", value = res_auth$last_name %||% ""))
-          ),
+          textInput("account_first_name", "First Name", value = res_auth$first_name %||% ""),
+          textInput("account_last_name", "Last Name", value = res_auth$last_name %||% ""),
           selectInput(
             "account_practice_type", "Practice Type",
             choices = c(

@@ -78,11 +78,8 @@ mod_signup_ui <- function(id) {
     accordion_panel(
       title = "Tell us more about your practice (optional)",
       icon = bs_icon("info-circle"),
-      tags$div(
-        class = "d-flex gap-2",
-        tags$div(class = "flex-fill", textInput(ns("first_name"), "First Name")),
-        tags$div(class = "flex-fill", textInput(ns("last_name"), "Last Name"))
-      ),
+      textInput(ns("first_name"), "First Name"),
+      textInput(ns("last_name"), "Last Name"),
       selectInput(
         ns("practice_type"), "Practice Type",
         choices = c(
