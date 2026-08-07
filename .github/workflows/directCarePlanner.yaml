@@ -1,22 +1,26 @@
-# Workflow for directCarePlanner: a Golem Shiny app that depends on four
-# sibling packages in this same monorepo, directCareAuth, directCareData,
-# directCarePlanR, and directCareScenarios, all declared via `Remotes:`
-# GitHub references in DESCRIPTION. As with directCarePlanR.yaml, `pak`
-# (used internally by r-lib/actions/setup-r-dependencies) cannot resolve a
-# local sibling package when solving "local::." -- same confirmed
+# Workflow for directCarePlanner: a Golem Shiny app that depends on five
+# sibling packages in this same monorepo, directCareAuth, directCareBilling,
+# directCareData, directCarePlanR, and directCareScenarios, all declared via
+# `Remotes:` GitHub references in DESCRIPTION. As with directCarePlanR.yaml,
+# `pak` (used internally by r-lib/actions/setup-r-dependencies) cannot
+# resolve a local sibling package when solving "local::." -- same confirmed
 # limitation, same workaround: skip pak-based dependency resolution
 # entirely. Install every CRAN dependency (the sibling packages' own, plus
 # directCarePlanner's) via plain `install.packages()` FIRST -- both
 # directCareAuth (httr2/openssl/bcrypt/DBI/RPostgres) and directCareScenarios
 # (bsicons/DBI/shiny) must not be `R CMD INSTALL`ed before their own
-# dependencies are available -- then install all four sibling packages
+# dependencies are available -- then install all five sibling packages
 # locally via `R CMD INSTALL`, then run `rcmdcheck::rcmdcheck()` directly.
 #
 # directCareAuth was previously missing from this workflow entirely (no
 # local install, no CRAN deps, not even in the path triggers below) --
 # confirmed live: CI failed with "Package required but not available:
 # 'directCareAuth'" once the earlier directCareScenarios ordering bug was
-# fixed and this one was exposed next.
+# fixed and this one was exposed next. directCareBilling hit the identical
+# bug when it was added as a new Imports: dependency of directCarePlanner
+# without updating this workflow -- its own CRAN deps (DBI/httr2/openssl)
+# were already covered by directCareAuth's list below, so only the local
+# install step and path triggers needed the addition.
 #
 # Unlike directCarePlanR, directCarePlanner's tests don't exercise the
 # PDF-report download handler (no testServer() call touches
@@ -25,10 +29,10 @@
 on:
   push:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCareAuth/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCareAuth/**", "directCareBilling/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   pull_request:
     branches: [main, PlanR]
-    paths: ["directCarePlanner/**", "directCareAuth/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
+    paths: ["directCarePlanner/**", "directCareAuth/**", "directCareBilling/**", "directCarePlanR/**", "directCareData/**", "directCareScenarios/**", ".github/workflows/directCarePlanner.yaml"]
   workflow_dispatch: {}
 
 name: directCarePlanner.yaml
@@ -46,20 +50,22 @@ jobs:
           r-version: release
           use-public-rspm: true
 
-      - name: Install CRAN dependencies (directCareAuth, directCarePlanR, directCareScenarios, and directCarePlanner)
+      - name: Install CRAN dependencies (directCareAuth, directCareBilling, directCarePlanR, directCareScenarios, and directCarePlanner)
         # Must run before the local R CMD INSTALLs below -- directCareAuth
         # depends on httr2/openssl (among others), and directCareScenarios
         # depends on bsicons/DBI/shiny, so installing either before those
         # are available fails with "dependencies ... are not available"
         # (confirmed: this exact ordering bug previously broke CI twice --
         # first for directCareScenarios, then for directCareAuth, which had
-        # no CRAN deps listed here at all).
+        # no CRAN deps listed here at all). directCareBilling's own Imports
+        # (DBI/httr2/openssl) are already covered by directCareAuth's list.
         run: |
           Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "openssl", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
-      - name: Install local directCareAuth, directCareData, directCarePlanR, and directCareScenarios
+      - name: Install local directCareAuth, directCareBilling, directCareData, directCarePlanR, and directCareScenarios
         run: |
           R CMD INSTALL directCareAuth
+          R CMD INSTALL directCareBilling
           R CMD INSTALL directCareData
           R CMD INSTALL directCarePlanR
           R CMD INSTALL directCareScenarios
