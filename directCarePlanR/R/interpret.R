@@ -622,6 +622,85 @@ goal_seek_projection_recovery <- function(
   )
 }
 
+#' Compare Saved Scenarios' Cash-Flow Recovery Timing
+#'
+#' Pro-exclusive narrative naming which of a practice's saved plan
+#' scenarios recovers its ramp-period costs soonest. Unlike DCA's
+#' equivalent (`directCareAnalytics::compare_breakeven_scenarios()`),
+#' Planner's saved scenarios (`plan_scenarios`) store inputs only, not a
+#' results snapshot, so the caller must re-run [project_practice()] on
+#' each saved scenario's restored assumptions and pass in the resulting
+#' recovery months -- this function itself does no recomputation, it only
+#' narrates months already computed. Every recovery month is on the same
+#' absolute month timeline regardless of the horizon used to compute it
+#' (unlike DCA's weekly-vs-monthly forecast frequency, Planner has no
+#' analogous unit mismatch to guard against).
+#'
+#' @param scenarios A list of `list(label = , recovery_month = )`, one per
+#'   saved scenario. `recovery_month` is an integer (the first month
+#'   `cumulative_net_income` is non-negative) or `NA_integer_` if the
+#'   scenario never recovers within the horizon it was computed with.
+#'
+#' @return A character string of narrative text (plain text, not HTML --
+#'   matching every other `interpret_*()` function in this package), or
+#'   `NULL` if fewer than 2 scenarios are supplied (nothing to compare).
+#'
+#' @export
+compare_plan_scenarios <- function(scenarios) {
+  if (length(scenarios) < 2L) {
+    return(NULL)
+  }
+
+  .mo <- function(n) paste0(n, " month", if (n != 1L) "s" else "")
+
+  reached <- Filter(function(s) !is.na(s$recovery_month), scenarios)
+  not_reached <- Filter(function(s) is.na(s$recovery_month), scenarios)
+
+  if (length(reached) == 0L) {
+    labels <- paste(vapply(scenarios, `[[`, character(1), "label"), collapse = " and ")
+    return(paste0(
+      "None of your saved scenarios (", labels, ") recover their ",
+      "ramp-period costs within the projection horizon used when each was ",
+      "saved -- consider extending the horizon or revisiting the ",
+      "underlying assumptions."
+    ))
+  }
+
+  ord <- order(vapply(reached, `[[`, numeric(1), "recovery_month"))
+  reached <- reached[ord]
+  best <- reached[[1]]
+
+  lead <- paste0(
+    "Of your saved scenarios, ", best$label, " recovers its ramp-period ",
+    "costs soonest, by month ", best$recovery_month, "."
+  )
+
+  follow_sentences <- if (length(reached) > 1L) {
+    vapply(reached[-1], function(s) {
+      gap <- s$recovery_month - best$recovery_month
+      paste0(
+        s$label, " follows ", .mo(gap), " later, by month ",
+        s$recovery_month, "."
+      )
+    }, character(1))
+  } else {
+    character(0)
+  }
+
+  not_reached_sentence <- if (length(not_reached) > 0L) {
+    labels <- paste(vapply(not_reached, `[[`, character(1), "label"), collapse = " and ")
+    if (length(not_reached) > 1L) {
+      paste0(labels, " do not recover within their projection horizons.")
+    } else {
+      paste0(labels, " does not recover within its projection horizon.")
+    }
+  } else {
+    NULL
+  }
+
+  paste(c(lead, follow_sentences, not_reached_sentence), collapse = " ")
+}
+
 #' Interpret Capital Requirements
 #'
 #' Generates narrative text describing startup capital and personal runway

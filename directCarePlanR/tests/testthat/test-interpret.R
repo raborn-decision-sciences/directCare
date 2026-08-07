@@ -264,6 +264,54 @@ test_that("interpret_projection() ignores goal_seek when the base scenario alrea
   expect_false(grepl("To recover by month", text))
 })
 
+# -- compare_plan_scenarios --------------------------------------------------
+
+mk_scn <- function(label, recovery_month) {
+  list(label = label, recovery_month = recovery_month)
+}
+
+test_that("compare_plan_scenarios() names the earlier scenario when both recover", {
+  scenarios <- list(mk_scn("Scenario A", 14L), mk_scn("Scenario B", 8L))
+
+  text <- compare_plan_scenarios(scenarios)
+
+  expect_true(grepl("Scenario B recovers its ramp-period costs soonest, by month 8", text))
+  expect_true(grepl("Scenario A follows 6 months later, by month 14", text))
+})
+
+test_that("compare_plan_scenarios() singularizes a 1-month gap", {
+  scenarios <- list(mk_scn("A", 6L), mk_scn("B", 5L))
+
+  text <- compare_plan_scenarios(scenarios)
+
+  expect_true(grepl("follows 1 month later", text))
+  expect_false(grepl("1 months", text))
+})
+
+test_that("compare_plan_scenarios() handles 3 scenarios with one not reached", {
+  scenarios <- list(mk_scn("A", 14L), mk_scn("B", 8L), mk_scn("C", NA_integer_))
+
+  text <- compare_plan_scenarios(scenarios)
+
+  expect_true(grepl("B recovers its ramp-period costs soonest, by month 8", text))
+  expect_true(grepl("A follows 6 months later, by month 14", text))
+  expect_true(grepl("C does not recover within its projection horizon", text))
+})
+
+test_that("compare_plan_scenarios() reports when none recover", {
+  scenarios <- list(mk_scn("A", NA_integer_), mk_scn("B", NA_integer_))
+
+  text <- compare_plan_scenarios(scenarios)
+
+  expect_true(grepl("None of your saved scenarios", text))
+  expect_true(grepl("A and B", text))
+})
+
+test_that("compare_plan_scenarios() returns NULL for fewer than 2 scenarios", {
+  expect_null(compare_plan_scenarios(list()))
+  expect_null(compare_plan_scenarios(list(mk_scn("A", 5L))))
+})
+
 # -- interpret_capital -------------------------------------------------------
 
 test_that("interpret_capital() reports totals, top line items, and a combined figure", {

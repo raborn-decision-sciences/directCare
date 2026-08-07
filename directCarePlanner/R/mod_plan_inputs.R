@@ -194,35 +194,14 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    # .nn0(): coerce a potentially-NULL or NA numeric input to 0, so a
-    # cleared itemized field contributes $0 to the running total instead of
-    # propagating NA into it (a cleared numericInput sends NA, not NULL, so
-    # %||% alone doesn't catch it).
-    .nn0 <- function(x) {
-      v <- x %||% 0
-      if (length(v) != 1L || !is.finite(v)) 0 else v
-    }
-
-    # Pulled out of overhead_total_r()/runway_total_r() so .build_plan() can
-    # also call them against a plain list (a just-loaded scenario's saved
-    # inputs) instead of the live `input` -- see .build_plan()'s `values`
-    # argument below for why that distinction matters.
-    .overhead_total_from <- function(vals) {
-      if (identical(vals$overhead_mode, "single")) {
-        .nn0(vals$overhead_monthly)
-      } else {
-        sum(
-          c(
-            .nn0(vals$overhead_rent),
-            .nn0(vals$overhead_staff),
-            .nn0(vals$overhead_ehr),
-            .nn0(vals$overhead_malpractice),
-            .nn0(vals$overhead_supplies),
-            .nn0(vals$overhead_other)
-          )
-        )
-      }
-    }
+    # .nn0()/.overhead_total_from() now live in utils_globals.R (shared with
+    # mod_results.R's .assumptions_from_saved_inputs(), which needs
+    # identical overhead-total logic against a saved scenario's inputs) --
+    # pulled out of this closure so .build_plan() can call them against a
+    # plain list (a just-loaded scenario's saved inputs) instead of the
+    # live `input` just as before, but from a shared location instead of a
+    # module-local duplicate. .runway_total_from() has no use outside this
+    # module, so it stays here.
     .runway_total_from <- function(vals) {
       if (identical(vals$runway_mode, "single")) {
         .nn0(vals$monthly_expenses)

@@ -228,8 +228,89 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             .paragraphs_to_html(r$interpretations$capital)
           )
         ),
+        uiOutput(ns("scenario_comparison_card")),
         .scenario_footnote()
       )
+    })
+
+    # Pro-exclusive: compares saved plan_scenarios' cash-flow recovery
+    # timing. Unlike DCA's dca_forecast_scenarios (which snapshot full
+    # computed results, see directCareAnalytics's equivalent reactive),
+    # plan_scenarios stores inputs only -- see SAVED_SCENARIOS.md -- so
+    # each saved scenario's assumptions must be rebuilt and re-projected
+    # here rather than just read back. req(r$projections) is a proxy
+    # invalidation trigger (mirroring DCA's req(adj_breakeven())): this
+    # re-queries the DB whenever the practice (re)builds a plan or loads a
+    # saved scenario (on_load() also calls .build_plan(), which sets
+    # r$projections), but NOT immediately after a bare Save -- a known,
+    # accepted limitation, since mod_scenario_slots_server() exposes no
+    # "scenario list changed" signal to invalidate on directly.
+    scenario_compare_state <- reactive({
+      req(r$projections)
+      req(r$practice_id)
+      con <- directCareAuth::db_connect()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      listed <- directCareScenarios::scenario_list(con, "plan_scenarios", r$practice_id)
+      if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
+        return(list(count = nrow(listed), narrative = NULL))
+      }
+
+      scenarios <- lapply(listed$id, function(id) {
+        loaded <- directCareScenarios::scenario_load_json(con, "plan_scenarios", id)
+        if (is.null(loaded)) {
+          return(NULL)
+        }
+        assumptions <- .assumptions_from_saved_inputs(loaded$inputs)
+        horizon <- loaded$inputs$horizon_months %||% 24L
+        # A scenario saved mid-edit (e.g. both revenue toggles off) can't
+        # be projected -- tryCatch() skips it rather than erroring the
+        # whole comparison out for every other valid saved scenario.
+        proj <- tryCatch(
+          directCarePlanR::project_practice(assumptions, horizon_months = horizon),
+          error = function(e) NULL
+        )
+        if (is.null(proj)) {
+          return(NULL)
+        }
+        idx <- which(proj$cumulative_net_income >= 0)[1]
+        list(
+          label = loaded$label,
+          recovery_month = if (is.na(idx)) NA_integer_ else proj$month[idx]
+        )
+      })
+      scenarios <- Filter(Negate(is.null), scenarios)
+
+      list(
+        count = nrow(listed),
+        narrative = if (length(scenarios) >= 2L) {
+          directCarePlanR::compare_plan_scenarios(scenarios)
+        } else {
+          NULL
+        }
+      )
+    })
+
+    output$scenario_comparison_card <- renderUI({
+      state <- scenario_compare_state()
+      if (!is.null(state$narrative)) {
+        card(
+          card_header(bsicons::bs_icon("bar-chart-line"), " Scenario Comparison"),
+          card_body(.paragraphs_to_html(state$narrative))
+        )
+      } else if (!.has_pro_plan(r$plan_tier) && state$count >= 2L) {
+        card(
+          card_body(
+            .pro_upsell_note(
+              ns,
+              paste0(
+                "Pro also compares your saved scenarios' cash-flow recovery ",
+                "timing, naming which one recovers soonest."
+              ),
+              btn_id = "btn_see_plans_pro_scenario_compare"
+            )
+          )
+        )
+      }
     })
 
     output$projection_plot <- renderPlot({
@@ -281,6 +362,9 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     # Projections interpretation's Pro upsell note) -- all three open the
     # same modal, defined once in utils_billing.R.
     observeEvent(input$btn_see_plans_pro_sensitivity, {
+      .show_plans_modal()
+    })
+    observeEvent(input$btn_see_plans_pro_scenario_compare, {
       .show_plans_modal()
     })
     observeEvent(input$btn_see_plans_market, {

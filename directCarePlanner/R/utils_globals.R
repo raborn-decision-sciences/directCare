@@ -54,3 +54,83 @@ NULL
 }
 
 utils::globalVariables(c("month", "net_income", "scenario"))
+
+# Coerce a potentially-NULL or NA numeric input to 0, so a cleared
+# itemized field contributes $0 to a running total instead of propagating
+# NA into it (a cleared numericInput sends NA, not NULL, so %||% alone
+# doesn't catch it). Shared by mod_plan_inputs.R's live form totals and
+# .assumptions_from_saved_inputs() below, which both need identical
+# NULL/NA handling against either live `input$x` values or a saved
+# scenario's plain-list `inputs`.
+.nn0 <- function(x) {
+  v <- x %||% 0
+  if (length(v) != 1L || !is.finite(v)) 0 else v
+}
+
+# `vals` is a plain named list -- either the live form's values (built
+# fresh by mod_plan_inputs.R's overhead_total_r() reactive) or a saved
+# scenario's restored `inputs` (see plan_inputs_for_save()) -- so this
+# stays a pure function with no reactive dependency, usable from either
+# context.
+.overhead_total_from <- function(vals) {
+  if (identical(vals$overhead_mode, "single")) {
+    .nn0(vals$overhead_monthly)
+  } else {
+    sum(
+      c(
+        .nn0(vals$overhead_rent),
+        .nn0(vals$overhead_staff),
+        .nn0(vals$overhead_ehr),
+        .nn0(vals$overhead_malpractice),
+        .nn0(vals$overhead_supplies),
+        .nn0(vals$overhead_other)
+      )
+    )
+  }
+}
+
+#' Rebuild a `project_practice()` assumptions list from a saved scenario's inputs
+#'
+#' `plan_scenarios` stores inputs only, not a results snapshot (see
+#' `SAVED_SCENARIOS.md`), so comparing saved scenarios' recovery timing
+#' means re-running the projection pipeline for each one. This rebuilds
+#' the same `assumptions` list `mod_plan_inputs.R`'s `.build_plan()`
+#' constructs from live form inputs, but from a saved scenario's restored
+#' `inputs` list instead -- used only by `mod_results.R`'s scenario
+#' comparison, which needs `assumptions` directly rather than the full
+#' plan (market context, capital, interpretations) `.build_plan()` also
+#' computes.
+#'
+#' @param inputs A plain list in the shape `plan_inputs_for_save()`
+#'   produces (see `mod_plan_inputs.R`), as returned by
+#'   `directCareScenarios::scenario_load_json()`.
+#'
+#' @noRd
+.assumptions_from_saved_inputs <- function(inputs) {
+  membership_args <- if (isTRUE(inputs$include_membership)) {
+    list(
+      panel_size = inputs$panel_size,
+      fee = inputs$fee,
+      ramp_months = inputs$ramp_months,
+      ramp_shape = inputs$ramp_shape
+    )
+  }
+  fee_args <- if (isTRUE(inputs$include_fee)) {
+    list(
+      visit_volume = inputs$visit_volume,
+      new_visit_fee = inputs$new_visit_fee,
+      follow_up_fee = inputs$follow_up_fee,
+      new_visit_pct = inputs$new_visit_pct / 100,
+      # Matches .build_plan()'s own %||% 1L fallback -- a scenario saved
+      # before fee-for-service ramp existed won't have this key at all.
+      ramp_months = inputs$fee_ramp_months %||% 1L,
+      ramp_shape = inputs$fee_ramp_shape %||% "linear"
+    )
+  }
+  list(
+    membership_args = membership_args,
+    fee_args = fee_args,
+    overhead_monthly = .overhead_total_from(inputs),
+    overhead_growth_rate = inputs$overhead_growth_rate / 100
+  )
+}
