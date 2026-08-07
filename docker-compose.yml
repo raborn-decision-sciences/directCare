@@ -5,6 +5,16 @@ services:
       dockerfile: directCareAnalytics/Dockerfile
     image: directcare/dca:latest
     restart: unless-stopped
+    # Docker's default json-file driver has no size cap -- on a
+    # long-running server, container logs grow unbounded and can
+    # eventually fill the disk, taking down the whole stack (not just
+    # logging). 10m x 3 files = 30 MB max per service, well within
+    # budget. Same block repeated on every service below.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # No `ports:` here deliberately -- Caddy is the only intended entry
     # point (it reaches this service over the internal Compose network at
     # dca:3838, per the Caddyfile), so traffic gets TLS/HSTS. Publishing
@@ -51,6 +61,12 @@ services:
       dockerfile: directCarePlanner/Dockerfile
     image: directcare/planner:latest
     restart: unless-stopped
+    # Same reasoning as dca's `logging:` block above.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Same reasoning as dca's `ports:` omission above.
     environment:
       GOLEM_CONFIG_ACTIVE: production
@@ -77,6 +93,12 @@ services:
       dockerfile: billing-service/Dockerfile
     image: directcare/billing:latest
     restart: unless-stopped
+    # Same reasoning as dca's `logging:` block above.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     # Same reasoning as dca's `ports:` omission above -- Caddy is the only
     # intended entry point (billing.directcareanalytics.com).
     environment:
@@ -113,6 +135,12 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
+    # Same reasoning as dca's `logging:` block above.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   caddy:
     image: caddy:2
@@ -124,6 +152,12 @@ services:
       - ./caddy/errors:/srv/errors:ro
       - caddy_data:/data
     restart: unless-stopped
+    # Same reasoning as dca's `logging:` block above.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   pgdata:
