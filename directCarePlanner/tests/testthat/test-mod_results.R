@@ -94,6 +94,24 @@ test_that(".paragraphs_to_html() returns NULL for empty input", {
   expect_null(.paragraphs_to_html(""))
 })
 
+test_that(".paragraphs_to_html() badges paragraphs flagged by the pro_paragraph attribute", {
+  text <- "First paragraph.\n\nSecond paragraph."
+  attr(text, "pro_paragraph") <- c(FALSE, TRUE)
+
+  html <- paste(as.character(.paragraphs_to_html(text)), collapse = "")
+
+  expect_true(grepl("<p>First paragraph.</p>", html, fixed = TRUE))
+  expect_false(grepl("badge.*First paragraph", html))
+  expect_true(grepl("badge", html))
+  expect_true(grepl("Second paragraph", html))
+})
+
+test_that(".paragraphs_to_html() badges nothing when the pro_paragraph attribute is absent", {
+  html <- paste(as.character(.paragraphs_to_html("Plain paragraph.")), collapse = "")
+
+  expect_false(grepl("badge", html))
+})
+
 # ── .humanize_cost_items() (startup-cost category label overrides) ──────
 
 test_that(".humanize_cost_items returns default labels with no overrides", {

@@ -215,6 +215,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
     loaded_label <- shiny::reactiveVal(NULL)
     loaded_snapshot <- shiny::reactiveVal(NULL)
     picker_slots <- shiny::reactiveVal(NULL)
+    load_slots <- shiny::reactiveVal(NULL)
 
     # Keeps the overwrite-picker's label field in sync with whichever slot
     # is currently selected -- defaults to that slot's own current label
@@ -382,6 +383,23 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
     })
 
     # -- Load flow ------------------------------------------------------------
+    .show_load_modal <- function(slots) {
+      load_slots(slots)
+      shiny::showModal(shiny::modalDialog(
+        title = "Load Scenario",
+        shiny::radioButtons(
+          ns("load_choice"), NULL,
+          choiceNames = .scenario_slot_choice_names(slots),
+          choiceValues = slots$id
+        ),
+        footer = shiny::tagList(
+          shiny::actionButton(ns("delete_click"), "Delete", class = "btn-outline-danger me-auto"),
+          shiny::modalButton("Cancel"),
+          shiny::actionButton(ns("load_confirm"), "Load", class = "btn-primary")
+        )
+      ))
+    }
+
     shiny::observeEvent(input$load_click, {
       if (!isTRUE(has_access())) {
         on_access_denied()
@@ -400,18 +418,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
         return()
       }
 
-      shiny::showModal(shiny::modalDialog(
-        title = "Load Scenario",
-        shiny::radioButtons(
-          ns("load_choice"), NULL,
-          choiceNames = .scenario_slot_choice_names(slots),
-          choiceValues = slots$id
-        ),
-        footer = shiny::tagList(
-          shiny::modalButton("Cancel"),
-          shiny::actionButton(ns("load_confirm"), "Load", class = "btn-primary")
-        )
-      ))
+      .show_load_modal(slots)
     })
 
     shiny::observeEvent(input$load_confirm, {
@@ -436,6 +443,64 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
       on_load(loaded_value)
       loaded_snapshot(extract_dirty_signal(loaded_value))
       loaded_label(loaded$label)
+    })
+
+    # Deletion is a two-step confirm (a plain "Delete" click opens a second,
+    # narrower modalDialog asking to confirm that exact slot's label) since
+    # it's destructive and, unlike a save overwrite, has no "just save again
+    # to undo" recovery path. Reuses load_slots() (set by .show_load_modal(),
+    # the same slot list already on screen) rather than re-querying, so the
+    # confirm text can show the slot's own label without another round trip.
+    shiny::observeEvent(input$delete_click, {
+      shiny::req(input$load_choice)
+      slots <- load_slots()
+      shiny::req(slots)
+      idx <- match(input$load_choice, as.character(slots$id))
+      shiny::req(!is.na(idx))
+
+      shiny::showModal(shiny::modalDialog(
+        title = "Delete Scenario",
+        shiny::tags$p(
+          "Delete \"", shiny::tags$strong(slots$label[idx]), "\"? This can't be undone."
+        ),
+        footer = shiny::tagList(
+          shiny::modalButton("Cancel"),
+          shiny::actionButton(ns("delete_confirm"), "Delete", class = "btn-danger")
+        )
+      ))
+    })
+
+    shiny::observeEvent(input$delete_confirm, {
+      shiny::req(input$load_choice)
+      con <- get_con()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      deleted_id <- as.integer(input$load_choice)
+      ok <- scenario_delete(con, table, practice_id(), deleted_id)
+
+      if (!ok) {
+        shiny::removeModal()
+        shiny::showNotification("That scenario no longer exists.", type = "error")
+        return()
+      }
+
+      # Clears the "viewing saved scenario" banner if the deleted slot was
+      # the one currently being viewed -- otherwise the banner would keep
+      # naming a scenario that no longer exists.
+      slots <- load_slots()
+      idx <- match(deleted_id, slots$id)
+      if (!is.na(idx) && identical(shiny::isolate(loaded_label()), slots$label[idx])) {
+        loaded_label(NULL)
+        loaded_snapshot(NULL)
+      }
+
+      shiny::showNotification("Scenario deleted.", type = "message")
+
+      remaining <- scenario_list(con, table, practice_id())
+      if (nrow(remaining) == 0) {
+        shiny::removeModal()
+      } else {
+        .show_load_modal(remaining)
+      }
     })
 
     list(loaded_label = shiny::reactive(loaded_label()))

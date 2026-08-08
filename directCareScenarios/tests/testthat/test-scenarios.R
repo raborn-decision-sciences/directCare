@@ -237,3 +237,46 @@ test_that("scenario_load_forecast round-trips a real serialized payload and retu
   )
   expect_null(scenario_load_forecast("mock_con", 999L))
 })
+
+test_that("scenario_delete rejects an unknown table", {
+  expect_error(scenario_delete("mock_con", "not_a_table", 7L, 1L), "Unknown scenario table")
+})
+
+test_that("scenario_delete scopes the DELETE by both id and practice_id, returns TRUE when a row matched", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbExecute = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      1L
+    },
+    .package = "DBI"
+  )
+
+  result <- scenario_delete("mock_con", "plan_scenarios", 7L, 42L)
+
+  expect_true(result)
+  expect_match(captured$statement, "DELETE FROM plan_scenarios WHERE id = \\$1 AND practice_id = \\$2")
+  expect_equal(captured$params, list(42L, 7L))
+})
+
+test_that("scenario_delete returns FALSE when no row matched", {
+  local_mocked_bindings(
+    dbExecute = function(conn, statement, params) 0L,
+    .package = "DBI"
+  )
+
+  result <- scenario_delete("mock_con", "dca_forecast_scenarios", 7L, 999L)
+
+  expect_false(result)
+})
+
+test_that("scenario_delete works for all three scenario tables", {
+  local_mocked_bindings(
+    dbExecute = function(conn, statement, params) 1L,
+    .package = "DBI"
+  )
+
+  for (tbl in c("plan_scenarios", "dca_calculator_scenarios", "dca_forecast_scenarios")) {
+    expect_true(scenario_delete("mock_con", tbl, 1L, 1L))
+  }
+})

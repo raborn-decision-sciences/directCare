@@ -573,6 +573,24 @@ test_that(".describe_goal_seek() keeps 'either' wording when the fee lever is ab
   expect_false(grepl("membership fee", text))
 })
 
+test_that(".describe_goal_seek() carries a Pro badge on both the achievable and non-achievable branches", {
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  achievable <- .describe_goal_seek(
+    goal_seek_breakeven(make_flat_breakeven_result(revenue = 1800, overhead = 2000)),
+    pu, "break-even"
+  )
+  expect_true(grepl("badge", achievable))
+  expect_true(grepl(">Pro<", achievable))
+
+  not_achievable <- .describe_goal_seek(
+    goal_seek_breakeven(make_flat_breakeven_result(revenue = 500, overhead = 5000)),
+    pu, "break-even"
+  )
+  expect_true(grepl("badge", not_achievable))
+  expect_true(grepl(">Pro<", not_achievable))
+})
+
 # -- stress_test_breakeven -----------------------------------------------------
 
 test_that("stress_test_breakeven() reports a positive, uncapped loss room for a sustained surplus", {
@@ -659,4 +677,23 @@ test_that(".describe_stress_test() flags a capped (full-panel) margin", {
 
 test_that(".describe_stress_test() returns NULL for a NULL stress-test result", {
   expect_null(.describe_stress_test(NULL, list(singular = "month", plural = "months")))
+})
+
+test_that(".describe_stress_test() carries a Pro badge on all three non-NULL branches", {
+  pu <- list(singular = "month", plural = "months")
+
+  normal <- .describe_stress_test(
+    structure(list(members_loss_room = 15L, capped = FALSE), class = "dcAnalytics_stress_test"), pu
+  )
+  thin <- .describe_stress_test(
+    structure(list(members_loss_room = 0L, capped = FALSE), class = "dcAnalytics_stress_test"), pu
+  )
+  capped <- .describe_stress_test(
+    structure(list(members_loss_room = 60L, capped = TRUE), class = "dcAnalytics_stress_test"), pu
+  )
+
+  for (text in list(normal, thin, capped)) {
+    expect_true(grepl("badge", text))
+    expect_true(grepl(">Pro<", text))
+  }
 })

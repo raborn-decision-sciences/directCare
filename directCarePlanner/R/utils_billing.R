@@ -251,6 +251,29 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
   )
 }
 
+#' Small "Pro" tag marking content a paying Pro practice already has access
+#' to
+#'
+#' See directCareAnalytics's identical helper for the full rationale.
+#' text-bg-primary because bs_theme()'s `primary` is the RDS teal
+#' (app_ui.R), matching this app's existing accent color.
+#'
+#' @noRd
+.pro_badge <- function() {
+  tags$span(
+    class = "badge rounded-pill text-bg-primary",
+    style = "font-size: 0.68em; vertical-align: 2px;",
+    "Pro"
+  )
+}
+
+#' `.pro_badge()` rendered to a plain HTML string, for splicing into
+#' narrative text assembled outside of Shiny tags (e.g. `.paragraphs_to_html()`).
+#' @noRd
+.pro_badge_html <- function() {
+  as.character(.pro_badge())
+}
+
 #' Save/Load scenario-slot buttons -- real ones for a paid practice, a
 #' locked placeholder for free
 #'

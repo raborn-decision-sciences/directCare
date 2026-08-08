@@ -772,10 +772,10 @@ goal_seek_target <- function(
 
   if (!income_ok && !overhead_ok && !fee_ok) {
     return(paste0(
-      "<p class='text-muted small'>Even an aggressive growth-rate or fee ",
-      "change wouldn't reach ", goal_label, " within this forecast window ",
-      "on its own -- consider a longer horizon or a more fundamental ",
-      "change to the revenue or cost structure.</p>"
+      "<p class='text-muted small'>", .pro_badge_html(), " Even an aggressive ",
+      "growth-rate or fee change wouldn't reach ", goal_label, " within this ",
+      "forecast window on its own -- consider a longer horizon or a more ",
+      "fundamental change to the revenue or cost structure.</p>"
     ))
   }
 
@@ -833,7 +833,8 @@ goal_seek_target <- function(
   }
 
   paste0(
-    "<p>", intro, paste(clauses, collapse = " -- or, separately, "), ".</p>"
+    "<p>", .pro_badge_html(), " ", intro,
+    paste(clauses, collapse = " -- or, separately, "), ".</p>"
   )
 }
 
@@ -1058,23 +1059,24 @@ stress_test_breakeven <- function(
 
   if (isTRUE(st$capped)) {
     return(paste0(
-      "<p>Your margin is wide enough that even losing your entire panel ",
-      "wouldn't put sustained break-even at risk under current growth ",
-      "assumptions &mdash; fee-for-service or other non-membership ",
-      "revenue is likely doing much of the work.</p>"
+      "<p>", .pro_badge_html(), " Your margin is wide enough that even ",
+      "losing your entire panel wouldn't put sustained break-even at risk ",
+      "under current growth assumptions &mdash; fee-for-service or other ",
+      "non-membership revenue is likely doing much of the work.</p>"
     ))
   }
 
   if (st$members_loss_room <= 0L) {
     return(paste0(
-      "<p>Your break-even margin is thin: losing even a single member at ",
-      "current rates would put sustained break-even at risk.</p>"
+      "<p>", .pro_badge_html(), " Your break-even margin is thin: losing ",
+      "even a single member at current rates would put sustained ",
+      "break-even at risk.</p>"
     ))
   }
 
   paste0(
-    "<p>Your current margin could absorb losing up to <strong>",
-    st$members_loss_room,
+    "<p>", .pro_badge_html(), " Your current margin could absorb losing up ",
+    "to <strong>", st$members_loss_room,
     " members</strong> before break-even would no longer be sustained ",
     "through the forecast horizon.</p>"
   )

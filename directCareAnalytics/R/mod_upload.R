@@ -518,7 +518,7 @@ mod_upload_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
     })
 
     # -- Calculator sub-module -----------------------------------------------
-    calculator_result <- mod_calculator_server("calculator", r, parent_session)
+    calculator_result <- mod_calculator_server("calculator", r, parent_session, demo_mode = demo_mode)
 
     observeEvent(
       calculator_result$go_back(),

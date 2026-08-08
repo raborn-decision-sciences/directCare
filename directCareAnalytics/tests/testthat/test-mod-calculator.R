@@ -113,3 +113,30 @@ test_that("other income exceeding overhead floors the membership requirement at 
     expect_equal(net_needed_breakeven, 0)
   })
 })
+
+# ── calculator_compare_state() demo-mode guard ────────────────────────────────
+# Demo mode sets r$practice_id to a non-numeric placeholder ("riverside-demo",
+# see utils_demo.R's .load_demo_identity()), not a real practices.id -- passing
+# that straight through to scenario_list()'s parameterized query crashes
+# Postgres ("invalid input syntax for type integer"). demo_mode() must short-
+# circuit before any DB call is attempted.
+
+test_that("calculator_compare_state never touches the DB when demo_mode() is TRUE", {
+  local_mocked_bindings(
+    db_connect = function(...) stop("db_connect() should not be called in demo mode"),
+    .package = "directCareAuth"
+  )
+  r <- empty_r()
+  r$practice_id <- "riverside-demo"
+  r$plan_tier <- "pro"
+
+  testServer(
+    mod_calculator_server,
+    args = list(r = r, demo_mode = shiny::reactiveVal(TRUE)),
+    {
+      session$setInputs(monthly_overhead = 3000)
+      session$elapse(1600) # past calc_inputs_signal_debounced()'s 1500ms window
+      expect_equal(calculator_compare_state(), list(count = 0L, narrative = NULL))
+    }
+  )
+})

@@ -29,7 +29,19 @@ default) omits that paragraph.}
 }
 \value{
 A character string of narrative text, with paragraphs separated
-by \code{"\\n\\n"}.
+by \code{"\\n\\n"}. Carries a \code{"pro_paragraph"} attribute: a logical vector,
+one entry per paragraph in the returned text (after splitting on
+\code{"\\n\\n"}), \code{TRUE} for a paragraph sourced from
+\code{sensitivity_decomposition}/\code{goal_seek} and \code{FALSE} for the original
+three. Existing callers that only use the string value are unaffected
+(the attribute is invisible to \code{cat()}/\code{paste()}/Typst rendering); a
+caller that wants to visually distinguish the Pro-exclusive paragraphs
+(e.g. a badge in a live UI) can read \code{attr(result, "pro_paragraph")}
+to know which ones without re-deriving the gating logic itself --
+\code{.describe_sensitivity_decomposition()}/\code{.describe_goal_seek()} can
+each still decide there's nothing to say and return \code{NULL}, so this is
+computed here rather than guessed from whether the caller passed a
+non-NULL \code{sensitivity_decomposition}/\code{goal_seek} argument.
 }
 \description{
 Generates narrative text describing a scenario projection, calling out

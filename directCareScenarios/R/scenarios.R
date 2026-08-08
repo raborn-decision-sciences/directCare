@@ -251,3 +251,30 @@ scenario_load_forecast <- function(con, id) {
     bundle = unserialize(memDecompress(result$payload[[1]], type = "xz"))
   )
 }
+
+#' Delete one saved scenario
+#'
+#' Scoped by both `id` and `practice_id` in the same statement -- not just
+#' `id` -- so one practice can never delete another's row even if it guessed
+#' or replayed an id it doesn't own. Works across all three scenario tables
+#' (unlike [scenario_save_json()]/[scenario_load_json()], which are JSONB-
+#' table-only), since deletion needs no knowledge of a table's payload
+#' shape.
+#'
+#' @param con An open `DBI` connection.
+#' @param table One of `"plan_scenarios"`, `"dca_calculator_scenarios"`,
+#'   `"dca_forecast_scenarios"`.
+#' @param practice_id The practice's `practices.id`.
+#' @param id The scenario's row id.
+#' @return `TRUE` if a row was deleted, `FALSE` if no row matched (already
+#'   deleted, or `id`/`practice_id` didn't own it).
+#' @export
+scenario_delete <- function(con, table, practice_id, id) {
+  .check_scenario_table(table)
+  affected <- DBI::dbExecute(
+    con,
+    sprintf("DELETE FROM %s WHERE id = $1 AND practice_id = $2", table),
+    params = list(id, practice_id)
+  )
+  isTRUE(affected > 0)
+}

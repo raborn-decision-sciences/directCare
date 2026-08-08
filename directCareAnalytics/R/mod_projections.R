@@ -18,10 +18,18 @@ mod_projections_ui <- function(id) {
 #'
 #' @param id Module namespace ID.
 #' @param r Shared `reactiveValues` object from `app_server`.
+#' @param demo_mode Optional reactive returning `TRUE` while a demo
+#'   session is active (see `mod_upload.R`'s own parameter of the same
+#'   name) -- `r$practice_id` is a non-numeric placeholder ("riverside-
+#'   demo") in demo mode, not a real `practices.id`, so DB-facing
+#'   reactives here must skip their query rather than pass it through as
+#'   a bind parameter. Defaults to always-`FALSE` (unrestricted) for
+#'   callers that never operate in demo mode.
 #' @noRd
-mod_projections_server <- function(id, r, parent_session = NULL) {
+mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NULL) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
+    demo_mode <- demo_mode %||% reactiveVal(FALSE)
 
     # Triggered from the break-even/income-target goal-seek and scenario-
     # comparison upsell notes' "See Pro plan" links (utils_billing.R's
@@ -1501,6 +1509,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     scenario_compare_state <- reactive({
       req(adj_breakeven())
       req(r$practice_id)
+      if (isTRUE(demo_mode())) {
+        return(list(count = 0L, narrative = NULL))
+      }
       con <- directCareAuth::db_connect()
       on.exit(DBI::dbDisconnect(con), add = TRUE)
       listed <- directCareScenarios::scenario_list(con, "dca_forecast_scenarios", r$practice_id)
@@ -1748,7 +1759,11 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       state <- scenario_compare_state()
       if (!is.null(state$narrative)) {
         card(
-          card_header(bs_icon("bar-chart-line"), " Scenario Comparison"),
+          card_header(
+            class = "d-flex align-items-center gap-2",
+            bs_icon("bar-chart-line"), " Scenario Comparison",
+            tags$span(class = "ms-auto", .pro_badge())
+          ),
           card_body(HTML(state$narrative))
         )
       } else if (!.has_pro_plan(r$plan_tier) && state$count >= 2L) {

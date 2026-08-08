@@ -264,6 +264,110 @@ test_that("interpret_projection() ignores goal_seek when the base scenario alrea
   expect_false(grepl("To recover by month", text))
 })
 
+# -- interpret_projection()'s "pro_paragraph" attribute ----------------------
+
+test_that("interpret_projection() tags no paragraphs as Pro when neither extra is supplied", {
+  assumptions <- list(
+    membership_args = list(panel_size = 300, fee = 100, ramp_months = 12),
+    overhead_monthly = 5000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 24)
+
+  text <- interpret_projection(projection)
+
+  expect_identical(attr(text, "pro_paragraph"), rep(FALSE, 3))
+})
+
+test_that("interpret_projection() tags the trailing paragraph as Pro when a decomposition is supplied", {
+  assumptions <- list(
+    membership_args = list(panel_size = 200, fee = 80, ramp_months = 12),
+    overhead_monthly = 8000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 24)
+  decomp <- decompose_projection_sensitivity(assumptions, horizon_months = 24)
+
+  text <- interpret_projection(projection, decomp)
+
+  expect_identical(attr(text, "pro_paragraph"), c(FALSE, FALSE, FALSE, TRUE))
+})
+
+test_that("interpret_projection() tags the trailing paragraph as Pro when goal_seek fires", {
+  assumptions <- list(
+    membership_args = list(panel_size = 300, fee = 100, ramp_months = 24),
+    overhead_monthly = 15000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 12)
+  gs <- goal_seek_projection_recovery(assumptions, horizon_months = 12)
+
+  text <- interpret_projection(projection, goal_seek = gs)
+
+  expect_identical(attr(text, "pro_paragraph"), c(FALSE, FALSE, FALSE, TRUE))
+})
+
+test_that("interpret_projection() tags both trailing paragraphs when decomposition and goal_seek both fire", {
+  # Hand-built fixtures rather than real project_scenarios()/
+  # decompose_projection_sensitivity() output: a non-recovering base
+  # (required for goal_seek_sentence to fire) structurally forces
+  # decompose_projection_sensitivity()'s own isolated-conservative variant
+  # to also fail to recover (it can only make things worse than base), so
+  # a real decomposition is always degenerate whenever goal_seek would
+  # fire -- this exercises interpret_projection()'s own tagging logic
+  # for the case directly, independent of that real-world correlation.
+  projection <- data.frame(
+    scenario = rep(c("base", "conservative", "optimistic"), each = 3),
+    month = rep(1:3, 3),
+    cumulative_net_income = c(-3000, -2500, -2000, -4000, -3500, -3000, -2000, -1500, -1000)
+  )
+  decomp <- structure(
+    list(ramp_spread_months = 5L, overhead_spread_months = 3L, dominant_lever = "ramp"),
+    class = "dcPlanR_sensitivity_decomposition"
+  )
+  gs <- structure(
+    list(
+      target_month = 12L,
+      overhead = list(achievable = TRUE, pct_cut = 30, new_overhead_monthly = 7000),
+      ramp = list(achievable = TRUE, original_ramp_months = 24L, new_ramp_months = 13L, months_faster = 11L)
+    ),
+    class = "dcPlanR_goal_seek"
+  )
+
+  text <- interpret_projection(projection, decomp, gs)
+
+  expect_identical(attr(text, "pro_paragraph"), c(FALSE, FALSE, FALSE, TRUE, TRUE))
+})
+
+test_that("interpret_projection() doesn't tag a paragraph that a degenerate decomposition never produced", {
+  assumptions <- list(
+    membership_args = list(panel_size = 300, fee = 100, ramp_months = 12),
+    overhead_monthly = 5000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 24)
+  # Both levers NA -- .describe_sensitivity_decomposition() returns NULL
+  # for this, so no fourth paragraph should exist to tag as Pro even
+  # though a (degenerate) decomposition object was passed.
+  degenerate <- structure(
+    list(ramp_spread_months = NA_integer_, overhead_spread_months = NA_integer_, dominant_lever = NA_character_),
+    class = "dcPlanR_sensitivity_decomposition"
+  )
+
+  text <- interpret_projection(projection, degenerate)
+
+  expect_identical(attr(text, "pro_paragraph"), rep(FALSE, 3))
+})
+
+test_that("interpret_projection() doesn't tag a goal_seek paragraph the base scenario didn't need", {
+  assumptions <- list(
+    membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
+    overhead_monthly = 5000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 24)
+  gs <- goal_seek_projection_recovery(assumptions, horizon_months = 24)
+
+  text <- interpret_projection(projection, goal_seek = gs)
+
+  expect_identical(attr(text, "pro_paragraph"), rep(FALSE, 3))
+})
+
 # -- compare_plan_scenarios --------------------------------------------------
 
 mk_scn <- function(label, recovery_month) {

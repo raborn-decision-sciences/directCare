@@ -309,6 +309,36 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
   )
 }
 
+#' Small "Pro" tag marking content a paying Pro practice already has access
+#' to
+#'
+#' The mirror image of `.pro_upsell_note()`: that one advertises a Pro
+#' feature to someone who doesn't have it yet; this one quietly labels a
+#' feature for someone who does, so a Pro practice can tell which parts of
+#' the screen are the paid layer without a pushy reminder every visit --
+#' text-bg-primary because bs_theme()'s `primary` is the RDS teal
+#' (app_ui.R), so this reuses the same accent already used for buttons and
+#' active tabs rather than introducing a new color. `text-bg-*` is a plain
+#' Bootstrap 5 utility (same pattern as the existing "Demo Mode" badge in
+#' app_server.R's account_menu), so contrast/dark-mode both come for free.
+#'
+#' @noRd
+.pro_badge <- function() {
+  tags$span(
+    class = "badge rounded-pill text-bg-primary",
+    style = "font-size: 0.68em; vertical-align: 2px;",
+    "Pro"
+  )
+}
+
+#' `.pro_badge()` rendered to a plain HTML string, for splicing into
+#' narrative text built with `paste0()` (e.g. `.describe_goal_seek()`)
+#' rather than assembled as Shiny tags.
+#' @noRd
+.pro_badge_html <- function() {
+  as.character(.pro_badge())
+}
+
 #' Save/Load scenario-slot buttons -- real ones for a paid practice, a
 #' locked placeholder for free
 #'

@@ -158,7 +158,19 @@ interpret_revenue <- function(revenue) {
 #'   default) omits that paragraph.
 #'
 #' @return A character string of narrative text, with paragraphs separated
-#'   by `"\n\n"`.
+#'   by `"\n\n"`. Carries a `"pro_paragraph"` attribute: a logical vector,
+#'   one entry per paragraph in the returned text (after splitting on
+#'   `"\n\n"`), `TRUE` for a paragraph sourced from
+#'   `sensitivity_decomposition`/`goal_seek` and `FALSE` for the original
+#'   three. Existing callers that only use the string value are unaffected
+#'   (the attribute is invisible to `cat()`/`paste()`/Typst rendering); a
+#'   caller that wants to visually distinguish the Pro-exclusive paragraphs
+#'   (e.g. a badge in a live UI) can read `attr(result, "pro_paragraph")`
+#'   to know which ones without re-deriving the gating logic itself --
+#'   `.describe_sensitivity_decomposition()`/`.describe_goal_seek()` can
+#'   each still decide there's nothing to say and return `NULL`, so this is
+#'   computed here rather than guessed from whether the caller passed a
+#'   non-NULL `sensitivity_decomposition`/`goal_seek` argument.
 #'
 #' @export
 interpret_projection <- function(
@@ -259,19 +271,25 @@ interpret_projection <- function(
     NULL
   }
 
-  # c() silently drops any NULL (no decomposition/goal-seek supplied, or
-  # either had nothing computable to say), so this collapses to the
-  # original 3-paragraph output when neither is passed.
-  paste(
-    c(
-      base_sentence,
-      scenario_sentence,
-      spread_sentence,
-      decomposition_sentence,
-      goal_seek_sentence
-    ),
-    collapse = "\n\n"
+  # Built as parallel lists (not c()'d together directly) so the
+  # TRUE/FALSE "is this a Pro paragraph" flags survive NULL-dropping in
+  # lockstep with the paragraphs themselves -- c() silently drops any NULL
+  # entry (no decomposition/goal-seek supplied, or either had nothing
+  # computable to say), which is exactly what makes this collapse to the
+  # original 3-paragraph, all-FALSE output when neither is passed.
+  paragraphs <- list(
+    base_sentence,
+    scenario_sentence,
+    spread_sentence,
+    decomposition_sentence,
+    goal_seek_sentence
   )
+  is_pro <- list(FALSE, FALSE, FALSE, !is.null(decomposition_sentence), !is.null(goal_seek_sentence))
+  keep <- !vapply(paragraphs, is.null, logical(1))
+
+  result <- paste(unlist(paragraphs[keep]), collapse = "\n\n")
+  attr(result, "pro_paragraph") <- unlist(is_pro[keep])
+  result
 }
 
 #' Decompose Break-Even Sensitivity by Assumption

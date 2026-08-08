@@ -1363,7 +1363,7 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # its return value supplies the Save/Load callbacks the single app-level
   # scenario_slots instance below needs. mod_projections_server() must run
   # first so those closures exist before being passed in.
-  projections_result <- mod_projections_server("projections", r, parent_session = session)
+  projections_result <- mod_projections_server("projections", r, parent_session = session, demo_mode = demo_mode)
 
   # -- Saved scenario slots (dca_forecast_scenarios): one shared instance ----
   # Previously owned entirely by mod_projections.R, wired only into

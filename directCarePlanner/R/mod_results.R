@@ -4,13 +4,32 @@
 # (not HTML -- a deliberate directCarePlanR design choice since Typst, not
 # a live UI, was its near-term consumer). Wrap each paragraph in <p> for
 # display here; this is display formatting, an app-side concern.
+#
+# interpret_projection()'s "pro_paragraph" attribute (see its own doc) marks
+# which paragraphs came from a Pro-exclusive sensitivity_decomposition/
+# goal_seek addition -- read here (not re-derived) so a Pro user sees a
+# small badge on exactly those, without this function needing to know
+# anything about billing tiers itself. Absent on every other interpret_*()
+# output (revenue, capital, scenario-comparison narrative), so this is a
+# no-op there.
 .paragraphs_to_html <- function(text) {
   if (is.null(text) || !nzchar(text)) {
     return(NULL)
   }
   paragraphs <- trimws(strsplit(text, "\n\n", fixed = TRUE)[[1]])
-  paragraphs <- paragraphs[nzchar(paragraphs)]
-  tagList(lapply(paragraphs, tags$p))
+  is_pro <- attr(text, "pro_paragraph")
+
+  keep <- nzchar(paragraphs)
+  paragraphs <- paragraphs[keep]
+  is_pro <- if (is.null(is_pro)) rep(FALSE, length(paragraphs)) else is_pro[keep]
+
+  tagList(lapply(seq_along(paragraphs), function(i) {
+    if (isTRUE(is_pro[i])) {
+      tags$p(.pro_badge(), " ", paragraphs[i])
+    } else {
+      tags$p(paragraphs[i])
+    }
+  }))
 }
 
 .fmt_dollar <- function(x) scales::dollar(x, accuracy = 1)
@@ -201,34 +220,39 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             )
           )
         ),
-        card(
-          card_header(bsicons::bs_icon("lightbulb"), " Interpretation"),
-          card_body(
-            tags$h6("Revenue"),
-            .paragraphs_to_html(r$interpretations$revenue),
-            tags$h6(class = "mt-3", "Projections"),
-            .paragraphs_to_html(r$interpretations$projection),
-            if (!.has_pro_plan(r$plan_tier)) {
-              # Which Pro perk to advertise depends on which one would
-              # actually have fired for this plan -- goal-seek only ever
-              # says anything when the base scenario doesn't recover
-              # (mirrors mod_plan_inputs.R's base_recovers gate), the
-              # sensitivity breakdown otherwise.
-              .pro_upsell_note(
-                ns,
-                if (is.na(recovery_idx)) {
-                  "Pro also tells you what it would take -- an overhead cut, a faster ramp, or both -- to recover within your horizon."
-                } else {
-                  "Pro also breaks down which assumption -- membership ramp speed or overhead -- drives more of the conservative-to-optimistic spread."
-                },
-                btn_id = "btn_see_plans_pro_sensitivity"
-              )
-            },
-            tags$h6(class = "mt-3", "Capital"),
-            .paragraphs_to_html(r$interpretations$capital)
-          )
+        layout_columns(
+          col_widths = 12,
+          fill = FALSE,
+          fillable = FALSE,
+          card(
+            card_header(bsicons::bs_icon("lightbulb"), " Interpretation"),
+            card_body(
+              tags$h6("Revenue"),
+              .paragraphs_to_html(r$interpretations$revenue),
+              tags$h6(class = "mt-3", "Projections"),
+              .paragraphs_to_html(r$interpretations$projection),
+              if (!.has_pro_plan(r$plan_tier)) {
+                # Which Pro perk to advertise depends on which one would
+                # actually have fired for this plan -- goal-seek only ever
+                # says anything when the base scenario doesn't recover
+                # (mirrors mod_plan_inputs.R's base_recovers gate), the
+                # sensitivity breakdown otherwise.
+                .pro_upsell_note(
+                  ns,
+                  if (is.na(recovery_idx)) {
+                    "Pro also tells you what it would take -- an overhead cut, a faster ramp, or both -- to recover within your horizon."
+                  } else {
+                    "Pro also breaks down which assumption -- membership ramp speed or overhead -- drives more of the conservative-to-optimistic spread."
+                  },
+                  btn_id = "btn_see_plans_pro_sensitivity"
+                )
+              },
+              tags$h6(class = "mt-3", "Capital"),
+              .paragraphs_to_html(r$interpretations$capital)
+            )
+          ),
+          uiOutput(ns("scenario_comparison_card"))
         ),
-        uiOutput(ns("scenario_comparison_card")),
         .scenario_footnote()
       )
     })
@@ -294,7 +318,11 @@ mod_results_server <- function(id, r, parent_session = NULL) {
       state <- scenario_compare_state()
       if (!is.null(state$narrative)) {
         card(
-          card_header(bsicons::bs_icon("bar-chart-line"), " Scenario Comparison"),
+          card_header(
+            class = "d-flex align-items-center gap-2",
+            bsicons::bs_icon("bar-chart-line"), " Scenario Comparison",
+            tags$span(class = "ms-auto", .pro_badge())
+          ),
           card_body(.paragraphs_to_html(state$narrative))
         )
       } else if (!.has_pro_plan(r$plan_tier) && state$count >= 2L) {
