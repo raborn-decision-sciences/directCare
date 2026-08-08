@@ -382,6 +382,34 @@ test_that("goal_seek_breakeven() returns NULL for a NULL breakeven_result", {
   expect_null(goal_seek_breakeven(NULL))
 })
 
+test_that("goal_seek_breakeven() solves the fee lever when panel_size/membership_fee are supplied", {
+  # revenue 1800, overhead 2000: a $200 deficit across a 100-member panel
+  # is exactly a $2/member fee increase.
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result, panel_size = 100, membership_fee = 18)
+
+  expect_true(gs$fee$achievable)
+  expect_equal(gs$fee$fee_increase, 2, tolerance = 1e-6)
+  expect_equal(gs$fee$new_fee, 20, tolerance = 1e-6)
+})
+
+test_that("goal_seek_breakeven() omits the fee lever when panel_size/membership_fee aren't supplied", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result)
+
+  expect_null(gs$fee)
+})
+
+test_that("goal_seek_breakeven() reports the fee lever unachievable for a huge gap", {
+  result <- make_flat_breakeven_result(revenue = 500, overhead = 5000)
+
+  gs <- goal_seek_breakeven(result, panel_size = 10, membership_fee = 20)
+
+  expect_false(gs$fee$achievable)
+})
+
 # -- goal_seek_target ----------------------------------------------------------
 
 # Flat-revenue/overhead/required_revenue fixture, same rationale as
@@ -456,6 +484,26 @@ test_that("goal_seek_target() returns NULL for a NULL target_result", {
   expect_null(goal_seek_target(NULL))
 })
 
+test_that("goal_seek_target() solves the fee lever when panel_size/membership_fee are supplied", {
+  # revenue 1800, required_revenue 2500: a $700 gap across a 100-member
+  # panel is exactly a $7/member fee increase.
+  result <- make_flat_target_result(revenue = 1800, required_revenue = 2500, overhead = 2000)
+
+  gs <- goal_seek_target(result, target_income_override = 500, panel_size = 100, membership_fee = 18)
+
+  expect_true(gs$fee$achievable)
+  expect_equal(gs$fee$fee_increase, 7, tolerance = 1e-6)
+  expect_equal(gs$fee$new_fee, 25, tolerance = 1e-6)
+})
+
+test_that("goal_seek_target() omits the fee lever when panel_size/membership_fee aren't supplied", {
+  result <- make_flat_target_result(revenue = 1800, required_revenue = 2500, overhead = 2000)
+
+  gs <- goal_seek_target(result, target_income_override = 500)
+
+  expect_null(gs$fee)
+})
+
 # -- .describe_goal_seek ------------------------------------------------------
 
 test_that(".describe_goal_seek() describes both levers when achievable", {
@@ -495,6 +543,34 @@ test_that(".describe_goal_seek() interpolates a custom goal_label", {
 
   expect_true(grepl("To reach the income target within", text))
   expect_false(grepl("break-even", text))
+})
+
+test_that(".describe_goal_seek() describes all three levers and switches to 'any one' wording", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result, panel_size = 100, membership_fee = 18)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_goal_seek(gs, pu, "break-even")
+
+  expect_true(grepl("any one change alone would do it", text))
+  expect_false(grepl("either change alone", text))
+  expect_true(grepl("raise assumed income growth", text))
+  expect_true(grepl("lower assumed overhead growth", text))
+  expect_true(grepl(
+    "raise your average membership fee by about <strong>\\$2\\.00/member/month</strong> \\(to about <strong>\\$20\\.00/member/month</strong>\\)",
+    text
+  ))
+})
+
+test_that(".describe_goal_seek() keeps 'either' wording when the fee lever is absent", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_goal_seek(gs, pu, "break-even")
+
+  expect_true(grepl("either change alone would do it", text))
+  expect_false(grepl("membership fee", text))
 })
 
 # -- stress_test_breakeven -----------------------------------------------------

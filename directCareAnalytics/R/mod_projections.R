@@ -1456,7 +1456,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         current_overhead_growth_pct = oa$growth_pct,
         overhead_flat = oa$flat,
         overhead_events = overhead_events_df(),
-        fee_events = fee_events_df()
+        fee_events = fee_events_df(),
+        panel_size = r$panel_size,
+        membership_fee = r$membership_fee
       )
     })
 
@@ -1564,7 +1566,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
         overhead_flat = oa$flat,
         target_income_override = input$target_income,
         overhead_events = overhead_events_df(),
-        fee_events = fee_events_df()
+        fee_events = fee_events_df(),
+        panel_size = r$panel_size,
+        membership_fee = r$membership_fee
       )
     })
 

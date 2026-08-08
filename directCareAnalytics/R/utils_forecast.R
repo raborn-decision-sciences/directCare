@@ -424,6 +424,149 @@ apply_membership_fee_events <- function(result, events = NULL) {
   )
 }
 
+# -- Goal-seek: what fee increase reaches a forecast goal --------------------
+
+# Uniformly increase every forecast period's revenue by `fee_increase_pp *
+# panel_size` (a permanent panel-wide fee increase effective immediately,
+# not a dated event like apply_membership_fee_events()'s Planned Fee
+# Changes), re-deriving periods_to_breakeven/breakeven_date or
+# periods_to_target/target_date. `fee_increase_pp` is already in the
+# result's own period units ($/week for weekly data, $/month for
+# monthly) -- callers convert from a user-facing monthly figure before
+# calling this. Same "frozen at 0L once already achieved" convention as
+# .apply_member_loss()/apply_growth_assumptions(), though goal-seek
+# callers never actually hit that branch (a goal not yet reached never
+# starts at 0L).
+#' @noRd
+.apply_fee_increase <- function(result, fee_increase_pp, panel_size) {
+  if (fee_increase_pp <= 0) {
+    return(result)
+  }
+  delta <- fee_increase_pp * panel_size
+  fd <- result$forecast_data
+  rev_cols <- intersect(
+    c("revenue_forecast", "revenue_lower", "revenue_upper"),
+    names(fd)
+  )
+  for (col in rev_cols) {
+    fd[[col]] <- fd[[col]] + delta
+  }
+  result$forecast_data <- fd
+  result$current_revenue <- result$current_revenue + delta
+  if (!is.null(result$current_surplus_deficit)) {
+    result$current_surplus_deficit <- result$current_surplus_deficit + delta
+  }
+  if (!is.null(result$current_gap)) {
+    result$current_gap <- result$current_gap + delta
+  }
+
+  if (
+    "overhead_forecast" %in% names(fd) &&
+      !identical(result$periods_to_breakeven, 0L)
+  ) {
+    cross <- which(fd$revenue_forecast >= fd$overhead_forecast)
+    if (length(cross) > 0L) {
+      result$periods_to_breakeven <- cross[1L]
+      result$breakeven_date <- fd$period_start[cross[1L]]
+    } else {
+      result$periods_to_breakeven <- NA_integer_
+      result$breakeven_date <- as.Date(NA)
+    }
+  }
+  if (
+    "required_revenue" %in% names(fd) &&
+      !identical(result$periods_to_target, 0L)
+  ) {
+    cross <- which(fd$revenue_forecast >= fd$required_revenue)
+    if (length(cross) > 0L) {
+      result$periods_to_target <- cross[1L]
+      result$target_date <- fd$period_start[cross[1L]]
+    } else {
+      result$periods_to_target <- NA_integer_
+      result$target_date <- as.Date(NA)
+    }
+  }
+  result
+}
+
+# Binary-search the smallest per-period fee increase that reaches the
+# goal within horizon_periods, searched from 0 up to a cap of 2x the
+# current per-period fee (i.e. tripling it) -- if even that isn't
+# enough, achievable = FALSE. Mirrors .goal_seek_growth_rate()'s
+# bisection shape; monotonic because a larger fee increase only ever
+# adds more revenue, never less. Returns `fee_increase` already
+# converted back to a user-facing monthly figure via `pp_to_monthly`
+# (the new_fee = membership_fee + fee_increase step is left to the
+# caller, which is the one that actually has membership_fee in scope).
+#' @noRd
+.solve_fee_increase <- function(
+  recompute,
+  extract_periods,
+  fee_pp,
+  pp_to_monthly,
+  horizon_periods
+) {
+  .periods_at <- function(fee_increase_pp) {
+    p <- extract_periods(recompute(fee_increase_pp))
+    if (is.null(p) || is.na(p)) NA_integer_ else as.integer(p)
+  }
+
+  cap_pp <- fee_pp * 2
+  at_cap <- .periods_at(cap_pp)
+  if (is.na(at_cap) || at_cap > horizon_periods) {
+    return(list(achievable = FALSE))
+  }
+
+  lo <- 0
+  hi <- cap_pp
+  for (i in seq_len(25)) {
+    mid <- (lo + hi) / 2
+    r <- .periods_at(mid)
+    if (!is.na(r) && r <= horizon_periods) hi <- mid else lo <- mid
+  }
+
+  list(achievable = TRUE, fee_increase = round(hi * pp_to_monthly, 2))
+}
+
+# Shared wrapper behind goal_seek_breakeven()/goal_seek_target()'s `fee`
+# lever: handles the panel_size/membership_fee NULL-skip, the weekly/
+# monthly per-period conversion, and computing new_fee (in monthly
+# dollars) from the solved fee_increase -- the one piece
+# .solve_fee_increase() itself can't do, since it works in per-period
+# units and never sees the caller's monthly membership_fee.
+#' @noRd
+.goal_seek_fee_lever <- function(
+  base_result,
+  extract_periods,
+  frequency,
+  panel_size,
+  membership_fee,
+  horizon_periods
+) {
+  if (!isTRUE(panel_size > 0) || !isTRUE(membership_fee > 0)) {
+    return(NULL)
+  }
+
+  is_weekly <- identical(frequency, "weekly")
+  fee_pp <- if (is_weekly) membership_fee / 4.33 else membership_fee
+  pp_to_monthly <- if (is_weekly) 4.33 else 1
+
+  fl <- .solve_fee_increase(
+    recompute = function(fee_increase_pp) {
+      .apply_fee_increase(base_result, fee_increase_pp, panel_size)
+    },
+    extract_periods = extract_periods,
+    fee_pp = fee_pp,
+    pp_to_monthly = pp_to_monthly,
+    horizon_periods = horizon_periods
+  )
+
+  if (isTRUE(fl$achievable)) {
+    fl$new_fee <- round(membership_fee + fl$fee_increase, 2)
+  }
+  fl
+}
+
 #' Find what growth-rate change would reach break-even within the horizon
 #'
 #' When a (growth-adjusted) break-even forecast doesn't reach break-even
@@ -447,15 +590,27 @@ apply_membership_fee_events <- function(result, events = NULL) {
 #' @param overhead_events,fee_events Passed through to
 #'   `apply_overhead_events()`/`apply_membership_fee_events()`, held fixed
 #'   at the caller's current settings while searching.
+#' @param panel_size,membership_fee Current total panel size and average
+#'   membership fee ($/member/month) -- same values `interpret_breakeven()`
+#'   already receives. When both are supplied and positive, a third "fee"
+#'   lever is searched: how much higher the average membership fee alone
+#'   would need to be (panel size held fixed) to reach break-even, holding
+#'   income/overhead growth at their current settings. `NULL` (the
+#'   default, or either one missing/non-positive) skips this lever
+#'   entirely -- e.g. before the optional Membership Profile has been
+#'   filled in.
 #' @param horizon_periods Integer number of forecast periods break-even
 #'   should be reached within. Defaults to
 #'   `nrow(breakeven_result$forecast_data)`.
 #'
 #' @return A `dcAnalytics_goal_seek`-classed list with `target_period`,
 #'   `income` (a list with `achievable` and, when `TRUE`, `new_growth_pct`),
-#'   and `overhead` (`NULL` when `overhead_flat` is set; otherwise a list
-#'   with `achievable` and, when `TRUE`, `new_growth_pct`). `NULL` if
-#'   `breakeven_result` is `NULL`.
+#'   `overhead` (`NULL` when `overhead_flat` is set; otherwise a list with
+#'   `achievable` and, when `TRUE`, `new_growth_pct`), and `fee` (`NULL`
+#'   when `panel_size`/`membership_fee` aren't both supplied; otherwise a
+#'   list with `achievable` and, when `TRUE`, `fee_increase` and
+#'   `new_fee`, both in monthly dollars). `NULL` if `breakeven_result` is
+#'   `NULL`.
 #'
 #' @noRd
 goal_seek_breakeven <- function(
@@ -465,6 +620,8 @@ goal_seek_breakeven <- function(
   overhead_flat = NULL,
   overhead_events = NULL,
   fee_events = NULL,
+  panel_size = NULL,
+  membership_fee = NULL,
   horizon_periods = NULL
 ) {
   if (is.null(breakeven_result)) {
@@ -492,8 +649,17 @@ goal_seek_breakeven <- function(
     horizon_periods = horizon_periods
   )
 
+  fee_lever <- .goal_seek_fee_lever(
+    base_result = recompute(current_income_growth_pct, current_overhead_growth_pct),
+    extract_periods = function(res) res$periods_to_breakeven,
+    frequency = breakeven_result$frequency,
+    panel_size = panel_size,
+    membership_fee = membership_fee,
+    horizon_periods = horizon_periods
+  )
+
   structure(
-    c(list(target_period = horizon_periods), gs),
+    c(list(target_period = horizon_periods), gs, list(fee = fee_lever)),
     class = "dcAnalytics_goal_seek"
   )
 }
@@ -518,6 +684,8 @@ goal_seek_breakeven <- function(
 #'   overhead lever unsearchable, same as `goal_seek_breakeven()`.
 #' @param overhead_events,fee_events Passed through to
 #'   `apply_overhead_events()`/`apply_membership_fee_events()`, held fixed.
+#' @param panel_size,membership_fee Passed through to the shared fee lever
+#'   -- see `goal_seek_breakeven()`'s own doc for the full rationale.
 #' @param horizon_periods Integer number of forecast periods the target
 #'   should be reached within. Defaults to
 #'   `nrow(target_result$forecast_data)`.
@@ -535,6 +703,8 @@ goal_seek_target <- function(
   target_income_override = NULL,
   overhead_events = NULL,
   fee_events = NULL,
+  panel_size = NULL,
+  membership_fee = NULL,
   horizon_periods = NULL
 ) {
   if (is.null(target_result)) {
@@ -563,8 +733,17 @@ goal_seek_target <- function(
     horizon_periods = horizon_periods
   )
 
+  fee_lever <- .goal_seek_fee_lever(
+    base_result = recompute(current_income_growth_pct, current_overhead_growth_pct),
+    extract_periods = function(res) res$periods_to_target,
+    frequency = target_result$frequency,
+    panel_size = panel_size,
+    membership_fee = membership_fee,
+    horizon_periods = horizon_periods
+  )
+
   structure(
-    c(list(target_period = horizon_periods), gs),
+    c(list(target_period = horizon_periods), gs, list(fee = fee_lever)),
     class = "dcAnalytics_goal_seek"
   )
 }
@@ -589,13 +768,14 @@ goal_seek_target <- function(
 
   income_ok <- isTRUE(gs$income$achievable)
   overhead_ok <- !is.null(gs$overhead) && isTRUE(gs$overhead$achievable)
+  fee_ok <- !is.null(gs$fee) && isTRUE(gs$fee$achievable)
 
-  if (!income_ok && !overhead_ok) {
+  if (!income_ok && !overhead_ok && !fee_ok) {
     return(paste0(
-      "<p class='text-muted small'>Even an aggressive growth-rate change ",
-      "wouldn't reach ", goal_label, " within this forecast window on its ",
-      "own -- consider a longer horizon or a more fundamental change to ",
-      "the revenue or cost structure.</p>"
+      "<p class='text-muted small'>Even an aggressive growth-rate or fee ",
+      "change wouldn't reach ", goal_label, " within this forecast window ",
+      "on its own -- consider a longer horizon or a more fundamental ",
+      "change to the revenue or cost structure.</p>"
     ))
   }
 
@@ -617,12 +797,33 @@ goal_seek_target <- function(
     NULL
   }
 
-  clauses <- c(income_clause, overhead_clause)
+  # Only ever present when panel_size/membership_fee were supplied (i.e.
+  # Membership Profile is filled in) -- see goal_seek_breakeven()'s own
+  # doc for why this lever can be NULL even when income/overhead aren't.
+  fee_clause <- if (fee_ok) {
+    paste0(
+      "raise your average membership fee by about <strong>",
+      fmt_dollar(gs$fee$fee_increase), "/member/month</strong> (to about ",
+      "<strong>", fmt_dollar(gs$fee$new_fee), "/member/month</strong>)"
+    )
+  } else {
+    NULL
+  }
 
-  intro <- if (length(clauses) > 1L) {
+  clauses <- c(income_clause, overhead_clause, fee_clause)
+
+  # "either" only reads correctly for exactly two options -- once the fee
+  # lever adds a third, switch to "any one" rather than mangling the
+  # grammar for the common (income + overhead only) two-lever case.
+  intro <- if (length(clauses) == 2L) {
     paste0(
       "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
       ", either change alone would do it: you'd need to "
+    )
+  } else if (length(clauses) > 2L) {
+    paste0(
+      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
+      ", any one change alone would do it: you'd need to "
     )
   } else {
     paste0(
