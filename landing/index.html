@@ -426,13 +426,24 @@
 
   .app-btn:hover { background: var(--teal-dark); color: var(--white); }
 
-  .app-loginlink {
-    font-size: 0.85rem;
-    color: var(--gray);
+  .app-loginbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    color: var(--navy);
+    font-family: var(--font);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: calc(0.7rem - 1.5px) 1.4rem;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
     text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
   }
 
-  .app-loginlink:hover { color: var(--teal-dark); text-decoration: underline; }
+  .app-loginbtn:hover { border-color: var(--teal); color: var(--teal-dark); }
 
   /* FEATURES */
   .features {
@@ -830,8 +841,8 @@
   </p>
 
   <div class="hero-ctas">
-    <a href="https://planner.directcareanalytics.com/?signup=1" class="btn-primary">Plan My Launch</a>
-    <a href="https://app.directcareanalytics.com/?signup=1" class="btn-secondary">Track My Practice</a>
+    <a href="https://planner.directcareanalytics.com" class="btn-primary">Plan My Launch</a>
+    <a href="https://app.directcareanalytics.com" class="btn-secondary">Track My Practice</a>
   </div>
 
   <div class="screenshot-wrap">
@@ -902,7 +913,7 @@
       </ul>
       <div class="app-card-ctas">
         <a href="https://planner.directcareanalytics.com/?signup=1" class="app-btn">Get Started &#8594;</a>
-        <a href="https://planner.directcareanalytics.com" class="app-loginlink">Log in</a>
+        <a href="https://planner.directcareanalytics.com" class="app-loginbtn">Log in</a>
       </div>
     </div>
     <div class="app-card featured">
@@ -921,7 +932,7 @@
       </ul>
       <div class="app-card-ctas">
         <a href="https://app.directcareanalytics.com/?signup=1" class="app-btn">Get Started &#8594;</a>
-        <a href="https://app.directcareanalytics.com" class="app-loginlink">Log in</a>
+        <a href="https://app.directcareanalytics.com" class="app-loginbtn">Log in</a>
       </div>
     </div>
   </div>
@@ -1038,14 +1049,12 @@
     <div class="price-card">
       <h3>Pro</h3>
       <div class="price"><span class="amount">$79</span><span class="period">/mo</span></div>
-      <p class="price-desc">Everything in Starter, for practices that want the higher tier.</p>
+      <p class="price-desc">Guided decision tools for practices ready to optimize, not just track.</p>
       <ul>
-        <li><span class="check">&#x2713;</span> Quick Calculator &amp; planning tools</li>
-        <li><span class="check">&#x2713;</span> Manual data entry</li>
-        <li><span class="check">&#x2713;</span> Plain-language interpretation of your results</li>
-        <li><span class="check">&#x2713;</span> Bookkeeping upload &amp; revenue tracking</li>
-        <li><span class="check">&#x2713;</span> Location market context</li>
-        <li><span class="check">&#x2713;</span> Saved scenarios you can reload later</li>
+        <li><span class="check">&#x2713;</span> Everything in Starter</li>
+        <li><span class="check">&#x2713;</span> Goal-seek: see exactly what change -- pricing, growth, or overhead -- gets you to break-even or your income target</li>
+        <li><span class="check">&#x2713;</span> Scenario comparison: know at a glance which saved scenario performs best</li>
+        <li><span class="check">&#x2713;</span> Stress-test &amp; sensitivity analysis for tougher what-if questions</li>
       </ul>
       <a href="#apps" class="price-card-cta">Get Started</a>
     </div>
