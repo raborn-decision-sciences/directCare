@@ -253,3 +253,84 @@ test_that("compare_breakeven_scenarios() HTML-escapes scenario labels", {
   expect_false(grepl("<script>", text, fixed = TRUE))
   expect_true(grepl("&lt;script&gt;", text, fixed = TRUE))
 })
+
+# -- compare_calculator_scenarios ---------------------------------------------
+
+mk_calc_result <- function(net, target_income = 0) {
+  list(net = net, target_income = target_income)
+}
+
+test_that("compare_calculator_scenarios() names the scenario with the strongest net position", {
+  scenarios <- list(
+    list(label = "A", result = mk_calc_result(600)),
+    list(label = "B", result = mk_calc_result(2900))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_true(grepl("<strong>B</strong> has the strongest net position.*\\$2,900\\.00/mo surplus", text))
+  expect_true(grepl("<strong>A</strong> follows.*\\$600\\.00/mo surplus.*\\$2,300\\.00/mo less", text))
+})
+
+test_that("compare_calculator_scenarios() labels a negative net as a deficit", {
+  scenarios <- list(
+    list(label = "A", result = mk_calc_result(-800)),
+    list(label = "B", result = mk_calc_result(-200))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_true(grepl("<strong>B</strong> has the strongest net position.*\\$200\\.00/mo deficit", text))
+  expect_true(grepl("<strong>A</strong> follows.*\\$800\\.00/mo deficit", text))
+})
+
+test_that("compare_calculator_scenarios() notes scenarios that meet their income target", {
+  scenarios <- list(
+    list(label = "Meets", result = mk_calc_result(6500, target_income = 4000)),
+    list(label = "Weak", result = mk_calc_result(-2100, target_income = 4000))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_true(grepl("<strong>Meets</strong> meets its income target\\.", text))
+  expect_false(grepl("<strong>Weak</strong> meets its income target", text))
+})
+
+test_that("compare_calculator_scenarios() pluralizes when multiple scenarios meet target", {
+  scenarios <- list(
+    list(label = "A", result = mk_calc_result(5000, target_income = 4000)),
+    list(label = "B", result = mk_calc_result(4500, target_income = 4000))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_true(grepl("meet their income targets\\.", text))
+})
+
+test_that("compare_calculator_scenarios() omits the target sentence when no scenario has a target set", {
+  scenarios <- list(
+    list(label = "A", result = mk_calc_result(600)),
+    list(label = "B", result = mk_calc_result(2900))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_false(grepl("income target", text))
+})
+
+test_that("compare_calculator_scenarios() returns NULL for fewer than 2 scenarios", {
+  expect_null(compare_calculator_scenarios(list()))
+  expect_null(compare_calculator_scenarios(list(list(label = "A", result = mk_calc_result(100)))))
+})
+
+test_that("compare_calculator_scenarios() HTML-escapes scenario labels", {
+  scenarios <- list(
+    list(label = "A <script>", result = mk_calc_result(100)),
+    list(label = "B", result = mk_calc_result(200))
+  )
+
+  text <- compare_calculator_scenarios(scenarios)
+
+  expect_false(grepl("<script>", text, fixed = TRUE))
+  expect_true(grepl("&lt;script&gt;", text, fixed = TRUE))
+})

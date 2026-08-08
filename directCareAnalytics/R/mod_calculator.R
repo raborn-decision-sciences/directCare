@@ -104,7 +104,8 @@ mod_calculator_ui <- function(id) {
           " Results"
         ),
         card_body(
-          uiOutput(ns("results_ui"))
+          uiOutput(ns("results_ui")),
+          uiOutput(ns("scenario_comparison_card"))
         )
       )
     )
@@ -224,6 +225,60 @@ mod_calculator_server <- function(id, r, parent_session = NULL) {
       on_access_denied = .show_plans_modal
     )
     observeEvent(input$btn_see_plans_scenario, {
+      .show_plans_modal()
+    })
+
+    # -- Scenario comparison (Pro-exclusive) -------------------------------------
+    # Calculator has no "Run Forecast" action to piggyback on the way
+    # mod_projections.R's scenario_compare_state does (see its own comment),
+    # since results_ui already recomputes live on every keystroke. Debouncing
+    # calc_inputs_for_save() as the invalidation trigger means the comparison
+    # re-queries the DB at most once per pause in editing -- close enough to
+    # "state may have changed" without hitting the DB on every keystroke.
+    calc_inputs_signal <- reactive(calc_inputs_for_save())
+    calc_inputs_signal_debounced <- debounce(calc_inputs_signal, millis = 1500)
+
+    calculator_compare_state <- reactive({
+      calc_inputs_signal_debounced() # dependency only, invalidation trigger
+      req(r$practice_id)
+      con <- directCareAuth::db_connect()
+      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      listed <- directCareScenarios::scenario_list(con, "dca_calculator_scenarios", r$practice_id)
+      if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
+        return(list(count = nrow(listed), narrative = NULL))
+      }
+      loaded <- lapply(listed$id, function(id) {
+        directCareScenarios::scenario_load_json(con, "dca_calculator_scenarios", id)
+      })
+      scenarios <- lapply(loaded, function(x) {
+        list(label = x$label, result = compute_calculator_results(x$inputs))
+      })
+      list(
+        count = nrow(listed),
+        narrative = if (length(scenarios) >= 2L) compare_calculator_scenarios(scenarios) else NULL
+      )
+    })
+
+    output$scenario_comparison_card <- renderUI({
+      state <- calculator_compare_state()
+      if (!is.null(state$narrative)) {
+        card(
+          card_header(bs_icon("bar-chart-line"), " Scenario Comparison"),
+          card_body(HTML(state$narrative))
+        )
+      } else if (!.has_pro_plan(r$plan_tier) && state$count >= 2L) {
+        card(
+          card_body(
+            .pro_upsell_note(
+              ns,
+              "Pro also compares your saved calculator scenarios, naming which one has the strongest net position.",
+              btn_id = "btn_see_plans_pro_calc_compare"
+            )
+          )
+        )
+      }
+    })
+    observeEvent(input$btn_see_plans_pro_calc_compare, {
       .show_plans_modal()
     })
 

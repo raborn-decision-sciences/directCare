@@ -497,6 +497,75 @@ compare_breakeven_scenarios <- function(scenarios) {
 }
 
 
+# -- Quick Calculator scenario comparison --------------------------------------
+
+#' Narrate a comparison across 2+ saved Quick Calculator scenarios.
+#'
+#' Unlike [compare_breakeven_scenarios()] and Planner's
+#' `compare_plan_scenarios()`, Calculator scenarios have no time dimension --
+#' they're an instant snapshot, not a forecast -- so there's no "reaches X
+#' soonest" framing available. Net monthly surplus/deficit is the natural
+#' stand-in: it's the one number every scenario always has, regardless of
+#' whether break-even or an income target was ever reached.
+#'
+#' @param scenarios A list of `list(label = , result = )`, where `result` is
+#'   [compute_calculator_results()]'s return value.
+#' @return An HTML string, or `NULL` if fewer than 2 scenarios were passed.
+#' @noRd
+compare_calculator_scenarios <- function(scenarios) {
+  if (length(scenarios) < 2L) {
+    return(NULL)
+  }
+
+  .lbl <- function(s) paste0("<strong>", htmltools::htmlEscape(s$label), "</strong>")
+  .pos <- function(n) if (n >= 0) "surplus" else "deficit"
+
+  ord <- order(vapply(scenarios, function(s) s$result$net, numeric(1)), decreasing = TRUE)
+  ranked <- scenarios[ord]
+  best <- ranked[[1]]
+
+  lead <- paste0(
+    "Of your saved scenarios, ", .lbl(best), " has the strongest net position, ",
+    "running a <strong>", fmt_dollar(abs(best$result$net)), "/mo ",
+    .pos(best$result$net), "</strong>."
+  )
+
+  follow_sentences <- if (length(ranked) > 1L) {
+    vapply(ranked[-1], function(s) {
+      gap <- best$result$net - s$result$net
+      paste0(
+        .lbl(s), " follows, at a <strong>", fmt_dollar(abs(s$result$net)),
+        "/mo ", .pos(s$result$net), "</strong> (", fmt_dollar(gap), "/mo less)."
+      )
+    }, character(1))
+  } else {
+    character(0)
+  }
+
+  with_targets <- Filter(function(s) isTRUE(s$result$target_income > 0), scenarios)
+  target_sentence <- if (length(with_targets) > 0L) {
+    meeting <- Filter(function(s) s$result$net >= s$result$target_income, with_targets)
+    if (length(meeting) > 0L) {
+      labels <- paste(vapply(meeting, .lbl, character(1)), collapse = " and ")
+      paste0(
+        labels,
+        if (length(meeting) > 1L) {
+          " meet their income targets."
+        } else {
+          " meets its income target."
+        }
+      )
+    } else {
+      NULL
+    }
+  } else {
+    NULL
+  }
+
+  paste0("<p>", paste(c(lead, follow_sentences, target_sentence), collapse = " "), "</p>")
+}
+
+
 #' @noRd
 interpret_revenue <- function(
   result,
