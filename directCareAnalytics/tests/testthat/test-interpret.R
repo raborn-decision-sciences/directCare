@@ -65,6 +65,41 @@ test_that("interpret_breakeven() ignores goal_seek once break-even is already ac
   expect_true(grepl("operating at a surplus", text))
 })
 
+# -- interpret_breakeven()'s stress_test parameter ----------------------------
+
+test_that("interpret_breakeven() omits the stress-test paragraph when none is supplied", {
+  result <- make_flat_result(revenue = 2500, overhead = 2000)
+  text <- interpret_breakeven(result)
+
+  expect_false(grepl("could absorb losing up to", text))
+})
+
+test_that("interpret_breakeven() appends the stress-test paragraph once break-even is achieved", {
+  result <- make_flat_result(revenue = 2500, overhead = 2000)
+  st <- stress_test_breakeven(result, panel_size = 50, membership_fee = 50)
+
+  text <- interpret_breakeven(result, panel_size = 50, membership_fee = 50, stress_test = st)
+
+  expect_true(grepl("could absorb losing up to", text))
+  expect_true(grepl("members</strong> before break-even", text))
+})
+
+test_that("interpret_breakeven() ignores stress_test when break-even isn't reached", {
+  result <- make_flat_result(revenue = 1800, overhead = 2000)
+  # A stress-test result computed for a *different*, achieved scenario --
+  # passing it in here should still be ignored, mirroring how goal_seek is
+  # ignored once break-even is already met (the reverse gate).
+  st <- stress_test_breakeven(
+    make_flat_result(revenue = 2500, overhead = 2000),
+    panel_size = 50,
+    membership_fee = 50
+  )
+
+  text <- interpret_breakeven(result, stress_test = st)
+
+  expect_false(grepl("could absorb losing up to", text))
+})
+
 # -- interpret_target()'s goal_seek parameter --------------------------------
 
 make_flat_target_result <- function(

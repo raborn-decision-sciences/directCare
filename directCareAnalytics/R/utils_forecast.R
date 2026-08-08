@@ -703,3 +703,178 @@ target_is_sustained <- function(result, threshold = 0.70) {
   n_above <- sum(fd$revenue_forecast >= fd$required_revenue, na.rm = TRUE)
   (n_above / n_total) >= threshold
 }
+
+
+# -- Stress test: how much member loss could break-even absorb? --------------
+
+# Uniformly reduce every forecast period's revenue by `members_lost *
+# fee_pp` and the current-state scalars from the adjusted series.
+# Represents a permanent panel shrinkage effective immediately (from
+# period 1 onward), unlike apply_membership_fee_events()'s start-dated
+# step changes.
+#
+# periods_to_breakeven is deliberately NOT re-derived here when the input
+# was already 0L (already achieved) -- same convention
+# apply_growth_assumptions() uses (see its own "already" comment): 0L
+# specifically means "achieved before the forecast window even starts",
+# a state a later per-period adjustment can't cleanly walk back to a
+# positive crossing index. stress_test_breakeven() is only ever called
+# on an already-0L result and relies entirely on breakeven_is_sustained()
+# (which itself requires periods_to_breakeven == 0L) to judge whether the
+# loss-adjusted series still holds up -- keeping periods_to_breakeven
+# frozen at 0L is what lets that check actually run instead of always
+# returning NA.
+#' @noRd
+.apply_member_loss <- function(result, members_lost, fee_pp) {
+  if (members_lost <= 0) {
+    return(result)
+  }
+  delta <- -(members_lost * fee_pp)
+  fd <- result$forecast_data
+  rev_cols <- intersect(
+    c("revenue_forecast", "revenue_lower", "revenue_upper"),
+    names(fd)
+  )
+  for (col in rev_cols) {
+    fd[[col]] <- fd[[col]] + delta
+  }
+  result$forecast_data <- fd
+  result$current_revenue <- result$current_revenue + delta
+  result$current_surplus_deficit <- result$current_surplus_deficit + delta
+
+  if (!identical(result$periods_to_breakeven, 0L) && "overhead_forecast" %in% names(fd)) {
+    cross <- which(fd$revenue_forecast >= fd$overhead_forecast)
+    if (length(cross) > 0L) {
+      result$periods_to_breakeven <- cross[1L]
+      result$breakeven_date <- fd$period_start[cross[1L]]
+    } else {
+      result$periods_to_breakeven <- NA_integer_
+      result$breakeven_date <- as.Date(NA)
+    }
+  }
+  result
+}
+
+#' Find how many members' worth of revenue an achieved break-even could lose
+#'
+#' The mirror image of [goal_seek_breakeven()]: instead of asking what
+#' improvement would be needed to *reach* break-even, this asks how much
+#' degradation an *already-achieved* break-even could absorb and still be
+#' [breakeven_is_sustained()] through the forecast horizon -- a margin-of-
+#' safety figure rather than a target-seeking one. Modeled as losing `n`
+#' members' worth of `membership_fee`-equivalent revenue, uniformly across
+#' every forecast period, via [.apply_member_loss()]. Monotonic in `n`
+#' (losing more members can only ever hurt or leave sustainability
+#' unchanged), which is what makes bisection valid here -- same approach as
+#' [goal_seek_breakeven()]'s own bisection.
+#'
+#' @param adj_breakeven_result The fully adjusted break-even result -- i.e.
+#'   after `apply_growth_assumptions()`, `apply_overhead_events()`, and
+#'   `apply_membership_fee_events()` have already run (the same object
+#'   `mod_projections.R`'s `adj_breakeven()` reactive holds), so the stress
+#'   test reflects exactly what's on screen.
+#' @param panel_size Current total panel size (all tiers combined).
+#' @param membership_fee Average membership fee ($/member/month), matching
+#'   the value [interpret_breakeven()] already receives.
+#'
+#' @return A `dcAnalytics_stress_test`-classed list with `members_loss_room`
+#'   (integer, the largest number of members that can be lost while
+#'   [breakeven_is_sustained()] stays `TRUE`) and `capped` (`TRUE` when
+#'   losing the entire panel is still sustained -- an edge case worth
+#'   flagging rather than reporting numerically, e.g. a fee-for-service-
+#'   heavy practice). `NULL` when break-even isn't currently achieved,
+#'   panel size/fee aren't supplied, or the achieved state isn't itself
+#'   sustained (nothing to stress-test from).
+#'
+#' @noRd
+stress_test_breakeven <- function(
+  adj_breakeven_result,
+  panel_size = NULL,
+  membership_fee = NULL
+) {
+  if (is.null(adj_breakeven_result)) {
+    return(NULL)
+  }
+  if (!identical(adj_breakeven_result$periods_to_breakeven, 0L)) {
+    return(NULL)
+  }
+  if (is.null(panel_size) || is.na(panel_size) || panel_size <= 0) {
+    return(NULL)
+  }
+  if (is.null(membership_fee) || is.na(membership_fee) || membership_fee <= 0) {
+    return(NULL)
+  }
+  if (!isTRUE(breakeven_is_sustained(adj_breakeven_result))) {
+    return(NULL)
+  }
+
+  fee_pp <- if (identical(adj_breakeven_result$frequency, "weekly")) {
+    membership_fee / 4.33
+  } else {
+    membership_fee
+  }
+
+  .sustained_losing <- function(n) {
+    isTRUE(breakeven_is_sustained(
+      .apply_member_loss(adj_breakeven_result, n, fee_pp)
+    ))
+  }
+
+  if (.sustained_losing(panel_size)) {
+    return(structure(
+      list(members_loss_room = panel_size, capped = TRUE),
+      class = "dcAnalytics_stress_test"
+    ))
+  }
+
+  lo <- 0
+  hi <- panel_size
+  for (i in seq_len(25)) {
+    mid <- (lo + hi) / 2
+    if (.sustained_losing(mid)) lo <- mid else hi <- mid
+  }
+
+  structure(
+    list(members_loss_room = floor(lo), capped = FALSE),
+    class = "dcAnalytics_stress_test"
+  )
+}
+
+#' Turn a stress-test result into narrative HTML
+#'
+#' @param st A `dcAnalytics_stress_test` object, as returned by
+#'   [stress_test_breakeven()].
+#' @param pu Period-unit list, as returned by `.period_units()`.
+#'
+#' @return An HTML string (a single `<p>...</p>`), or `NULL` if `st` is
+#'   `NULL`.
+#'
+#' @noRd
+.describe_stress_test <- function(st, pu) {
+  if (is.null(st)) {
+    return(NULL)
+  }
+
+  if (isTRUE(st$capped)) {
+    return(paste0(
+      "<p>Your margin is wide enough that even losing your entire panel ",
+      "wouldn't put sustained break-even at risk under current growth ",
+      "assumptions &mdash; fee-for-service or other non-membership ",
+      "revenue is likely doing much of the work.</p>"
+    ))
+  }
+
+  if (st$members_loss_room <= 0L) {
+    return(paste0(
+      "<p>Your break-even margin is thin: losing even a single member at ",
+      "current rates would put sustained break-even at risk.</p>"
+    ))
+  }
+
+  paste0(
+    "<p>Your current margin could absorb losing up to <strong>",
+    st$members_loss_room,
+    " members</strong> before break-even would no longer be sustained ",
+    "through the forecast horizon.</p>"
+  )
+}

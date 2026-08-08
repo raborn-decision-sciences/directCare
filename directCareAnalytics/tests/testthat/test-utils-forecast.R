@@ -496,3 +496,91 @@ test_that(".describe_goal_seek() interpolates a custom goal_label", {
   expect_true(grepl("To reach the income target within", text))
   expect_false(grepl("break-even", text))
 })
+
+# -- stress_test_breakeven -----------------------------------------------------
+
+test_that("stress_test_breakeven() reports a positive, uncapped loss room for a sustained surplus", {
+  result <- make_breakeven_result(
+    periods_to_breakeven = 0L,
+    revenue_start = 3000,
+    overhead = 2000
+  )
+
+  st <- stress_test_breakeven(result, panel_size = 60, membership_fee = 50)
+
+  expect_s3_class(st, "dcAnalytics_stress_test")
+  expect_false(st$capped)
+  expect_true(st$members_loss_room > 0)
+  expect_true(st$members_loss_room < 60)
+})
+
+test_that("stress_test_breakeven() caps at the full panel when the margin is very wide", {
+  result <- make_breakeven_result(
+    periods_to_breakeven = 0L,
+    revenue_start = 100000,
+    overhead = 2000
+  )
+
+  st <- stress_test_breakeven(result, panel_size = 10, membership_fee = 50)
+
+  expect_true(st$capped)
+  expect_identical(st$members_loss_room, 10)
+})
+
+test_that("stress_test_breakeven() returns NULL when break-even isn't yet achieved", {
+  result <- make_breakeven_result(periods_to_breakeven = 3L)
+  expect_null(stress_test_breakeven(result, panel_size = 50, membership_fee = 50))
+})
+
+test_that("stress_test_breakeven() returns NULL when panel_size/membership_fee are missing", {
+  result <- make_breakeven_result(periods_to_breakeven = 0L, revenue_start = 3000, overhead = 2000)
+
+  expect_null(stress_test_breakeven(result, panel_size = NULL, membership_fee = 50))
+  expect_null(stress_test_breakeven(result, panel_size = 50, membership_fee = NULL))
+  expect_null(stress_test_breakeven(result, panel_size = 0, membership_fee = 50))
+})
+
+test_that("stress_test_breakeven() returns NULL when the achieved state isn't sustained", {
+  result <- make_breakeven_result(
+    periods_to_breakeven = 0L,
+    revenue_start = 2100,
+    overhead = 2000
+  )
+  result$forecast_data$overhead_forecast <- rep(5000, 12)
+
+  expect_null(stress_test_breakeven(result, panel_size = 50, membership_fee = 50))
+})
+
+test_that("stress_test_breakeven() returns NULL for a NULL result", {
+  expect_null(stress_test_breakeven(NULL, panel_size = 50, membership_fee = 50))
+})
+
+# -- .describe_stress_test ------------------------------------------------------
+
+test_that(".describe_stress_test() describes a normal loss-room figure", {
+  st <- structure(list(members_loss_room = 15L, capped = FALSE), class = "dcAnalytics_stress_test")
+
+  text <- .describe_stress_test(st, list(singular = "month", plural = "months"))
+
+  expect_true(grepl("could absorb losing up to <strong>15 members</strong>", text))
+})
+
+test_that(".describe_stress_test() flags a thin margin at zero loss room", {
+  st <- structure(list(members_loss_room = 0L, capped = FALSE), class = "dcAnalytics_stress_test")
+
+  text <- .describe_stress_test(st, list(singular = "month", plural = "months"))
+
+  expect_true(grepl("margin is thin", text))
+})
+
+test_that(".describe_stress_test() flags a capped (full-panel) margin", {
+  st <- structure(list(members_loss_room = 60L, capped = TRUE), class = "dcAnalytics_stress_test")
+
+  text <- .describe_stress_test(st, list(singular = "month", plural = "months"))
+
+  expect_true(grepl("entire panel", text))
+})
+
+test_that(".describe_stress_test() returns NULL for a NULL stress-test result", {
+  expect_null(.describe_stress_test(NULL, list(singular = "month", plural = "months")))
+})

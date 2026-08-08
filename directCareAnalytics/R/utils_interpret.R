@@ -105,6 +105,11 @@
 #'   `NA` (break-even not reached within the forecast horizon) -- ignored
 #'   otherwise, so it's safe to always pass one in regardless of which case
 #'   applies. `NULL` (the default) omits that paragraph.
+#' @param stress_test Optional `dcAnalytics_stress_test` object, as
+#'   returned by [stress_test_breakeven()]. Only used when
+#'   `result$periods_to_breakeven` is `0L` (break-even already achieved)
+#'   -- ignored otherwise, so it's safe to always pass one in regardless
+#'   of which case applies. `NULL` (the default) omits that paragraph.
 #' @noRd
 interpret_breakeven <- function(
   result,
@@ -114,7 +119,8 @@ interpret_breakeven <- function(
   membership_fee = NULL,
   membership_tiers = NULL,
   confidence_level = 0.95,
-  goal_seek = NULL
+  goal_seek = NULL,
+  stress_test = NULL
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(htmltools::htmlEscape(practice_name), " ")
@@ -364,6 +370,15 @@ interpret_breakeven <- function(
     NULL
   }
 
+  # Mirror image of goal_seek_html: only meaningful once break-even HAS
+  # been reached -- "how much margin do you have" doesn't apply before
+  # then, same rationale as goal_seek_html's own gate in reverse.
+  stress_test_html <- if (already_achieved && !is.null(stress_test)) {
+    .describe_stress_test(stress_test, pu)
+  } else {
+    NULL
+  }
+
   paste(
     "<p>",
     status_sentence,
@@ -374,6 +389,7 @@ interpret_breakeven <- function(
       ""
     },
     if (!is.null(goal_seek_html)) goal_seek_html else "",
+    if (!is.null(stress_test_html)) stress_test_html else "",
     if (nzchar(tier_sentence)) paste0("<p>", tier_sentence, "</p>") else "",
     if (nzchar(member_sentence)) paste0("<p>", member_sentence, "</p>") else "",
     if (nzchar(warnings_html)) warnings_html else "",

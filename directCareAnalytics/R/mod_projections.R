@@ -36,6 +36,9 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
     observeEvent(input$btn_see_plans_pro_scenario_compare, {
       .show_plans_modal()
     })
+    observeEvent(input$btn_see_plans_pro_stress_test, {
+      .show_plans_modal()
+    })
 
     # -- Saved scenario slots (dca_forecast_scenarios) -------------------------
     # Raw per-row field lists (not overhead_events_df()/fee_events_df()
@@ -1457,6 +1460,31 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
       )
     })
 
+    # Pro-exclusive, mirror image of breakeven_goal_seek: how many members'
+    # worth of revenue an ALREADY-achieved break-even could lose and still
+    # be sustained through the horizon. Computed against adj_breakeven()
+    # directly (not breakeven_result(), unlike goal-seek) since
+    # stress_test_breakeven() applies its own adjustment on top of an
+    # already-fully-adjusted result rather than re-deriving the growth
+    # adjustment itself. Only computed when it would say anything
+    # (interpret_breakeven() ignores it otherwise too), so a Starter/Free
+    # practice, or a Pro one not yet at break-even, never pays for the
+    # extra binary search.
+    breakeven_stress_test <- reactive({
+      req(adj_breakeven())
+      if (
+        !.has_pro_plan(r$plan_tier) ||
+          !identical(adj_breakeven()$periods_to_breakeven, 0L)
+      ) {
+        return(NULL)
+      }
+      stress_test_breakeven(
+        adj_breakeven(),
+        panel_size = r$panel_size,
+        membership_fee = r$membership_fee
+      )
+    })
+
     # Pro-exclusive: compare saved forecast scenarios' break-even timing.
     # req(adj_breakeven()) isn't needed for correctness here (this reads
     # straight from the DB, not from the current session's forecast), but
@@ -1684,17 +1712,29 @@ mod_projections_server <- function(id, r, parent_session = NULL) {
           membership_fee = r$membership_fee,
           membership_tiers = r$membership_tiers,
           confidence_level = input$confidence,
-          goal_seek = breakeven_goal_seek()
+          goal_seek = breakeven_goal_seek(),
+          stress_test = breakeven_stress_test()
         )),
-        # Nothing to upsell once break-even is already reached -- the
-        # scenario-comparison card below is the relevant Pro upsell in
-        # that case instead (goal-seek only has something to say when
-        # break-even isn't reached).
+        # Goal-seek and the stress test are mirror images (not-yet-
+        # achieved vs. already-achieved), so exactly one of these two
+        # upsell notes is ever relevant for a given forecast state -- the
+        # scenario-comparison card below is a separate, always-available
+        # third upsell for the achieved case.
         if (!.has_pro_plan(r$plan_tier) && is.na(adj_breakeven()$breakeven_date)) {
           .pro_upsell_note(
             ns,
             "Pro also tells you what growth-rate change -- in income, overhead, or both -- would reach break-even within your forecast horizon.",
             btn_id = "btn_see_plans_pro_goal_seek"
+          )
+        },
+        if (
+          !.has_pro_plan(r$plan_tier) &&
+            identical(adj_breakeven()$periods_to_breakeven, 0L)
+        ) {
+          .pro_upsell_note(
+            ns,
+            "Pro also tells you how many members your practice could lose and still sustain break-even.",
+            btn_id = "btn_see_plans_pro_stress_test"
           )
         }
       )
