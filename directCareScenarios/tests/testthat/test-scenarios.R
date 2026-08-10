@@ -157,6 +157,50 @@ test_that("scenario_load_json decodes the stored JSON and returns NULL when not 
   expect_null(scenario_load_json("mock_con", "plan_scenarios", 999L))
 })
 
+test_that("scenario_load_json_many rejects a non-JSONB table", {
+  expect_error(
+    scenario_load_json_many("mock_con", "dca_forecast_scenarios", c(1L, 2L)),
+    "Unknown scenario table"
+  )
+})
+
+test_that("scenario_load_json_many returns an empty list without querying for zero ids", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) stop("should not be called"),
+    .package = "DBI"
+  )
+  expect_equal(scenario_load_json_many("mock_con", "plan_scenarios", integer(0)), list())
+})
+
+test_that("scenario_load_json_many issues one batched query and keys results by id", {
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(
+        id = c(1L, 3L),
+        label = c("Baseline", "Aggressive"),
+        inputs = c(
+          jsonlite::toJSON(list(panel_size = 300), auto_unbox = TRUE),
+          jsonlite::toJSON(list(panel_size = 500), auto_unbox = TRUE)
+        ),
+        stringsAsFactors = FALSE
+      )
+    },
+    .package = "DBI"
+  )
+
+  result <- scenario_load_json_many("mock_con", "plan_scenarios", c(1L, 2L, 3L))
+
+  expect_match(captured$statement, "FROM plan_scenarios WHERE id = ANY\\(\\$1\\)")
+  expect_equal(captured$params, list(c(1L, 2L, 3L)))
+  expect_equal(names(result), c("1", "3"))
+  expect_equal(result[["1"]]$label, "Baseline")
+  expect_equal(result[["1"]]$inputs$panel_size, 300)
+  expect_equal(result[["3"]]$label, "Aggressive")
+  expect_null(result[["2"]])
+})
+
 test_that("scenario_save_forecast serializes the bundle and inserts", {
   captured <- NULL
   local_mocked_bindings(
@@ -236,6 +280,46 @@ test_that("scenario_load_forecast round-trips a real serialized payload and retu
     .package = "DBI"
   )
   expect_null(scenario_load_forecast("mock_con", 999L))
+})
+
+test_that("scenario_load_forecast_many returns an empty list without querying for zero ids", {
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) stop("should not be called"),
+    .package = "DBI"
+  )
+  expect_equal(scenario_load_forecast_many("mock_con", integer(0)), list())
+})
+
+test_that("scenario_load_forecast_many issues one batched query, deserializes each row, keys by id", {
+  bundle_a <- list(inputs = list(method = "ets"))
+  bundle_b <- list(inputs = list(method = "linear"))
+  payload_a <- memCompress(serialize(bundle_a, connection = NULL), type = "xz")
+  payload_b <- memCompress(serialize(bundle_b, connection = NULL), type = "xz")
+
+  captured <- NULL
+  local_mocked_bindings(
+    dbGetQuery = function(conn, statement, params) {
+      captured <<- list(statement = statement, params = params)
+      data.frame(
+        id = c(1L, 3L),
+        label = c("Q1 Snapshot", "Q2 Snapshot"),
+        source_filename = c("gnucash.csv", NA_character_),
+        payload = I(list(payload_a, payload_b)),
+        stringsAsFactors = FALSE
+      )
+    },
+    .package = "DBI"
+  )
+
+  result <- scenario_load_forecast_many("mock_con", c(1L, 2L, 3L))
+
+  expect_match(captured$statement, "FROM dca_forecast_scenarios WHERE id = ANY\\(\\$1\\)")
+  expect_equal(captured$params, list(c(1L, 2L, 3L)))
+  expect_equal(names(result), c("1", "3"))
+  expect_equal(result[["1"]]$label, "Q1 Snapshot")
+  expect_equal(result[["1"]]$bundle$inputs$method, "ets")
+  expect_equal(result[["3"]]$bundle$inputs$method, "linear")
+  expect_null(result[["2"]])
 })
 
 test_that("scenario_delete rejects an unknown table", {

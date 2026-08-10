@@ -1519,7 +1519,11 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
       if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
         return(list(count = nrow(listed), narrative = NULL))
       }
-      loaded <- lapply(listed$id, function(id) directCareScenarios::scenario_load_forecast(con, id))
+      # One batched SELECT ... WHERE id = ANY(...) instead of one query per
+      # saved scenario -- scenario_list()'s own 3-slot cap kept this cheap
+      # even as an N+1, but there's no reason to pay N round trips when one
+      # does the same job.
+      loaded <- directCareScenarios::scenario_load_forecast_many(con, listed$id)
       scenarios <- lapply(loaded, function(x) {
         list(label = x$label, result = x$bundle$results$adj_breakeven)
       })

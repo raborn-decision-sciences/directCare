@@ -385,8 +385,18 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         return(list(count = nrow(listed), narrative = NULL))
       }
 
-      scenarios <- lapply(listed$id, function(id) {
-        loaded <- directCareScenarios::scenario_load_json(con, "plan_scenarios", id)
+      # One batched SELECT ... WHERE id = ANY(...) instead of one query per
+      # saved scenario -- scenario_list()'s own 3-slot cap kept this cheap
+      # even as an N+1, but there's no reason to pay N round trips when one
+      # does the same job. project_practice() itself re-runs per scenario
+      # below regardless (Planner only persists inputs, not results, see
+      # SAVED_SCENARIOS.md) -- but that's since been measured at ~0.3ms/call
+      # post the tibble::new_tibble() fix (was the same tibble-construction
+      # overhead profvis flagged in the goal-seek path), so it's no longer
+      # worth the schema migration a save-time-results snapshot would need.
+      loaded_all <- directCareScenarios::scenario_load_json_many(con, "plan_scenarios", listed$id)
+      scenarios <- lapply(as.character(listed$id), function(id) {
+        loaded <- loaded_all[[id]]
         if (is.null(loaded)) {
           return(NULL)
         }

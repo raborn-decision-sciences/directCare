@@ -43,8 +43,13 @@ project_practice <- function(assumptions, horizon_months = 24L) {
   overhead <- assumptions$overhead_monthly * (1 + overhead_growth_rate)^(seq_len(horizon_months) - 1)
   net_income <- revenue$total$total_revenue - overhead
 
-  structure(
-    tibble::tibble(
+  # tibble::new_tibble() instead of tibble::tibble() -- see
+  # calc_membership_revenue() (revenue.R) for the full rationale. This
+  # function is the goal-seek bisection's own direct hot-path call (up to
+  # 25x per lever x 3 levers), on top of the tibble() calls already avoided
+  # inside calc_mixed_revenue()/calc_membership_revenue()/calc_fee_revenue().
+  tibble::new_tibble(
+    list(
       month = seq_len(horizon_months),
       membership_revenue = revenue$total$membership_revenue,
       fee_revenue = revenue$total$fee_revenue,
@@ -53,7 +58,8 @@ project_practice <- function(assumptions, horizon_months = 24L) {
       net_income = net_income,
       cumulative_net_income = cumsum(net_income)
     ),
-    class = c("dcPlanR_projection", "tbl_df", "tbl", "data.frame")
+    nrow = horizon_months,
+    class = "dcPlanR_projection"
   )
 }
 

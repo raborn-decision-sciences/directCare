@@ -164,6 +164,41 @@ scenario_load_json <- function(con, table, id) {
   )
 }
 
+#' Load multiple saved JSONB scenarios' inputs in one query
+#'
+#' Batched form of [scenario_load_json()] -- one round trip instead of one
+#' per id, for callers (e.g. scenario comparison) that need several
+#' scenarios at once.
+#'
+#' @param con An open `DBI` connection.
+#' @param table `"plan_scenarios"` or `"dca_calculator_scenarios"`.
+#' @param ids Integer vector of scenario row ids.
+#' @return A named list keyed by `id` (as character), each element shaped
+#'   like [scenario_load_json()]'s return value. An id with no matching row
+#'   is simply absent from the result (not present as a `NULL` entry).
+#' @export
+scenario_load_json_many <- function(con, table, ids) {
+  .check_scenario_table(table, .SCENARIO_JSON_TABLES)
+  if (length(ids) == 0L) {
+    return(list())
+  }
+
+  result <- DBI::dbGetQuery(
+    con,
+    sprintf("SELECT id, label, inputs FROM %s WHERE id = ANY($1)", table),
+    params = list(ids)
+  )
+
+  out <- lapply(seq_len(nrow(result)), function(i) {
+    list(
+      label = result$label[[i]],
+      inputs = jsonlite::fromJSON(result$inputs[[i]], simplifyVector = FALSE)
+    )
+  })
+  names(out) <- as.character(result$id)
+  out
+}
+
 #' Save (insert or overwrite) a DCA full-forecast scenario snapshot
 #'
 #' Bundles both inputs and the computed forecast results -- never just
@@ -250,6 +285,43 @@ scenario_load_forecast <- function(con, id) {
     source_filename = result$source_filename[[1]],
     bundle = unserialize(memDecompress(result$payload[[1]], type = "xz"))
   )
+}
+
+#' Load multiple saved DCA full-forecast scenario snapshots in one query
+#'
+#' Batched form of [scenario_load_forecast()], for callers that need several
+#' scenarios at once (e.g. scenario comparison, which previously issued one
+#' `SELECT` per saved scenario inside an `lapply()`). Deserialization
+#' (`unserialize()`/`memDecompress()`) still happens per row in R -- that
+#' can't be batched at the SQL level -- but the network round trip, the
+#' actual N+1 cost, collapses to one regardless of how many ids are passed.
+#'
+#' @param con An open `DBI` connection.
+#' @param ids Integer vector of scenario row ids.
+#' @return A named list keyed by `id` (as character), each element shaped
+#'   like [scenario_load_forecast()]'s return value. An id with no matching
+#'   row is simply absent from the result (not present as a `NULL` entry).
+#' @export
+scenario_load_forecast_many <- function(con, ids) {
+  if (length(ids) == 0L) {
+    return(list())
+  }
+
+  result <- DBI::dbGetQuery(
+    con,
+    "SELECT id, label, source_filename, payload FROM dca_forecast_scenarios WHERE id = ANY($1)",
+    params = list(ids)
+  )
+
+  out <- lapply(seq_len(nrow(result)), function(i) {
+    list(
+      label = result$label[[i]],
+      source_filename = result$source_filename[[i]],
+      bundle = unserialize(memDecompress(result$payload[[i]], type = "xz"))
+    )
+  })
+  names(out) <- as.character(result$id)
+  out
 }
 
 #' Delete one saved scenario

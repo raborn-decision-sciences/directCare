@@ -150,13 +150,22 @@ calc_membership_revenue <- function(
   month <- seq_len(horizon_months)
   ramped_panel_size <- round(panel_size * .ramp_fraction(month, ramp_months, ramp_shape))
 
-  structure(
-    tibble::tibble(
+  # tibble::new_tibble() instead of tibble::tibble(): every column here is
+  # already a fully-computed, equal-length vector, so there's no tidy-eval
+  # column expression to evaluate -- tibble()'s quosure-capture/recycling
+  # machinery is pure overhead in that case (~40x slower, confirmed via
+  # microbenchmark: ~186us vs ~5us for a 24-row/3-column call). This
+  # function is on the goal-seek bisection's hot path (called up to 25x per
+  # lever), where profvis identified tibble() construction as the single
+  # largest contributor to total cost.
+  tibble::new_tibble(
+    list(
       month = month,
       panel_size = ramped_panel_size,
       revenue = ramped_panel_size * fee
     ),
-    class = c("dcPlanR_membership_revenue", "tbl_df", "tbl", "data.frame")
+    nrow = horizon_months,
+    class = "dcPlanR_membership_revenue"
   )
 }
 
@@ -213,13 +222,15 @@ calc_fee_revenue <- function(
     new_visit_fee +
     (ramped_visit_volume * (1 - new_visit_pct)) * follow_up_fee
 
-  structure(
-    tibble::tibble(
+  # See calc_membership_revenue()'s comment on new_tibble() vs tibble().
+  tibble::new_tibble(
+    list(
       month = month,
       visit_volume = ramped_visit_volume,
       revenue = revenue
     ),
-    class = c("dcPlanR_fee_revenue", "tbl_df", "tbl", "data.frame")
+    nrow = horizon_months,
+    class = "dcPlanR_fee_revenue"
   )
 }
 
@@ -270,14 +281,23 @@ calc_mixed_revenue <- function(
     )
   }
 
-  membership_revenue <- if (!is.null(membership)) membership$revenue else 0
-  fee_revenue <- if (!is.null(fee_for_service)) fee_for_service$revenue else 0
+  # rep(0, horizon_months), not a bare 0: unlike tibble::tibble(),
+  # tibble::new_tibble() below does NOT recycle short columns to nrow --
+  # it's a low-level constructor that trusts the caller already sized
+  # everything correctly (that's the whole point of skipping tibble()'s
+  # validation/recycling overhead). A bare `0` here would silently produce
+  # a length-1 column that only *displays* as if broadcast to every row.
+  membership_revenue <- if (!is.null(membership)) membership$revenue else rep(0, horizon_months)
+  fee_revenue <- if (!is.null(fee_for_service)) fee_for_service$revenue else rep(0, horizon_months)
 
-  total <- tibble::tibble(
-    month = seq_len(horizon_months),
-    membership_revenue = membership_revenue,
-    fee_revenue = fee_revenue,
-    total_revenue = membership_revenue + fee_revenue
+  total <- tibble::new_tibble(
+    list(
+      month = seq_len(horizon_months),
+      membership_revenue = membership_revenue,
+      fee_revenue = fee_revenue,
+      total_revenue = membership_revenue + fee_revenue
+    ),
+    nrow = horizon_months
   )
 
   structure(
