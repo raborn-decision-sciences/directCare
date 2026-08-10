@@ -415,6 +415,11 @@ build_report_data <- function(
   list(
     practice_name = r$practice_name %||% "",
     practice_id = r$practice_id %||% "",
+    # Report-only tier indicator (title page, next to "Direct Care
+    # Analytics") -- deliberately plain text, not the pill-badge treatment
+    # .tier_badge() uses in the live navbar, since a badge reads oddly on a
+    # document the paying user already owns.
+    plan_tier_label = .tier_info(r$plan_tier %||% "free")$label,
     report_date = format(Sys.Date(), "%B %d, %Y"),
     frequency = if (is_weekly) "weekly" else "monthly",
     period_label = if (is_weekly) "Week" else "Month",

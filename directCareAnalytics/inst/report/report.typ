@@ -99,6 +99,7 @@
       #text(fill: white, weight: "bold", size: 11pt)[Raborn Decision Sciences]
       #linebreak()
       #text(fill: teal, size: 9pt, tracking: 0.04em)[Direct Care Analytics]
+      #text(fill: rgb("#94A3B8"), size: 9pt)[ · #d.plan_tier_label Plan]
     ],
     [
       #text(fill: rgb("#94A3B8"), size: 8.5pt)[#d.report_date]

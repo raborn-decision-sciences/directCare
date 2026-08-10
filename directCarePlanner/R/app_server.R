@@ -45,12 +45,28 @@ app_server <- function(input, output, session, res_auth = NULL) {
       )
     )
   })
+
+  # Plan-tier badge next to the app name (left side of the navbar) -- the
+  # right side already carries the account menu and dark-mode toggle, so
+  # this deliberately lives on the opposite side rather than adding a
+  # third item there. See directCareAnalytics's identical output for the
+  # full rationale.
+  output$tier_badge_nav <- renderUI({
+    req(r$plan_tier)
+    .tier_badge(r$plan_tier)
+  })
+
   # Shiny suspends renderUI evaluation for outputs it judges "hidden" by
   # default (suspendWhenHidden = TRUE) -- the navbar's <li class="... nav-item
   # form-inline"> wrapper reads as zero-size to that heuristic, so the
   # reactive never even runs otherwise (confirmed empirically in DCA: no
   # value and no error ever recorded for the output client-side).
   outputOptions(output, "account_menu", suspendWhenHidden = FALSE)
+  # tier_badge_nav sits in the navbar's brand slot (title = tagList(...) in
+  # app_ui.R), a different DOM position than account_menu's nav-item
+  # wrapper -- not confirmed to hit the same hidden-heuristic bug, but
+  # cheap to guard against regardless.
+  outputOptions(output, "tier_badge_nav", suspendWhenHidden = FALSE)
 
   # -- Account Settings modal: profile edit + password change -----------------
   # res_auth is a plain reactiveValues() (shinymanager's secure_server()

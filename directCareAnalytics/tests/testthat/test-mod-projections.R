@@ -246,3 +246,55 @@ test_that("download_ui shows no missing-sections note once all three forecasts h
     expect_false(grepl("will not include", html, fixed = TRUE))
   })
 })
+
+test_that("dl_report passes goal_seek/stress_test and badge = FALSE into interpret_breakeven()/interpret_target()", {
+  # Regression coverage for the PDF report feature gap: before this, the
+  # download handler never passed goal_seek/stress_test at all, so Pro
+  # subscribers never saw that content in their report even though the
+  # live UI already computed it for them (breakeven_goal_seek() etc. are
+  # already Pro-gated internally, returning NULL for non-Pro, so reusing
+  # them here needs no separate tier check). badge = FALSE because a "Pro"
+  # badge makes no sense inside a document the paying user already owns.
+  r <- make_monthly_r(6)
+  r$plan_tier <- "pro"
+  r$practice_name <- "Test Practice"
+
+  captured <- new.env()
+
+  testServer(mod_projections_server, args = list(r = r), {
+    session$setInputs(
+      method = "linear",
+      horizon = 3,
+      confidence = 0.95,
+      target_income = 5000,
+      forecast_type = "target"
+    )
+    session$setInputs(btn_run = 1)
+    wait_for_task(forecast_task)
+
+    local_mocked_bindings(
+      interpret_breakeven = function(...) {
+        captured$bkevn_args <- list(...)
+        "<p>mock</p>"
+      },
+      interpret_target = function(...) {
+        captured$tgt_args <- list(...)
+        "<p>mock</p>"
+      },
+      render_report_pdf = function(data, file, ...) {
+        writeLines("mock pdf", file)
+        invisible(file)
+      },
+      .package = "directCareAnalytics"
+    )
+
+    output$dl_report
+  })
+
+  expect_identical(captured$bkevn_args$badge, FALSE)
+  expect_true("goal_seek" %in% names(captured$bkevn_args))
+  expect_true("stress_test" %in% names(captured$bkevn_args))
+
+  expect_identical(captured$tgt_args$badge, FALSE)
+  expect_true("goal_seek" %in% names(captured$tgt_args))
+})

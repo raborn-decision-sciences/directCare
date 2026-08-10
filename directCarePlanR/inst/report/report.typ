@@ -149,7 +149,7 @@
   #v(3pt)
   #text(fill: teal, size: 11pt)[Practice Launch Plan]
   #v(1pt)
-  #text(fill: rgb("#94A3B8"), size: 9pt)[Direct Care Practice Launch Planner — #d.report_date]
+  #text(fill: rgb("#94A3B8"), size: 9pt)[Direct Care Practice Launch Planner · #d.plan_tier_label Plan — #d.report_date]
 ]
 #v(0.5em)
 
@@ -186,6 +186,43 @@
     #text(size: 9pt, fill: muted)[
       #d.market.landscape_count known direct care practices nearby.
     ]
+  ]
+]
+
+// ── Location Comparison (Pro) ────────────────────────────────────────
+// Side-by-side market fundamentals against up to 2 additional ZIP codes
+// entered on Plan Inputs -- Pro-exclusive in the live app, same shape
+// (.market_block()) as the primary d.market block above so both render
+// through the same field list.
+#if d.market_compare != none and d.market_compare.len() > 0 [
+  #section-head("Location Comparison")
+
+  #let all-locations = (d.market,) + d.market_compare
+  #let col-labels = range(all-locations.len()).map(i =>
+    if i == 0 { "Primary" } else { "Compare " + str(i) }
+  )
+  #let metric-row(label, getter) = (
+    text(weight: "semibold")[#label],
+    ..all-locations.map(loc => getter(loc)),
+  )
+
+  #block(breakable: false)[
+    #table(
+      columns: (1.3fr,) + (1fr,) * all-locations.len(),
+      fill: (_, y) => stripe(y),
+      stroke: (x, y) => tbl-stroke(x, all-locations.len() + 1),
+      inset: (x: 6pt, y: 4pt),
+      table.header(
+        text(weight: "bold")[Metric],
+        ..col-labels.map(lbl => text(weight: "bold")[#lbl]),
+      ),
+      ..metric-row("Location", loc => loc.county_name + ", " + loc.state_abb),
+      ..metric-row("Population", loc => str(loc.population)),
+      ..metric-row("Median HH Income", loc => dollar(loc.median_household_income)),
+      ..metric-row("Uninsured Rate", loc => str(loc.uninsured_rate_pct) + "%"),
+      ..metric-row("Physician Density", loc => str(loc.physician_density_per_10k) + " / 10k"),
+      ..metric-row("Nearby Practices", loc => str(loc.landscape_count)),
+    )
   ]
 ]
 

@@ -1,5 +1,31 @@
 # -- Results-tab helpers -------------------------------------------------------
 
+# A single paragraph from an interpret_*() string, rendered as a plain <p>
+# -- unless it contains "\n- " bullet lines (interpret_projection()'s
+# goal-seek paragraph does this when more than one lever is achievable, see
+# .describe_goal_seek()'s own doc), in which case the non-bullet lines
+# become an intro <p> and the "- "-prefixed lines become a real <ul>. The
+# Pro badge, when present, always prefixes the intro/only <p>, never a
+# bullet item.
+.render_paragraph <- function(text, is_pro) {
+  lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
+  is_bullet <- startsWith(lines, "- ")
+
+  badge_prefix <- if (isTRUE(is_pro)) tagList(.pro_badge(), " ") else NULL
+
+  if (!any(is_bullet)) {
+    return(tags$p(badge_prefix, text))
+  }
+
+  intro <- paste(lines[!is_bullet], collapse = " ")
+  items <- sub("^- ", "", lines[is_bullet])
+
+  tagList(
+    tags$p(badge_prefix, intro),
+    tags$ul(lapply(items, tags$li))
+  )
+}
+
 # interpret_*() functions return plain text with "\n\n" paragraph breaks
 # (not HTML -- a deliberate directCarePlanR design choice since Typst, not
 # a live UI, was its near-term consumer). Wrap each paragraph in <p> for
@@ -24,15 +50,45 @@
   is_pro <- if (is.null(is_pro)) rep(FALSE, length(paragraphs)) else is_pro[keep]
 
   tagList(lapply(seq_along(paragraphs), function(i) {
-    if (isTRUE(is_pro[i])) {
-      tags$p(.pro_badge(), " ", paragraphs[i])
-    } else {
-      tags$p(paragraphs[i])
-    }
+    .render_paragraph(paragraphs[i], is_pro[i])
   }))
 }
 
 .fmt_dollar <- function(x) scales::dollar(x, accuracy = 1)
+
+# The 6 fields shown for a single `dcPlanR_market_context` object (as
+# returned by directCarePlanR::build_market_context()), as {label, value}
+# pairs -- shared by the single-location Market Context card and the
+# Pro-exclusive location-comparison table below, so the set/order/labels
+# live in exactly one place instead of two.
+.market_context_rows <- function(context) {
+  list(
+    list(
+      label = "Location",
+      value = paste0(context$geography$county_name, ", ", context$geography$state_abb)
+    ),
+    list(
+      label = "Population",
+      value = format(context$population_income$population, big.mark = ",")
+    ),
+    list(
+      label = "Median household income",
+      value = .fmt_dollar(context$population_income$median_household_income)
+    ),
+    list(
+      label = "Uninsured rate",
+      value = scales::percent(context$uninsured$uninsured_rate, accuracy = 0.1)
+    ),
+    list(
+      label = "Physician density",
+      value = paste0(round(context$physician_density$physician_density_per_10k, 1), " per 10,000 population")
+    ),
+    list(
+      label = "Known nearby direct care practices",
+      value = as.character(nrow(context$landscape))
+    )
+  )
+}
 
 # Plain-language description of what the three Scenario Projections lines
 # actually vary, sourced directly from directCarePlanR::project_scenarios()'s
@@ -183,12 +239,9 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             card(
               card_header(bsicons::bs_icon("geo-alt"), " Market Context"),
               card_body(
-                tags$p(tags$strong("Location: "), r$market_context$geography$county_name, ", ", r$market_context$geography$state_abb),
-                tags$p(tags$strong("Population: "), format(r$market_context$population_income$population, big.mark = ",")),
-                tags$p(tags$strong("Median household income: "), .fmt_dollar(r$market_context$population_income$median_household_income)),
-                tags$p(tags$strong("Uninsured rate: "), scales::percent(r$market_context$uninsured$uninsured_rate, accuracy = 0.1)),
-                tags$p(tags$strong("Physician density: "), round(r$market_context$physician_density$physician_density_per_10k, 1), " per 10,000 population"),
-                tags$p(tags$strong("Known nearby direct care practices: "), nrow(r$market_context$landscape))
+                tagList(lapply(.market_context_rows(r$market_context), function(row) {
+                  tags$p(tags$strong(row$label, ": "), row$value)
+                }))
               )
             )
           },
@@ -200,6 +253,59 @@ mod_results_server <- function(id, r, parent_session = NULL) {
             )
           )
         ),
+        # Pro-exclusive: side-by-side market comparison against the
+        # additional ZIP codes entered on Plan Inputs, if any. `requested`
+        # is tracked regardless of tier (mod_plan_inputs.R's .build_plan())
+        # so a non-Pro practice that filled these in still sees the
+        # upsell -- matching every other Pro teaser's "only show up once
+        # it's actually relevant" behavior (scenario_comparison_card
+        # below is the closest precedent). Renders nothing at all when no
+        # compare ZIPs were entered, same as that precedent.
+        if (isTRUE((r$market_context_compare_requested %||% 0L) > 0L)) {
+          layout_columns(
+            col_widths = 12,
+            fill = FALSE,
+            fillable = FALSE,
+            if (.has_pro_plan(r$plan_tier) && length(r$market_context_compare) > 0L) {
+              all_contexts <- c(list(r$market_context), r$market_context_compare)
+              all_rows <- lapply(all_contexts, .market_context_rows)
+              n_fields <- length(all_rows[[1]])
+              col_labels <- c("Primary", paste("Compare", seq_along(r$market_context_compare)))
+              card(
+                card_header(.pro_badge(), " Location Comparison"),
+                card_body(
+                  tags$div(
+                    class = "table-responsive",
+                    tags$table(
+                      class = "table table-sm",
+                      tags$thead(tags$tr(
+                        tags$th(""),
+                        lapply(col_labels, function(lbl) tags$th(class = "text-nowrap", lbl))
+                      )),
+                      tags$tbody(lapply(seq_len(n_fields), function(field_i) {
+                        tags$tr(
+                          tags$td(tags$strong(all_rows[[1]][[field_i]]$label)),
+                          lapply(all_rows, function(rows) tags$td(rows[[field_i]]$value))
+                        )
+                      }))
+                    )
+                  )
+                )
+              )
+            } else if (!.has_pro_plan(r$plan_tier)) {
+              card(
+                card_header(bsicons::bs_icon("geo-alt"), " Location Comparison"),
+                card_body(
+                  .pro_upsell_note(
+                    ns,
+                    "Pro also compares market fundamentals across the additional locations you entered, side by side with your primary one.",
+                    btn_id = "btn_see_plans_pro_location_compare"
+                  )
+                )
+              )
+            }
+          )
+        },
         layout_columns(
           col_widths = c(6, 6),
           fill = FALSE,
@@ -395,6 +501,9 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     observeEvent(input$btn_see_plans_pro_scenario_compare, {
       .show_plans_modal()
     })
+    observeEvent(input$btn_see_plans_pro_location_compare, {
+      .show_plans_modal()
+    })
     observeEvent(input$btn_see_plans_market, {
       .show_plans_modal()
     })
@@ -429,11 +538,13 @@ mod_results_server <- function(id, r, parent_session = NULL) {
         }
         data <- directCarePlanR::build_report_data(
           market_context = r$market_context,
+          market_context_compare = r$market_context_compare,
           revenue = r$revenue,
           projections = r$projections,
           capital = capital_for_report,
           interpretations = r$interpretations,
-          practice_name = r$practice_name
+          practice_name = r$practice_name,
+          plan_tier = r$plan_tier
         )
         directCarePlanR::render_plan_report(data, file)
       }

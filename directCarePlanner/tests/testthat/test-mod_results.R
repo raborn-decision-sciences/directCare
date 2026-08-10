@@ -1,5 +1,19 @@
 # Unit tests for mod_results_server (via testServer)
 
+# Plain list (not wrapped in reactiveValues) so it can also be used
+# directly by pure-function tests (e.g. .market_context_rows()) without
+# tripping Shiny's "reactive value accessed outside a reactive consumer"
+# guard.
+fixture_market_context <- function() {
+  list(
+    geography = list(county_name = "Fulton County", state_abb = "GA", metro_fips = "12060"),
+    population_income = list(population = 1000000L, median_household_income = 75000),
+    uninsured = list(uninsured_rate = 0.1),
+    physician_density = list(physician_density_per_10k = 40),
+    landscape = data.frame(county_fips = character(0))
+  )
+}
+
 fixture_populated_r <- function() {
   revenue <- directCarePlanR::calc_mixed_revenue(
     membership_args = list(panel_size = 300, fee = 100, ramp_months = 3),
@@ -21,13 +35,7 @@ fixture_populated_r <- function() {
     # practice" below for that case).
     plan_tier = "pro",
     horizon_months = 3,
-    market_context = list(
-      geography = list(county_name = "Fulton County", state_abb = "GA", metro_fips = "12060"),
-      population_income = list(population = 1000000L, median_household_income = 75000),
-      uninsured = list(uninsured_rate = 0.1),
-      physician_density = list(physician_density_per_10k = 40),
-      landscape = data.frame(county_fips = character(0))
-    ),
+    market_context = fixture_market_context(),
     revenue = revenue,
     projections = projections,
     capital = list(startup_costs = startup_costs, personal_runway = personal_runway),
@@ -83,6 +91,95 @@ test_that("gates Market Context and Download Report for a free-tier practice", {
   })
 })
 
+# -- Location comparison (Pro) -------------------------------------------
+
+fixture_compare_context <- function() {
+  list(
+    geography = list(county_name = "San Francisco County", state_abb = "CA", metro_fips = "41860"),
+    population_income = list(population = 800000L, median_household_income = 120000),
+    uninsured = list(uninsured_rate = 0.05),
+    physician_density = list(physician_density_per_10k = 60),
+    landscape = data.frame(county_fips = character(0))
+  )
+}
+
+test_that("renders nothing for the comparison section when no compare ZIPs were entered", {
+  r <- fixture_populated_r()
+
+  testServer(mod_results_server, args = list(r = r), {
+    html <- paste(as.character(output$content), collapse = "")
+    expect_false(grepl("Location Comparison", html))
+  })
+})
+
+test_that("Pro tier with computed compare contexts renders the comparison table", {
+  r <- fixture_populated_r()
+  r$market_context_compare_requested <- 1L
+  r$market_context_compare <- list(fixture_compare_context())
+
+  testServer(mod_results_server, args = list(r = r), {
+    html <- paste(as.character(output$content), collapse = "")
+    expect_true(grepl("Location Comparison", html))
+    expect_true(grepl("Fulton County", html))
+    expect_true(grepl("San Francisco County", html))
+    expect_false(grepl("See Pro plan", html))
+  })
+})
+
+test_that("non-Pro tier with a requested comparison shows the upsell teaser, not the table", {
+  r <- fixture_populated_r()
+  r$plan_tier <- "starter"
+  r$market_context_compare_requested <- 1L
+  r$market_context_compare <- NULL
+
+  testServer(mod_results_server, args = list(r = r), {
+    html <- paste(as.character(output$content), collapse = "")
+    expect_true(grepl("Location Comparison", html))
+    expect_false(grepl("San Francisco County", html))
+    expect_true(grepl("See Pro plan", html))
+    expect_true(grepl("btn_see_plans_pro_location_compare", html, fixed = TRUE))
+  })
+})
+
+test_that(".market_context_rows() returns the 6 expected fields in order", {
+  rows <- .market_context_rows(fixture_market_context())
+
+  expect_equal(
+    vapply(rows, function(x) x$label, character(1)),
+    c(
+      "Location", "Population", "Median household income",
+      "Uninsured rate", "Physician density", "Known nearby direct care practices"
+    )
+  )
+  expect_equal(rows[[1]]$value, "Fulton County, GA")
+  expect_equal(rows[[2]]$value, "1,000,000")
+})
+
+test_that("dl_report passes r$plan_tier into directCarePlanR::build_report_data()", {
+  r <- fixture_populated_r()
+  r$plan_tier <- "pro"
+
+  captured <- new.env()
+
+  testServer(mod_results_server, args = list(r = r), {
+    local_mocked_bindings(
+      build_report_data = function(...) {
+        captured$args <- list(...)
+        list()
+      },
+      render_plan_report = function(data, file) {
+        writeLines("mock pdf", file)
+        invisible(file)
+      },
+      .package = "directCarePlanR"
+    )
+
+    output$dl_report
+  })
+
+  expect_identical(captured$args$plan_tier, "pro")
+})
+
 test_that(".paragraphs_to_html() splits on blank lines and wraps each in <p>", {
   html <- paste(as.character(.paragraphs_to_html("First paragraph.\n\nSecond paragraph.")), collapse = "")
   expect_true(grepl("<p>First paragraph.</p>", html, fixed = TRUE))
@@ -110,6 +207,29 @@ test_that(".paragraphs_to_html() badges nothing when the pro_paragraph attribute
   html <- paste(as.character(.paragraphs_to_html("Plain paragraph.")), collapse = "")
 
   expect_false(grepl("badge", html))
+})
+
+test_that(".paragraphs_to_html() renders a '\\n- ' paragraph as an intro <p> plus a real <ul>", {
+  text <- "Intro sentence:\n- First item.\n- Second item."
+
+  html <- paste(as.character(.paragraphs_to_html(text)), collapse = "")
+
+  expect_true(grepl("<p>Intro sentence:</p>", html, fixed = TRUE))
+  expect_true(grepl("<ul>", html, fixed = TRUE))
+  expect_true(grepl("<li>First item.</li>", html, fixed = TRUE))
+  expect_true(grepl("<li>Second item.</li>", html, fixed = TRUE))
+  expect_false(grepl("- First item", html, fixed = TRUE))
+})
+
+test_that(".paragraphs_to_html() puts the Pro badge on the intro <p>, not inside the <ul>", {
+  text <- "Intro sentence:\n- First item.\n- Second item."
+  attr(text, "pro_paragraph") <- TRUE
+
+  html <- paste(as.character(.paragraphs_to_html(text)), collapse = "")
+  intro_p <- sub("<ul>.*", "", html)
+
+  expect_true(grepl("badge", intro_p))
+  expect_true(grepl("<li>First item.</li>", html, fixed = TRUE))
 })
 
 # ── .humanize_cost_items() (startup-cost category label overrides) ──────

@@ -120,7 +120,8 @@ interpret_breakeven <- function(
   membership_tiers = NULL,
   confidence_level = 0.95,
   goal_seek = NULL,
-  stress_test = NULL
+  stress_test = NULL,
+  badge = TRUE
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(htmltools::htmlEscape(practice_name), " ")
@@ -365,7 +366,7 @@ interpret_breakeven <- function(
   # otherwise even if a caller passes one in, since "what would it take to
   # reach break-even" doesn't apply once it's already been achieved.
   goal_seek_html <- if (is.na(result$breakeven_date) && !is.null(goal_seek)) {
-    .describe_goal_seek(goal_seek, pu, "break-even")
+    .describe_goal_seek(goal_seek, pu, "break-even", badge = badge)
   } else {
     NULL
   }
@@ -374,7 +375,7 @@ interpret_breakeven <- function(
   # been reached -- "how much margin do you have" doesn't apply before
   # then, same rationale as goal_seek_html's own gate in reverse.
   stress_test_html <- if (already_achieved && !is.null(stress_test)) {
-    .describe_stress_test(stress_test, pu)
+    .describe_stress_test(stress_test, pu, badge = badge)
   } else {
     NULL
   }
@@ -725,7 +726,8 @@ interpret_target <- function(
   panel_size = NULL,
   membership_fee = NULL,
   membership_tiers = NULL,
-  goal_seek = NULL
+  goal_seek = NULL,
+  badge = TRUE
 ) {
   name_str <- if (!is.null(practice_name) && nzchar(practice_name)) {
     paste0(htmltools::htmlEscape(practice_name), " ")
@@ -1039,7 +1041,7 @@ interpret_target <- function(
   # otherwise even if a caller passes one in, since "what would it take to
   # reach the target" doesn't apply once it's already been met.
   goal_seek_html <- if (is.na(result$target_date) && !is.null(goal_seek)) {
-    .describe_goal_seek(goal_seek, pu, "the income target")
+    .describe_goal_seek(goal_seek, pu, "the income target", badge = badge)
   } else {
     NULL
   }

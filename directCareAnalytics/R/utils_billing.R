@@ -175,8 +175,8 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
           tags$p(class = "fw-bold fs-4 mb-1", "$39/mo"),
           tags$p(
             class = "text-muted small mb-0",
-            "Bookkeeping uploads, saved practice profile, historical ",
-            "trends, break-even analysis, downloadable reports."
+            "Upload real bookkeeping data from your accounting software, ",
+            "and save scenarios to revisit anytime."
           ),
           # mt-auto pins the button to the bottom of the (flex-column, h-100)
           # card body, so it lines up with Pro's regardless of which
@@ -204,21 +204,27 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
         )
       ),
       card(
-        class = "h-100",
+        class = "h-100 border-warning",
         card_header(tagList(bs_icon("lightbulb"), " Pro")),
         card_body(
           tags$p(class = "fw-bold fs-4 mb-1", "$79/mo"),
           tags$p(
-            class = "text-muted small mb-0",
-            "Everything in Starter, plus guided decision tools and ",
-            "AI-generated financial interpretation."
+            class = "text-muted small mb-1",
+            "Everything in Starter, plus goal-seek modeling, panel-size ",
+            "stress-testing, and side-by-side comparison of your saved ",
+            "scenarios."
+          ),
+          tags$p(
+            class = "text-muted small fst-italic mb-0",
+            bs_icon("hourglass-split"), " Coming soon: AI-generated ",
+            "financial interpretation."
           ),
           tags$div(
             class = "mt-auto",
             actionButton(
               "btn_checkout_pro", "Upgrade",
               icon = bs_icon("arrow-up-right-circle"),
-              class = "btn-outline-primary btn-sm w-100 mt-2",
+              class = "btn-warning btn-sm w-100 mt-2",
               style = "white-space: nowrap;"
             )
           )
@@ -316,16 +322,19 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
 #' feature to someone who doesn't have it yet; this one quietly labels a
 #' feature for someone who does, so a Pro practice can tell which parts of
 #' the screen are the paid layer without a pushy reminder every visit --
-#' text-bg-primary because bs_theme()'s `primary` is the RDS teal
-#' (app_ui.R), so this reuses the same accent already used for buttons and
-#' active tabs rather than introducing a new color. `text-bg-*` is a plain
+#' text-bg-warning because bs_theme()'s `warning` is the RDS amber
+#' (app_ui.R) -- Pro's whole identity (this badge, the navbar tier badge,
+#' the Plans modal's Pro card border/button) is deliberately amber rather
+#' than the RDS teal `primary` used for Starter and general branding, so
+#' "Pro" reads as a distinct premium tier rather than a shade of the same
+#' accent every other button already uses. `text-bg-*` is a plain
 #' Bootstrap 5 utility (same pattern as the existing "Demo Mode" badge in
 #' app_server.R's account_menu), so contrast/dark-mode both come for free.
 #'
 #' @noRd
 .pro_badge <- function() {
   tags$span(
-    class = "badge rounded-pill text-bg-primary",
+    class = "badge rounded-pill text-bg-warning",
     style = "font-size: 0.68em; vertical-align: 2px;",
     "Pro"
   )
@@ -337,6 +346,69 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
 #' @noRd
 .pro_badge_html <- function() {
   as.character(.pro_badge())
+}
+
+#' Resolve a `plan_tier` string to `"free"`/`"starter"`/`"pro"` plus its
+#' human-readable label
+#'
+#' Shared gating logic behind `.tier_badge()` (a navbar UI element) and the
+#' PDF report's title-page tier indicator (`build_report_data()`'s
+#' `plan_tier_label`), so both read the exact same tier for a given
+#' `r$plan_tier` value instead of re-deriving it independently. Unrecognized/
+#' `NULL`/empty values fall back to Free/Starter using the same permissive
+#' rule as `.has_paid_plan()`/`.has_pro_plan()` -- see `.tier_badge()`'s own
+#' doc for the rationale.
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier`.
+#'
+#' @return A list with `tier` (`"free"`/`"starter"`/`"pro"`) and `label`
+#'   (`"Free"`/`"Starter"`/`"Pro"`).
+#' @noRd
+.tier_info <- function(plan_tier) {
+  tier <- if (isTRUE(.has_pro_plan(plan_tier))) {
+    "pro"
+  } else if (isTRUE(.has_paid_plan(plan_tier))) {
+    "starter"
+  } else {
+    "free"
+  }
+  list(
+    tier = tier,
+    label = switch(tier, pro = "Pro", starter = "Starter", free = "Free")
+  )
+}
+
+#' Small navbar badge naming the practice's current plan tier
+#'
+#' Distinct from `.pro_badge()` above (which quietly labels a specific
+#' Pro-exclusive *feature* for someone who already has Pro): this labels
+#' the *account* itself, for every tier including Free, so a user glancing
+#' at the navbar can always tell what they're on without opening Account
+#' Settings or the Plans modal. One color per tier, all plain Bootstrap 5
+#' `text-bg-*` utilities (dark-mode contrast for free, same convention as
+#' `.pro_badge()`/the "Demo Mode" badge): Free reuses the theme's neutral
+#' `secondary`, Starter its `info` blue, Pro its `warning` amber -- Pro
+#' intentionally reuses the exact color `.pro_badge()` already uses
+#' elsewhere, so the two stay visually associated as "the same tier."
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier`. Unrecognized/
+#'   `NULL`/empty values fall back to the Free treatment rather than
+#'   erroring or rendering nothing -- a badge that's wrong in the
+#'   permissive direction beats a navbar that silently drops it.
+#' @noRd
+.tier_badge <- function(plan_tier) {
+  info <- .tier_info(plan_tier)
+  css_class <- switch(
+    info$tier,
+    pro = "text-bg-warning",
+    starter = "text-bg-info",
+    free = "text-bg-secondary"
+  )
+  tags$span(
+    class = paste("badge rounded-pill", css_class),
+    style = "font-size: 0.68em; vertical-align: 2px;",
+    info$label
+  )
 }
 
 #' Save/Load scenario-slot buttons -- real ones for a paid practice, a

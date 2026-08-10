@@ -240,3 +240,83 @@ test_that("an unresolvable ZIP leaves state untouched", {
     expect_null(r$market_context)
   })
 })
+
+# -- Location comparison (Pro) -------------------------------------------
+
+full_plan_inputs <- function(extra = list()) {
+  utils::modifyList(
+    list(
+      zip = "30309",
+      include_membership = TRUE,
+      panel_size = 300,
+      fee = 100,
+      ramp_months = 12,
+      ramp_shape = "linear",
+      include_fee = FALSE,
+      overhead_mode = "single",
+      overhead_monthly = 12000,
+      startup_mode = "itemized",
+      cost_ehr = 0, cost_equipment = 0, cost_licensing = 0, cost_marketing = 0, cost_other = 0,
+      runway_mode = "single",
+      monthly_expenses = 0, months_coverage = 1,
+      horizon_months = 24,
+      overhead_growth_rate = 0
+    ),
+    extra
+  )
+}
+
+test_that("Pro tier with valid compare ZIPs populates market_context_compare", {
+  r <- reactiveValues(market_context = NULL, plan_tier = "pro")
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    do.call(session$setInputs, full_plan_inputs(list(zip_2 = "94103", zip_3 = "10001")))
+    session$setInputs(submit = 1)
+
+    expect_equal(r$market_context$geography$county_fips, "13121")
+    expect_equal(r$market_context_compare_requested, 2L)
+    expect_length(r$market_context_compare, 2L)
+    expect_equal(r$market_context_compare[[1]]$geography$county_fips, "06075")
+    expect_equal(r$market_context_compare[[2]]$geography$county_fips, "36061")
+  })
+})
+
+test_that("non-Pro tier with compare ZIPs entered tracks the request but doesn't compute contexts", {
+  r <- reactiveValues(market_context = NULL, plan_tier = "starter")
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    do.call(session$setInputs, full_plan_inputs(list(zip_2 = "94103", zip_3 = "10001")))
+    session$setInputs(submit = 1)
+
+    expect_equal(r$market_context$geography$county_fips, "13121")
+    expect_equal(r$market_context_compare_requested, 2L)
+    expect_null(r$market_context_compare)
+  })
+})
+
+test_that("blank compare ZIPs leave market_context_compare_requested at 0", {
+  r <- reactiveValues(market_context = NULL, plan_tier = "pro")
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    do.call(session$setInputs, full_plan_inputs())
+    session$setInputs(submit = 1)
+
+    expect_equal(r$market_context_compare_requested, 0L)
+    expect_null(r$market_context_compare)
+  })
+})
+
+test_that("an unresolvable compare ZIP is skipped without blocking the plan or the other compare ZIP", {
+  r <- reactiveValues(market_context = NULL, plan_tier = "pro")
+
+  testServer(mod_plan_inputs_server, args = list(r = r), {
+    do.call(session$setInputs, full_plan_inputs(list(zip_2 = "94103", zip_3 = "00000")))
+    session$setInputs(submit = 1)
+
+    expect_equal(r$market_context$geography$county_fips, "13121")
+    # Both were entered, so "requested" counts both, even though only one resolved.
+    expect_equal(r$market_context_compare_requested, 2L)
+    expect_length(r$market_context_compare, 1L)
+    expect_equal(r$market_context_compare[[1]]$geography$county_fips, "06075")
+  })
+})

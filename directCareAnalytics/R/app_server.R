@@ -108,12 +108,33 @@ app_server <- function(input, output, session, res_auth = NULL) {
       )
     )
   })
+
+  # Plan-tier badge next to the app name (left side of the navbar) -- the
+  # right side already carries the account menu, dark-mode toggle, and
+  # (in demo mode) the "Demo Mode" badge itself, so this deliberately
+  # lives on the opposite side rather than adding a fourth item there.
+  # Skipped in demo mode: r$plan_tier is a real column value ("free") for
+  # demo sessions too, but showing "Free" right next to "Demo Mode" would
+  # read as two competing status indicators for the same session.
+  output$tier_badge_nav <- renderUI({
+    if (isTRUE(demo_mode())) {
+      return(NULL)
+    }
+    req(r$plan_tier)
+    .tier_badge(r$plan_tier)
+  })
+
   # Shiny suspends renderUI evaluation for outputs it judges "hidden" by
   # default (suspendWhenHidden = TRUE) -- the navbar's <li class="... nav-item
   # form-inline"> wrapper reads as zero-size to that heuristic, so the
   # reactive never even ran (confirmed via Shiny.shinyapp.$values/$errors:
   # neither a value nor an error was ever recorded for this output).
   outputOptions(output, "account_menu", suspendWhenHidden = FALSE)
+  # tier_badge_nav sits in the navbar's brand slot (title = tags$a(...) in
+  # app_ui.R), a different DOM position than account_menu's nav-item
+  # wrapper -- not confirmed to hit the same hidden-heuristic bug, but
+  # cheap to guard against regardless.
+  outputOptions(output, "tier_badge_nav", suspendWhenHidden = FALSE)
 
   # -- Account Settings modal: profile edit + password change -----------------
   # res_auth is a plain reactiveValues() (shinymanager's secure_server()

@@ -313,6 +313,57 @@ test_that("apply_membership_fee_events ignores zero and non-finite deltas", {
   expect_equal(adj$forecast_data$revenue_forecast, fd0$revenue_forecast)
 })
 
+# -- .solve_combined_growth_rate ----------------------------------------------
+# Unit-tested directly against a synthetic periods_at() (rather than only
+# indirectly via goal_seek_breakeven()'s real forecast pipeline), so the
+# blend-fraction bisection's correctness doesn't depend on any particular
+# forecast fixture's actual monotonicity.
+
+test_that(".solve_combined_growth_rate() finds the smallest blend fraction that reaches the horizon", {
+  # A simple synthetic model: periods-to-goal decreases linearly as either
+  # lever moves toward its target, reaching exactly the horizon (6) when
+  # the blend fraction t = 0.5 (income at +5, overhead at -5, halfway
+  # between current 0/0 and the solo targets of 10/-10).
+  periods_at <- function(income_pct, overhead_pct) {
+    # Each lever contributes up to 6 periods of improvement from a
+    # baseline of 12, scaled by how far it's moved toward its own solo
+    # target (10 for income, -10 for overhead).
+    income_progress <- min(1, max(0, income_pct / 10))
+    overhead_progress <- min(1, max(0, overhead_pct / -10))
+    round(12 - 6 * income_progress - 6 * overhead_progress)
+  }
+
+  result <- .solve_combined_growth_rate(
+    periods_at = periods_at,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    income_target_pct = 10,
+    overhead_target_pct = -10,
+    horizon_periods = 6L
+  )
+
+  expect_true(result$achievable)
+  expect_equal(result$new_income_growth_pct, 5, tolerance = 0.2)
+  expect_equal(result$new_overhead_growth_pct, -5, tolerance = 0.2)
+})
+
+test_that(".solve_combined_growth_rate() reports not achievable when even the full blend (t = 1) misses the horizon", {
+  # periods_at() never drops below 10, so no blend fraction reaches a
+  # horizon of 6.
+  periods_at <- function(income_pct, overhead_pct) 10L
+
+  result <- .solve_combined_growth_rate(
+    periods_at = periods_at,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    income_target_pct = 10,
+    overhead_target_pct = -10,
+    horizon_periods = 6L
+  )
+
+  expect_false(result$achievable)
+})
+
 # -- goal_seek_breakeven ------------------------------------------------------
 
 # Flat-revenue-and-overhead fixture: make_breakeven_result()'s revenue is
@@ -360,6 +411,22 @@ test_that("goal_seek_breakeven() reports both levers achievable for a small gap"
   expect_true(gs$overhead$new_growth_pct < 0)
 })
 
+test_that("goal_seek_breakeven() reports a combined lever when both solo levers are achievable", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result)
+
+  expect_true(gs$combined$achievable)
+  # The blend is strictly partial: neither combined value should reach as
+  # far as its own solo counterpart (that would mean the blend fraction
+  # hit 1, i.e. no smaller-than-solo change was actually found), and both
+  # should still move in the same helpful direction as their solo lever.
+  expect_true(gs$combined$new_income_growth_pct > 0)
+  expect_true(gs$combined$new_income_growth_pct < gs$income$new_growth_pct)
+  expect_true(gs$combined$new_overhead_growth_pct < 0)
+  expect_true(gs$combined$new_overhead_growth_pct > gs$overhead$new_growth_pct)
+})
+
 test_that("goal_seek_breakeven() reports neither lever achievable for a huge gap", {
   result <- make_flat_breakeven_result(revenue = 500, overhead = 5000)
 
@@ -367,15 +434,17 @@ test_that("goal_seek_breakeven() reports neither lever achievable for a huge gap
 
   expect_false(gs$income$achievable)
   expect_false(gs$overhead$achievable)
+  expect_false(gs$combined$achievable)
 })
 
-test_that("goal_seek_breakeven() omits the overhead lever when overhead_flat is set", {
+test_that("goal_seek_breakeven() omits the overhead and combined levers when overhead_flat is set", {
   result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
 
   gs <- goal_seek_breakeven(result, overhead_flat = 2000)
 
   expect_true(gs$income$achievable)
   expect_null(gs$overhead)
+  expect_null(gs$combined)
 })
 
 test_that("goal_seek_breakeven() returns NULL for a NULL breakeven_result", {
@@ -408,6 +477,253 @@ test_that("goal_seek_breakeven() reports the fee lever unachievable for a huge g
   gs <- goal_seek_breakeven(result, panel_size = 10, membership_fee = 20)
 
   expect_false(gs$fee$achievable)
+})
+
+test_that("goal_seek_breakeven() attaches a members_equiv annotation to the income lever when panel_size/membership_fee are supplied", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result, panel_size = 100, membership_fee = 18)
+
+  expect_true(gs$income$achievable)
+  expect_false(is.null(gs$income$members_equiv))
+  expect_true(gs$income$members_equiv$per_month >= 1)
+  expect_equal(gs$income$members_equiv$fee_used, 18)
+})
+
+test_that("goal_seek_breakeven() omits members_equiv when panel_size/membership_fee aren't supplied", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+
+  gs <- goal_seek_breakeven(result)
+
+  expect_true(gs$income$achievable)
+  expect_null(gs$income$members_equiv)
+})
+
+# -- .income_growth_members_equiv ---------------------------------------------
+# Unit-tested directly against a synthetic recompute() (rather than only
+# indirectly via goal_seek_breakeven()'s real forecast pipeline), so the
+# revenue-diff/fee-event arithmetic doesn't depend on any particular
+# forecast fixture's actual growth-assumption math.
+
+test_that(".income_growth_members_equiv() converts a solved income-growth % into an extra-members/month figure", {
+  # Solved scenario adds $1800/month of revenue by the target period; at
+  # $15/member and a 12-month horizon, that's 120 member-equivalents
+  # total, spread evenly = 10/month.
+  recompute <- function(income_pct, overhead_pct) {
+    revenue <- if (income_pct > 0) 6800 else 5000
+    list(forecast_data = list(revenue_forecast = rep(revenue, 12)))
+  }
+
+  result <- .income_growth_members_equiv(
+    recompute = recompute,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    new_income_growth_pct = 8,
+    target_period = 12L,
+    panel_size = 100,
+    membership_fee = 15,
+    frequency = "monthly"
+  )
+
+  expect_equal(result$per_month, 10)
+  expect_equal(result$fee_used, 15)
+  expect_null(result$per_month_planned)
+})
+
+test_that(".income_growth_members_equiv() converts weekly revenue to a monthly-equivalent before dividing by fee", {
+  # extra_pp = $100/week -> $433/month (x4.33); at $20/member over 12
+  # months that's 21.65 member-equivalents total, ~2/month.
+  recompute <- function(income_pct, overhead_pct) {
+    revenue <- if (income_pct > 0) 1100 else 1000
+    list(forecast_data = list(revenue_forecast = rep(revenue, 12)))
+  }
+
+  result <- .income_growth_members_equiv(
+    recompute = recompute,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    new_income_growth_pct = 5,
+    target_period = 12L,
+    panel_size = 50,
+    membership_fee = 20,
+    frequency = "weekly"
+  )
+
+  expect_equal(result$per_month, 2)
+})
+
+test_that(".income_growth_members_equiv() returns NULL when panel_size/membership_fee aren't both supplied", {
+  recompute <- function(income_pct, overhead_pct) {
+    list(forecast_data = list(revenue_forecast = rep(5000, 12)))
+  }
+
+  expect_null(.income_growth_members_equiv(
+    recompute, 0, 0, 5, 12L,
+    panel_size = NULL, membership_fee = 15, frequency = "monthly"
+  ))
+  expect_null(.income_growth_members_equiv(
+    recompute, 0, 0, 5, 12L,
+    panel_size = 100, membership_fee = NULL, frequency = "monthly"
+  ))
+})
+
+test_that(".income_growth_members_equiv() returns NULL when the solved growth rate implies no positive revenue gap", {
+  recompute <- function(income_pct, overhead_pct) {
+    list(forecast_data = list(revenue_forecast = rep(5000, 12)))
+  }
+
+  result <- .income_growth_members_equiv(
+    recompute, 0, 0, 0, 12L,
+    panel_size = 100, membership_fee = 15, frequency = "monthly"
+  )
+
+  expect_null(result)
+})
+
+test_that(".income_growth_members_equiv() adds a planned-fee annotation when a fee event is already active by the target date", {
+  # Same $1800/month gap as the first test above. A +$600/month fee
+  # event across the 100-member panel raises the average fee from $15
+  # to $21, so the planned-fee member count differs from the
+  # current-fee one: 1800/21 = 85.71 total, ~7/month.
+  recompute <- function(income_pct, overhead_pct) {
+    revenue <- if (income_pct > 0) 6800 else 5000
+    list(forecast_data = list(revenue_forecast = rep(revenue, 12)))
+  }
+  fee_events <- data.frame(
+    start_date = as.Date("2025-06-01"),
+    revenue_delta = 600
+  )
+
+  result <- .income_growth_members_equiv(
+    recompute = recompute,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    new_income_growth_pct = 8,
+    target_period = 12L,
+    panel_size = 100,
+    membership_fee = 15,
+    frequency = "monthly",
+    fee_events = fee_events,
+    target_date = as.Date("2026-01-01")
+  )
+
+  expect_equal(result$per_month, 10)
+  expect_equal(result$fee_used_planned, 21)
+  expect_equal(result$per_month_planned, 7)
+})
+
+test_that(".income_growth_members_equiv() ignores fee events that haven't started by the target date", {
+  recompute <- function(income_pct, overhead_pct) {
+    revenue <- if (income_pct > 0) 6800 else 5000
+    list(forecast_data = list(revenue_forecast = rep(revenue, 12)))
+  }
+  fee_events <- data.frame(
+    start_date = as.Date("2027-01-01"),
+    revenue_delta = 600
+  )
+
+  result <- .income_growth_members_equiv(
+    recompute = recompute,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    new_income_growth_pct = 8,
+    target_period = 12L,
+    panel_size = 100,
+    membership_fee = 15,
+    frequency = "monthly",
+    fee_events = fee_events,
+    target_date = as.Date("2026-01-01")
+  )
+
+  expect_null(result$per_month_planned)
+  expect_null(result$fee_used_planned)
+})
+
+test_that(".income_growth_members_equiv() skips the planned-fee annotation when the event doesn't change the average fee", {
+  recompute <- function(income_pct, overhead_pct) {
+    revenue <- if (income_pct > 0) 6800 else 5000
+    list(forecast_data = list(revenue_forecast = rep(revenue, 12)))
+  }
+  fee_events <- data.frame(
+    start_date = as.Date("2025-06-01"),
+    revenue_delta = 0
+  )
+
+  result <- .income_growth_members_equiv(
+    recompute = recompute,
+    current_income_growth_pct = 0,
+    current_overhead_growth_pct = 0,
+    new_income_growth_pct = 8,
+    target_period = 12L,
+    panel_size = 100,
+    membership_fee = 15,
+    frequency = "monthly",
+    fee_events = fee_events,
+    target_date = as.Date("2026-01-01")
+  )
+
+  expect_null(result$per_month_planned)
+})
+
+# -- .format_members_annotation ------------------------------------------------
+
+test_that(".format_members_annotation() renders an empty string for NULL", {
+  expect_equal(.format_members_annotation(NULL), "")
+})
+
+test_that(".format_members_annotation() renders a single-fee annotation", {
+  txt <- .format_members_annotation(list(per_month = 3, fee_used = 18))
+
+  expect_true(grepl(
+    "roughly <strong>3 extra members/month</strong> at your current \\$18\\.00/member fee",
+    txt
+  ))
+})
+
+test_that(".format_members_annotation() singularizes 'member' for a pace of exactly 1", {
+  txt <- .format_members_annotation(list(per_month = 1, fee_used = 18))
+
+  expect_true(grepl("1 extra member/month", txt, fixed = TRUE))
+  expect_false(grepl("1 extra members/month", txt, fixed = TRUE))
+})
+
+test_that(".format_members_annotation() renders both current and planned fee when both are present", {
+  txt <- .format_members_annotation(list(
+    per_month = 10, fee_used = 15,
+    per_month_planned = 7, fee_used_planned = 21
+  ))
+
+  expect_true(grepl(
+    "roughly <strong>10 extra members/month</strong> at your current \\$15\\.00/member fee",
+    txt
+  ))
+  expect_true(grepl(
+    "or about <strong>7 extra members/month</strong> once your planned fee change takes effect at about \\$21\\.00/member",
+    txt
+  ))
+})
+
+test_that(".describe_goal_seek() includes the members/month annotation on the income clause", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result, panel_size = 100, membership_fee = 18)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_goal_seek(gs, pu, "break-even")
+
+  expect_true(grepl(
+    "extra member.*/month</strong> at your current \\$18\\.00/member fee",
+    text
+  ))
+})
+
+test_that(".describe_goal_seek() omits the members/month annotation when members_equiv is NULL", {
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result)
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  text <- .describe_goal_seek(gs, pu, "break-even")
+
+  expect_false(grepl("extra member", text, fixed = TRUE))
 })
 
 # -- goal_seek_target ----------------------------------------------------------
@@ -504,18 +820,35 @@ test_that("goal_seek_target() omits the fee lever when panel_size/membership_fee
   expect_null(gs$fee)
 })
 
+test_that("goal_seek_target() attaches a members_equiv annotation to the income lever when panel_size/membership_fee are supplied", {
+  result <- make_flat_target_result(revenue = 1800, required_revenue = 2500, overhead = 2000)
+
+  gs <- goal_seek_target(result, target_income_override = 500, panel_size = 100, membership_fee = 18)
+
+  expect_true(gs$income$achievable)
+  expect_false(is.null(gs$income$members_equiv))
+  expect_true(gs$income$members_equiv$per_month >= 1)
+  expect_equal(gs$income$members_equiv$fee_used, 18)
+})
+
 # -- .describe_goal_seek ------------------------------------------------------
 
-test_that(".describe_goal_seek() describes both levers when achievable", {
+test_that(".describe_goal_seek() describes both levers, plus the combined option, as a bulleted list", {
   result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
   gs <- goal_seek_breakeven(result)
   pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
 
   text <- .describe_goal_seek(gs, pu, "break-even")
 
-  expect_true(grepl("either change alone would do it", text))
-  expect_true(grepl("raise assumed income growth", text))
-  expect_true(grepl("lower assumed overhead growth", text))
+  expect_true(grepl("<ul", text, fixed = TRUE))
+  expect_true(grepl("any one of the following would do it", text))
+  expect_true(grepl("<li>Raise assumed income growth", text, fixed = TRUE))
+  expect_true(grepl("<li>Lower assumed overhead growth", text, fixed = TRUE))
+  expect_true(grepl(
+    "<li>Make a smaller change to both together: raise income growth to about",
+    text,
+    fixed = TRUE
+  ))
   expect_true(grepl("To reach break-even within", text))
 })
 
@@ -527,6 +860,7 @@ test_that(".describe_goal_seek() reports non-achievability plainly", {
   text <- .describe_goal_seek(gs, pu, "break-even")
 
   expect_true(grepl("wouldn't reach break-even", text))
+  expect_false(grepl("<ul", text, fixed = TRUE))
 })
 
 test_that(".describe_goal_seek() returns NULL for a NULL goal-seek result", {
@@ -545,35 +879,50 @@ test_that(".describe_goal_seek() interpolates a custom goal_label", {
   expect_false(grepl("break-even", text))
 })
 
-test_that(".describe_goal_seek() describes all three levers and switches to 'any one' wording", {
+test_that(".describe_goal_seek() describes all four levers (income/overhead/fee/combined) as bullets", {
   result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
   gs <- goal_seek_breakeven(result, panel_size = 100, membership_fee = 18)
   pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
 
   text <- .describe_goal_seek(gs, pu, "break-even")
 
-  expect_true(grepl("any one change alone would do it", text))
-  expect_false(grepl("either change alone", text))
-  expect_true(grepl("raise assumed income growth", text))
-  expect_true(grepl("lower assumed overhead growth", text))
+  expect_true(grepl("any one of the following would do it", text))
+  expect_true(grepl("<li>Raise assumed income growth", text, fixed = TRUE))
+  expect_true(grepl("<li>Lower assumed overhead growth", text, fixed = TRUE))
   expect_true(grepl(
-    "raise your average membership fee by about <strong>\\$2\\.00/member/month</strong> \\(to about <strong>\\$20\\.00/member/month</strong>\\)",
+    "Raise your average membership fee by about <strong>\\$2\\.00/member/month</strong> \\(to about <strong>\\$20\\.00/member/month</strong>\\)",
     text
   ))
+  expect_true(grepl("Make a smaller change to both together", text, fixed = TRUE))
 })
 
-test_that(".describe_goal_seek() keeps 'either' wording when the fee lever is absent", {
+test_that(".describe_goal_seek() falls back to a single-sentence, non-bulleted form for exactly one achievable lever", {
+  # overhead_flat set -- see goal_seek_breakeven()'s own doc -- makes the
+  # overhead lever unsearchable, leaving income as the only lever (no fee
+  # lever, since panel_size/membership_fee aren't supplied either), so
+  # this exercises the length(clauses) == 1L branch, not the <ul> one.
   result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
-  gs <- goal_seek_breakeven(result)
+  gs <- goal_seek_breakeven(result, overhead_flat = 2000)
   pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
 
   text <- .describe_goal_seek(gs, pu, "break-even")
 
-  expect_true(grepl("either change alone would do it", text))
-  expect_false(grepl("membership fee", text))
+  expect_false(grepl("<ul", text, fixed = TRUE))
+  expect_true(grepl("on this assumption alone, you'd need to raise assumed income growth", text))
 })
 
-test_that(".describe_goal_seek() carries a Pro badge on both the achievable and non-achievable branches", {
+test_that(".describe_goal_seek() omits the combined lever when only one solo lever is achievable", {
+  # overhead_flat makes overhead unsearchable -- gs$combined should never
+  # even be computed (goal_seek_breakeven()/.goal_seek_growth_rate() both
+  # gate combined's construction on overhead_searchable), so there's
+  # nothing for .describe_goal_seek() to describe beyond income alone.
+  result <- make_flat_breakeven_result(revenue = 1800, overhead = 2000)
+  gs <- goal_seek_breakeven(result, overhead_flat = 2000)
+
+  expect_null(gs$combined)
+})
+
+test_that(".describe_goal_seek() carries a Pro badge on both the achievable and non-achievable branches by default", {
   pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
 
   achievable <- .describe_goal_seek(
@@ -589,6 +938,29 @@ test_that(".describe_goal_seek() carries a Pro badge on both the achievable and 
   )
   expect_true(grepl("badge", not_achievable))
   expect_true(grepl(">Pro<", not_achievable))
+})
+
+test_that(".describe_goal_seek() omits the Pro badge entirely when badge = FALSE, for both branches", {
+  pu <- list(singular = "month", plural = "months", per = "/month", adj = "monthly")
+
+  achievable <- .describe_goal_seek(
+    goal_seek_breakeven(make_flat_breakeven_result(revenue = 1800, overhead = 2000)),
+    pu, "break-even",
+    badge = FALSE
+  )
+  expect_false(grepl("badge", achievable))
+  expect_false(grepl(">Pro<", achievable))
+  # The narrative content itself must still be present -- badge = FALSE
+  # only drops the badge prefix, nothing else.
+  expect_true(grepl("Raise assumed income growth", achievable))
+
+  not_achievable <- .describe_goal_seek(
+    goal_seek_breakeven(make_flat_breakeven_result(revenue = 500, overhead = 5000)),
+    pu, "break-even",
+    badge = FALSE
+  )
+  expect_false(grepl("badge", not_achievable))
+  expect_false(grepl(">Pro<", not_achievable))
 })
 
 # -- stress_test_breakeven -----------------------------------------------------
@@ -696,4 +1068,27 @@ test_that(".describe_stress_test() carries a Pro badge on all three non-NULL bra
     expect_true(grepl("badge", text))
     expect_true(grepl(">Pro<", text))
   }
+})
+
+test_that(".describe_stress_test() omits the Pro badge when badge = FALSE, on all three branches", {
+  pu <- list(singular = "month", plural = "months")
+
+  normal <- .describe_stress_test(
+    structure(list(members_loss_room = 15L, capped = FALSE), class = "dcAnalytics_stress_test"),
+    pu, badge = FALSE
+  )
+  thin <- .describe_stress_test(
+    structure(list(members_loss_room = 0L, capped = FALSE), class = "dcAnalytics_stress_test"),
+    pu, badge = FALSE
+  )
+  capped <- .describe_stress_test(
+    structure(list(members_loss_room = 60L, capped = TRUE), class = "dcAnalytics_stress_test"),
+    pu, badge = FALSE
+  )
+
+  for (text in list(normal, thin, capped)) {
+    expect_false(grepl("badge", text))
+    expect_false(grepl(">Pro<", text))
+  }
+  expect_true(grepl("could absorb losing up to <strong>15 members</strong>", normal))
 })

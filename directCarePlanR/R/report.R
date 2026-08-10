@@ -33,6 +33,61 @@
   lapply(seq_len(n), function(i) as.list(df[i, ]))
 }
 
+#' Reduce One `build_market_context()` Result to Report-Ready Fields
+#'
+#' Shared by `build_report_data()`'s primary `market` block and its
+#' `market_compare` block (one call per compared location), so both stay
+#' in the exact same shape for `report.typ`'s `kpi()` cards to render
+#' either one interchangeably.
+#'
+#' @param market_context A list as returned by [build_market_context()],
+#'   or `NULL`.
+#'
+#' @return A plain list, or `NULL` when `market_context` is `NULL`.
+#'
+#' @noRd
+.market_block <- function(market_context) {
+  if (is.null(market_context)) {
+    return(NULL)
+  }
+  list(
+    county_name = market_context$geography$county_name,
+    state_abb = market_context$geography$state_abb,
+    metro_fips = market_context$geography$metro_fips,
+    population = market_context$population_income$population,
+    median_household_income = market_context$population_income$median_household_income,
+    uninsured_rate_pct = round(market_context$uninsured$uninsured_rate * 100, 1),
+    physician_density_per_10k = round(market_context$physician_density$physician_density_per_10k, 1),
+    landscape_count = nrow(market_context$landscape)
+  )
+}
+
+#' Resolve a `plan_tier` String to Its Report-Display Label
+#'
+#' A small, self-contained mirror of `directCarePlanner::.has_paid_plan()`/
+#' `.has_pro_plan()`'s permissive gating rule (any non-`"free"` value counts
+#' as at least Starter; only literal `"pro"` counts as Pro) -- duplicated
+#' rather than imported because this package has no Shiny dependency (see
+#' its own `DESCRIPTION`) and the app's billing helpers live in its
+#' Shiny-UI layer. Used only for the report's plain-text title-page tier
+#' indicator, not for any access decision (the app already made that call
+#' before invoking [build_report_data()]).
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier`, or `NULL`.
+#'
+#' @return `"Free"`, `"Starter"`, or `"Pro"`.
+#'
+#' @noRd
+.tier_label <- function(plan_tier) {
+  if (isTRUE(!is.null(plan_tier) && identical(plan_tier, "pro"))) {
+    "Pro"
+  } else if (isTRUE(!is.null(plan_tier) && nzchar(plan_tier) && plan_tier != "free")) {
+    "Starter"
+  } else {
+    "Free"
+  }
+}
+
 #' Assemble Report Data for the Typst Template
 #'
 #' Builds the `data.json` object consumed by the Planner's Typst report
@@ -42,6 +97,12 @@
 #' should stay a plain, JSON-serializable list.
 #'
 #' @param market_context A list as returned by [build_market_context()].
+#' @param market_context_compare Optional list of additional
+#'   [build_market_context()] results (Pro-exclusive location comparison,
+#'   up to 2 in `directCarePlanner`'s current UI) -- rendered as a
+#'   comparison table alongside the primary `market_context`. `NULL`/empty
+#'   (the default) omits that section entirely, same as every other
+#'   optional block here.
 #' @param revenue A `dcPlanR_revenue` object, as returned by
 #'   [calc_mixed_revenue()].
 #' @param projections A tibble as returned by [project_scenarios()].
@@ -50,24 +111,36 @@
 #'   [calc_personal_runway()].
 #' @param interpretations A named list of narrative strings produced by the
 #'   `interpret_*()` functions (e.g. `list(revenue = ..., projection = ..., capital = ...)`).
+#'   Pro-exclusive content (e.g. `interpret_projection()`'s
+#'   `sensitivity_decomposition`/`goal_seek` paragraphs) is already baked
+#'   into these strings by the caller for a Pro practice -- this function
+#'   does no tier-based filtering of its own, it only labels the report.
 #' @param practice_name Optional character string. Defaults to a name
 #'   derived from `market_context`'s geography when supplied, else
 #'   `"Untitled Practice"`.
+#' @param plan_tier Optional `plan_tier` string (e.g. `r$plan_tier`),
+#'   rendered as a plain-text tier indicator on the report's title page --
+#'   deliberately not the pill-badge treatment a live in-app UI might use,
+#'   since a badge reads oddly on a document the paying user already owns.
+#'   `NULL` (the default) renders as `"Free"`.
 #'
 #' @return A plain list, ready to be serialized to JSON with
-#'   [jsonlite::write_json()]. Each of `market`, `revenue`, `projections`,
-#'   `capital`, and `interpretations` is `NULL` when its corresponding
-#'   input is `NULL`, so the template can render only the sections that
-#'   were supplied.
+#'   [jsonlite::write_json()]. Each of `market`, `market_compare`,
+#'   `revenue`, `projections`, `capital`, and `interpretations` is `NULL`
+#'   when its corresponding input is `NULL`/empty, so the template can
+#'   render only the sections that were supplied. `plan_tier_label` is
+#'   always one of `"Free"`, `"Starter"`, or `"Pro"`.
 #'
 #' @export
 build_report_data <- function(
   market_context = NULL,
+  market_context_compare = NULL,
   revenue = NULL,
   projections = NULL,
   capital = NULL,
   interpretations = NULL,
-  practice_name = NULL
+  practice_name = NULL,
+  plan_tier = NULL
 ) {
   if (is.null(practice_name)) {
     practice_name <- if (!is.null(market_context)) {
@@ -82,17 +155,10 @@ build_report_data <- function(
     }
   }
 
-  market_block <- if (!is.null(market_context)) {
-    list(
-      county_name = market_context$geography$county_name,
-      state_abb = market_context$geography$state_abb,
-      metro_fips = market_context$geography$metro_fips,
-      population = market_context$population_income$population,
-      median_household_income = market_context$population_income$median_household_income,
-      uninsured_rate_pct = round(market_context$uninsured$uninsured_rate * 100, 1),
-      physician_density_per_10k = round(market_context$physician_density$physician_density_per_10k, 1),
-      landscape_count = nrow(market_context$landscape)
-    )
+  market_block <- .market_block(market_context)
+
+  market_compare_block <- if (length(market_context_compare) > 0L) {
+    lapply(market_context_compare, .market_block)
   }
 
   revenue_block <- if (!is.null(revenue)) {
@@ -139,7 +205,9 @@ build_report_data <- function(
   list(
     report_date = format(Sys.Date(), "%B %d, %Y"),
     practice_name = practice_name,
+    plan_tier_label = .tier_label(plan_tier),
     market = market_block,
+    market_compare = market_compare_block,
     revenue = revenue_block,
     projections = projections_block,
     capital = capital_block,

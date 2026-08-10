@@ -477,12 +477,16 @@ decompose_projection_sensitivity <- function(
 #'
 #' @return A `dcPlanR_goal_seek`-classed list with `target_month`, `overhead`
 #'   (a list with `achievable` and, when `TRUE`, `pct_cut` and
-#'   `new_overhead_monthly`), and `ramp` (`NULL` when `assumptions` has no
+#'   `new_overhead_monthly`), `ramp` (`NULL` when `assumptions` has no
 #'   `membership_args$ramp_months` to vary; otherwise a list with
-#'   `achievable` and, when `TRUE`, `new_ramp_months` and `months_faster`).
-#'   Each lever is searched independently down to an extreme floor (2% of
+#'   `achievable` and, when `TRUE`, `new_ramp_months` and `months_faster`),
+#'   and `combined` (`NULL` when `ramp` is `NULL`; otherwise a list with
+#'   `achievable`, and when `TRUE`, a smaller simultaneous change to both
+#'   `overhead` and `ramp` -- see `.solve_combined_multiplier()`). Each solo
+#'   lever is searched independently down to an extreme floor (2% of
 #'   original overhead; a 1-month ramp) -- `achievable == FALSE` means even
-#'   that extreme isn't enough on its own.
+#'   that extreme isn't enough on its own; `combined` is only computed when
+#'   both solo levers are independently achievable.
 #'
 #' @export
 goal_seek_projection_recovery <- function(
@@ -563,17 +567,121 @@ goal_seek_projection_recovery <- function(
     NULL
   }
 
+  # A single blend fraction t in [0, 1] that moves BOTH overhead and ramp
+  # simultaneously and proportionally from their current values toward
+  # each lever's own independently-solved solo target -- i.e. "a smaller
+  # change to both together" rather than the full change to just one.
+  # Only computed when both solo levers are independently achievable
+  # (blending toward a lever with no achievable "full" endpoint has
+  # nothing well-defined to blend toward). NULL (not
+  # `list(achievable = FALSE)`) when there's no ramp lever to blend with
+  # at all, mirroring how `ramp` itself is NULL rather than a
+  # FALSE-achievable list in that same case.
+  combined_result <- if (!has_ramp) {
+    NULL
+  } else if (isTRUE(overhead_result$achievable) && isTRUE(ramp_result$achievable)) {
+    .solve_combined_multiplier(
+      recovery_at = .recovery_at,
+      assumptions = assumptions,
+      ramp_months_current = assumptions$membership_args$ramp_months,
+      overhead_target_m = 1 - overhead_result$pct_cut / 100,
+      ramp_target_m = ramp_result$new_ramp_months / assumptions$membership_args$ramp_months,
+      target_month = target_month
+    )
+  } else {
+    list(achievable = FALSE)
+  }
+
   structure(
     list(
       target_month = target_month,
       overhead = overhead_result,
-      ramp = ramp_result
+      ramp = ramp_result,
+      combined = combined_result
     ),
     class = "dcPlanR_goal_seek"
   )
 }
 
+#' Bisection Core Behind the "Combined" Lever
+#'
+#' Split out from [goal_seek_projection_recovery()] as its own function for
+#' testability -- see that function's `combined` return-value doc for the
+#' full rationale. Bisects on a blend fraction `t` in `[0, 1]` that moves
+#' both the overhead multiplier and the ramp multiplier simultaneously from
+#' `1` (today's values) toward each one's own independently-solved solo
+#' target, finding the smallest `t` for which `recovery_at()` is still
+#' within `target_month`. Monotonic in `t` for the same reason the two solo
+#' searches are: increasing `t` only ever moves both levers further in
+#' their already-established helpful direction, never backward.
+#'
+#' @param recovery_at Function taking a varied assumptions list, returning
+#'   the recovery month (or `NA_integer_`).
+#' @param assumptions Base assumptions list.
+#' @param ramp_months_current The base scenario's current
+#'   `membership_args$ramp_months`.
+#' @param overhead_target_m The solo-solved overhead multiplier (relative
+#'   to today's overhead) that alone reaches `target_month`.
+#' @param ramp_target_m The solo-solved ramp multiplier (relative to
+#'   today's ramp) that alone reaches `target_month`.
+#' @param target_month Integer month by which recovery should be reached.
+#'
+#' @return A list with `achievable` (always `TRUE`, since this is only
+#'   called once both solo levers are independently achievable), `pct_cut`,
+#'   `new_overhead_monthly`, `new_ramp_months`, and `months_faster`.
+#'
+#' @noRd
+.solve_combined_multiplier <- function(
+  recovery_at,
+  assumptions,
+  ramp_months_current,
+  overhead_target_m,
+  ramp_target_m,
+  target_month
+) {
+  blend_overhead_m <- function(t) 1 + t * (overhead_target_m - 1)
+  blend_ramp_m <- function(t) 1 + t * (ramp_target_m - 1)
+
+  apply_blend <- function(t) {
+    v <- assumptions
+    v$overhead_monthly <- assumptions$overhead_monthly * blend_overhead_m(t)
+    v$membership_args$ramp_months <- max(
+      1L,
+      round(ramp_months_current * blend_ramp_m(t))
+    )
+    v
+  }
+
+  lo <- 0
+  hi <- 1
+  for (i in seq_len(25)) {
+    mid <- (lo + hi) / 2
+    r <- recovery_at(apply_blend(mid))
+    if (!is.na(r) && r <= target_month) hi <- mid else lo <- mid
+  }
+
+  new_overhead_m <- blend_overhead_m(hi)
+  new_ramp_months <- max(1L, round(ramp_months_current * blend_ramp_m(hi)))
+
+  list(
+    achievable = TRUE,
+    pct_cut = round(100 * (1 - new_overhead_m)),
+    new_overhead_monthly = assumptions$overhead_monthly * new_overhead_m,
+    new_ramp_months = new_ramp_months,
+    months_faster = ramp_months_current - new_ramp_months
+  )
+}
+
 #' Turn a Goal-Seek Result Into Narrative Text
+#'
+#' When more than one lever is achievable, the result is a bulleted list
+#' (one `"- "`-prefixed line per lever, joined by a single `"\n"`) rather
+#' than a single run-on sentence -- easier to scan when there are up to
+#' three options. `.paragraphs_to_html()` (in the Planner app, a
+#' display-only concern) detects the `"\n- "` pattern and renders it as a
+#' real `<ul>`; the raw form remains plain text like every other
+#' `interpret_*()` output, since Typst report rendering and any other
+#' plain-text consumer don't need HTML to read it sensibly.
 #'
 #' @param gs A `dcPlanR_goal_seek` object, as returned by
 #'   [goal_seek_projection_recovery()].
@@ -585,9 +693,11 @@ goal_seek_projection_recovery <- function(
 .describe_goal_seek <- function(gs) {
   ovhd <- gs$overhead
   ramp <- gs$ramp
+  combined <- gs$combined
 
   ovhd_ok <- isTRUE(ovhd$achievable)
   ramp_ok <- !is.null(ramp) && isTRUE(ramp$achievable)
+  combined_ok <- !is.null(combined) && isTRUE(combined$achievable)
 
   if (!ovhd_ok && !ramp_ok) {
     return(paste0(
@@ -619,24 +729,35 @@ goal_seek_projection_recovery <- function(
     NULL
   }
 
-  clauses <- c(ovhd_clause, ramp_clause)
-
-  intro <- if (length(clauses) > 1L) {
+  combined_clause <- if (combined_ok) {
     paste0(
-      "To recover by month ", gs$target_month, ", either change alone would ",
-      "do it: you'd need to "
+      "make a smaller change to both together: cut monthly overhead by ",
+      "about ", combined$pct_cut, "% (to roughly ",
+      .fmt_dollar(combined$new_overhead_monthly), ") and shorten your ",
+      "membership ramp to about ", combined$new_ramp_months, " month",
+      if (combined$new_ramp_months != 1L) "s" else ""
     )
   } else {
-    paste0(
-      "To recover by month ", gs$target_month, " on this lever alone, ",
-      "you'd need to "
-    )
+    NULL
   }
 
+  clauses <- c(ovhd_clause, ramp_clause, combined_clause)
+
+  if (length(clauses) == 1L) {
+    return(paste0(
+      "To recover by month ", gs$target_month, " on this lever alone, ",
+      "you'd need to ", clauses[1], "."
+    ))
+  }
+
+  capitalized <- vapply(clauses, function(x) {
+    paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+  }, character(1))
+
   paste0(
-    intro,
-    paste(clauses, collapse = " -- or, separately, "),
-    "."
+    "To recover by month ", gs$target_month, ", any one of the following ",
+    "would do it:\n",
+    paste0("- ", capitalized, ".", collapse = "\n")
   )
 }
 

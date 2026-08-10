@@ -155,3 +155,34 @@ test_that("build_report_data's breakeven block sets has_overhead_ci from forecas
     {}
   )
 })
+
+test_that("build_report_data's plan_tier_label reflects r$plan_tier", {
+  shiny::testServer(
+    function(input, output, session) {
+      r <- make_r(scenario_inputs = NULL, transactions = NULL)
+      inputs <- list(confidence = 0.95)
+
+      r$plan_tier <- "pro"
+      expect_equal(build_report_data(r, inputs)$plan_tier_label, "Pro")
+
+      r$plan_tier <- "starter"
+      expect_equal(build_report_data(r, inputs)$plan_tier_label, "Starter")
+
+      r$plan_tier <- "free"
+      expect_equal(build_report_data(r, inputs)$plan_tier_label, "Free")
+    },
+    {}
+  )
+})
+
+test_that("build_report_data's plan_tier_label defaults to Free when r$plan_tier is unset", {
+  shiny::testServer(
+    function(input, output, session) {
+      r <- make_r(scenario_inputs = NULL, transactions = NULL)
+      inputs <- list(confidence = 0.95)
+
+      expect_equal(build_report_data(r, inputs)$plan_tier_label, "Free")
+    },
+    {}
+  )
+})

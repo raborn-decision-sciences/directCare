@@ -53,7 +53,7 @@ mod_signup_ui <- function(id) {
 #'
 #' See directCareAnalytics's identical helper for the full rationale.
 #' @noRd
-.signup_plan_option <- function(ns, btn_id, title, price_label, description, button_label, button_class) {
+.signup_plan_option <- function(ns, btn_id, title, price_label, description, button_label, button_class, note = NULL) {
   tags$div(
     class = "border rounded p-3 mb-2",
     tags$div(
@@ -62,6 +62,7 @@ mod_signup_ui <- function(id) {
       tags$span(class = "text-muted small", price_label)
     ),
     tags$p(class = "text-muted small mb-2", description),
+    if (!is.null(note)) tags$p(class = "text-muted small fst-italic mb-2", note),
     actionButton(ns(btn_id), button_label, class = paste("w-100 btn-sm", button_class))
   )
 }
@@ -234,13 +235,14 @@ mod_signup_server <- function(id) {
           ),
           .signup_plan_option(
             session$ns, "plan_starter", "Starter", "$39/mo",
-            "Bookkeeping uploads, saved practice profile, historical trends, downloadable reports.",
+            "Market context for your location, downloadable PDF reports, and saved scenarios to revisit anytime.",
             "Choose Starter", "btn-primary"
           ),
           .signup_plan_option(
             session$ns, "plan_pro", "Pro", "$79/mo",
-            "Everything in Starter, plus guided decision tools and AI-generated financial interpretation.",
-            "Choose Pro", "btn-outline-primary"
+            "Everything in Starter, plus sensitivity decomposition, goal-seek modeling, and side-by-side comparison of scenarios and candidate locations.",
+            "Choose Pro", "btn-warning",
+            note = tagList(bs_icon("hourglass-split"), " Coming soon: AI-generated financial interpretation.")
           ),
           tags$div(
             style = "text-align:center;margin-top:8px;",

@@ -24,12 +24,16 @@ scenario doesn't recover at all within it).}
 \value{
 A \code{dcPlanR_goal_seek}-classed list with \code{target_month}, \code{overhead}
 (a list with \code{achievable} and, when \code{TRUE}, \code{pct_cut} and
-\code{new_overhead_monthly}), and \code{ramp} (\code{NULL} when \code{assumptions} has no
+\code{new_overhead_monthly}), \code{ramp} (\code{NULL} when \code{assumptions} has no
 \code{membership_args$ramp_months} to vary; otherwise a list with
-\code{achievable} and, when \code{TRUE}, \code{new_ramp_months} and \code{months_faster}).
-Each lever is searched independently down to an extreme floor (2\% of
+\code{achievable} and, when \code{TRUE}, \code{new_ramp_months} and \code{months_faster}),
+and \code{combined} (\code{NULL} when \code{ramp} is \code{NULL}; otherwise a list with
+\code{achievable}, and when \code{TRUE}, a smaller simultaneous change to both
+\code{overhead} and \code{ramp} -- see \code{.solve_combined_multiplier()}). Each solo
+lever is searched independently down to an extreme floor (2\% of
 original overhead; a 1-month ramp) -- \code{achievable == FALSE} means even
-that extreme isn't enough on its own.
+that extreme isn't enough on its own; \code{combined} is only computed when
+both solo levers are independently achievable.
 }
 \description{
 When the base scenario in a projection does not recover its ramp-period

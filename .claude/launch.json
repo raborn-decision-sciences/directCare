@@ -12,9 +12,9 @@
       "runtimeExecutable": "Rscript",
       "runtimeArgs": [
         "-e",
-        "options(shiny.port = 3838, shiny.host = '127.0.0.1'); devtools::load_all('directCarePlanner', quiet=TRUE); directCarePlanner::run_app()"
+        "options(shiny.port = 7622, shiny.host = '127.0.0.1'); devtools::load_all('directCarePlanner', quiet=TRUE); directCarePlanner::run_app()"
       ],
-      "port": 3838
+      "port": 7622
     }
   ]
 }

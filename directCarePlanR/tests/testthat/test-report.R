@@ -13,14 +13,51 @@ test_that("build_report_data() returns NULL sections for omitted inputs", {
 
   expect_named(
     data,
-    c("report_date", "practice_name", "market", "revenue", "projections", "capital", "interpretations")
+    c(
+      "report_date", "practice_name", "plan_tier_label", "market", "market_compare",
+      "revenue", "projections", "capital", "interpretations"
+    )
   )
   expect_equal(data$practice_name, "Untitled Practice")
+  expect_equal(data$plan_tier_label, "Free")
   expect_null(data$market)
+  expect_null(data$market_compare)
   expect_null(data$revenue)
   expect_null(data$projections)
   expect_null(data$capital)
   expect_null(data$interpretations)
+})
+
+test_that("build_report_data() assembles market_compare in the same shape as market", {
+  compare_context <- list(
+    geography = list(county_name = "San Francisco County", state_abb = "CA", metro_fips = "41860"),
+    population_income = list(population = 800000L, median_household_income = 120000),
+    uninsured = list(uninsured_rate = 0.05),
+    physician_density = list(physician_density_per_10k = 60),
+    landscape = data.frame(county_fips = character(0))
+  )
+
+  data <- build_report_data(
+    market_context = fixture_market_context,
+    market_context_compare = list(compare_context)
+  )
+
+  expect_named(data$market, names(data$market_compare[[1]]))
+  expect_equal(data$market$county_name, "Fulton County")
+  expect_equal(data$market_compare[[1]]$county_name, "San Francisco County")
+  expect_equal(data$market_compare[[1]]$population, 800000L)
+})
+
+test_that("build_report_data() omits market_compare when market_context_compare is NULL/empty", {
+  expect_null(build_report_data(market_context = fixture_market_context)$market_compare)
+  expect_null(build_report_data(market_context = fixture_market_context, market_context_compare = list())$market_compare)
+})
+
+test_that("build_report_data() resolves plan_tier_label from plan_tier", {
+  expect_equal(build_report_data(plan_tier = "free")$plan_tier_label, "Free")
+  expect_equal(build_report_data(plan_tier = "starter")$plan_tier_label, "Starter")
+  expect_equal(build_report_data(plan_tier = "pro")$plan_tier_label, "Pro")
+  expect_equal(build_report_data(plan_tier = NULL)$plan_tier_label, "Free")
 })
 
 test_that("build_report_data() derives practice_name from market_context when not supplied", {

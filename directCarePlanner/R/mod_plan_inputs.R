@@ -23,7 +23,22 @@ mod_plan_inputs_ui <- function(id) {
         card_body(
           htmltools::tagQuery(
             textInput(ns("zip"), "ZIP code", value = "30309")
-          )$find("input")$addAttrs(autocomplete = "off")$allTags()
+          )$find("input")$addAttrs(autocomplete = "off")$allTags(),
+          tags$p(
+            class = "small text-muted mb-1 mt-2",
+            "Compare against additional locations ", .pro_badge(), " (optional)"
+          ),
+          layout_columns(
+            col_widths = c(6, 6),
+            fill = FALSE,
+            fillable = FALSE,
+            htmltools::tagQuery(
+              textInput(ns("zip_2"), NULL, value = "", placeholder = "ZIP code")
+            )$find("input")$addAttrs(autocomplete = "off")$allTags(),
+            htmltools::tagQuery(
+              textInput(ns("zip_3"), NULL, value = "", placeholder = "ZIP code")
+            )$find("input")$addAttrs(autocomplete = "off")$allTags()
+          )
         )
       ),
       card(
@@ -342,6 +357,25 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         return(invisible(NULL))
       }
 
+      # Pro-exclusive: side-by-side market comparison against up to two
+      # additional ZIP codes. `compare_zips` is tracked regardless of tier
+      # (cheap -- just the entered strings) so the Results-tab teaser knows
+      # whether to show itself for a non-Pro practice that filled these in;
+      # build_market_context() itself is only ever called for Pro, same
+      # gating precedent as sensitivity_decomposition/goal_seek below. A
+      # blank field is skipped outright (nothing entered); a non-blank one
+      # that fails to resolve is skipped too rather than blocking the whole
+      # plan submission the way an invalid primary zip does -- run_plan()
+      # still surfaces that specific failure as its own notification.
+      compare_zips <- c(trimws(iv("zip_2")), trimws(iv("zip_3")))
+      compare_zips <- compare_zips[nzchar(compare_zips)]
+      market_context_compare <- if (.has_pro_plan(r$plan_tier) && length(compare_zips) > 0L) {
+        contexts <- lapply(compare_zips, function(z) run_plan(directCarePlanR::build_market_context(z)))
+        Filter(Negate(is.null), contexts)
+      } else {
+        NULL
+      }
+
       membership_args <- if (isTRUE(iv("include_membership"))) {
         list(
           panel_size = iv("panel_size"),
@@ -456,6 +490,8 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
       # not re-derived per submission.
       r$horizon_months <- iv("horizon_months")
       r$market_context <- market_context
+      r$market_context_compare <- market_context_compare
+      r$market_context_compare_requested <- length(compare_zips)
       r$revenue <- revenue
       r$projections <- projections
       r$capital <- list(startup_costs = startup_costs, personal_runway = personal_runway)
@@ -474,6 +510,8 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
     plan_inputs_for_save <- function() {
       list(
         zip = input$zip,
+        zip_2 = input$zip_2,
+        zip_3 = input$zip_3,
         overhead_mode = input$overhead_mode,
         overhead_monthly = input$overhead_monthly,
         overhead_rent = input$overhead_rent,
@@ -528,6 +566,11 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
     # environment, not their call site.
     scenario_on_load <- function(inputs) {
       updateTextInput(session, "zip", value = inputs$zip)
+      # %||% "" -- scenarios saved before this feature existed have no
+      # zip_2/zip_3 keys at all; updateTextInput() requires a character
+      # value, not NULL.
+      updateTextInput(session, "zip_2", value = inputs$zip_2 %||% "")
+      updateTextInput(session, "zip_3", value = inputs$zip_3 %||% "")
       updateRadioButtons(session, "overhead_mode", selected = inputs$overhead_mode)
       updateNumericInput(session, "overhead_monthly", value = inputs$overhead_monthly)
       updateNumericInput(session, "overhead_rent", value = inputs$overhead_rent)

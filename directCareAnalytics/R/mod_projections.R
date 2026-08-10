@@ -2094,7 +2094,14 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         rev_res <- .safe_result(adj_revenue())
         tgt_res <- .safe_result(adj_target())
 
-        # Collect interpretation text (HTML \u2192 plain text handled inside build_report_data)
+        # Collect interpretation text (HTML \u2192 plain text handled inside build_report_data).
+        # goal_seek/stress_test reuse the same already-Pro-gated reactives the
+        # live UI uses (each internally checks .has_pro_plan() and returns
+        # NULL for non-Pro), so a Free/Starter report simply gets neither
+        # paragraph -- no separate gating needed here. badge = FALSE because
+        # a "Pro" badge makes no sense inside a document the paying user
+        # already owns; the report instead carries its own, differently-
+        # styled tier indicator (see build_report_data()'s plan_tier field).
         bkevn_text <- if (!is.null(bkevn_res)) {
           interpret_breakeven(
             bkevn_res,
@@ -2103,7 +2110,10 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
             membership_tiers = r$membership_tiers,
-            confidence_level = input$confidence
+            confidence_level = input$confidence,
+            goal_seek = breakeven_goal_seek(),
+            stress_test = breakeven_stress_test(),
+            badge = FALSE
           )
         } else {
           NULL
@@ -2130,7 +2140,9 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
             sustained = target_is_sustained(tgt_res),
             panel_size = r$panel_size,
             membership_fee = r$membership_fee,
-            membership_tiers = r$membership_tiers
+            membership_tiers = r$membership_tiers,
+            goal_seek = target_goal_seek(),
+            badge = FALSE
           )
         } else {
           NULL

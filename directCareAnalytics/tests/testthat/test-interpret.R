@@ -40,7 +40,7 @@ test_that("interpret_breakeven() omits the goal-seek paragraph when none is supp
   result <- make_flat_result(revenue = 1800, overhead = 2000)
   text <- interpret_breakeven(result)
 
-  expect_false(grepl("either change alone would do it", text))
+  expect_false(grepl("any one of the following would do it", text))
   expect_false(grepl("this assumption alone", text))
 })
 
@@ -50,9 +50,10 @@ test_that("interpret_breakeven() appends the goal-seek paragraph when break-even
 
   text <- interpret_breakeven(result, goal_seek = gs)
 
-  expect_true(grepl("either change alone would do it", text))
-  expect_true(grepl("raise assumed income growth", text))
-  expect_true(grepl("lower assumed overhead growth", text))
+  expect_true(grepl("any one of the following would do it", text))
+  expect_true(grepl("Raise assumed income growth", text))
+  expect_true(grepl("Lower assumed overhead growth", text))
+  expect_true(grepl("Make a smaller change to both together", text))
 })
 
 test_that("interpret_breakeven() ignores goal_seek once break-even is already achieved", {
@@ -61,7 +62,7 @@ test_that("interpret_breakeven() ignores goal_seek once break-even is already ac
 
   text <- interpret_breakeven(result, goal_seek = gs)
 
-  expect_false(grepl("either change alone would do it", text))
+  expect_false(grepl("any one of the following would do it", text))
   expect_true(grepl("operating at a surplus", text))
 })
 
@@ -141,7 +142,7 @@ test_that("interpret_target() omits the goal-seek paragraph when none is supplie
   result <- make_flat_target_result(revenue = 1800, required_revenue = 2500, overhead = 2000)
   text <- interpret_target(result, target_income = 500)
 
-  expect_false(grepl("either change alone would do it", text))
+  expect_false(grepl("any one of the following would do it", text))
   expect_false(grepl("this assumption alone", text))
 })
 
@@ -151,10 +152,11 @@ test_that("interpret_target() appends the goal-seek paragraph when the target is
 
   text <- interpret_target(result, target_income = 500, goal_seek = gs)
 
-  expect_true(grepl("either change alone would do it", text))
+  expect_true(grepl("any one of the following would do it", text))
   expect_true(grepl("To reach the income target within", text))
-  expect_true(grepl("raise assumed income growth", text))
-  expect_true(grepl("lower assumed overhead growth", text))
+  expect_true(grepl("Raise assumed income growth", text))
+  expect_true(grepl("Lower assumed overhead growth", text))
+  expect_true(grepl("Make a smaller change to both together", text))
 })
 
 test_that("interpret_target() ignores goal_seek once the target is already met", {
@@ -166,7 +168,7 @@ test_that("interpret_target() ignores goal_seek once the target is already met",
 
   text <- interpret_target(result, target_income = 500, goal_seek = gs)
 
-  expect_false(grepl("either change alone would do it", text))
+  expect_false(grepl("any one of the following would do it", text))
 })
 
 # -- compare_breakeven_scenarios ----------------------------------------------

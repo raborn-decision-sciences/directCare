@@ -418,9 +418,76 @@ apply_membership_fee_events <- function(result, events = NULL) {
     list(achievable = TRUE, new_growth_pct = round(lo, 1))
   }
 
+  income <- .solve_income()
+  overhead <- if (overhead_searchable) .solve_overhead() else NULL
+
+  # A third option alongside "either lever alone": the smallest single
+  # blend fraction t in [0, 1] that moves BOTH income growth and overhead
+  # growth simultaneously and proportionally from their current values
+  # toward each lever's own independently-solved solo target -- i.e. "a
+  # smaller change to both together" rather than the full change to just
+  # one. Only computed when both solo levers are independently achievable
+  # (blending toward a lever with no achievable "full" endpoint has
+  # nothing well-defined to blend toward). Monotonic in t for the same
+  # reason the two solo searches above are: increasing t only ever moves
+  # both levers further in their already-established helpful direction,
+  # never backward.
+  combined <- if (!overhead_searchable) {
+    NULL
+  } else if (isTRUE(income$achievable) && isTRUE(overhead$achievable)) {
+    .solve_combined_growth_rate(
+      periods_at = .periods_at,
+      current_income_growth_pct = current_income_growth_pct,
+      current_overhead_growth_pct = current_overhead_growth_pct,
+      income_target_pct = income$new_growth_pct,
+      overhead_target_pct = overhead$new_growth_pct,
+      horizon_periods = horizon_periods
+    )
+  } else {
+    list(achievable = FALSE)
+  }
+
+  list(income = income, overhead = overhead, combined = combined)
+}
+
+# Bisection core behind .goal_seek_growth_rate()'s "combined" lever -- see
+# its own inline comment for the full rationale. Split out as its own
+# function (rather than nested inside .goal_seek_growth_rate()) purely so
+# it can be unit-tested directly against a synthetic `periods_at()`
+# without needing a full forecast fixture.
+#' @noRd
+.solve_combined_growth_rate <- function(
+  periods_at,
+  current_income_growth_pct,
+  current_overhead_growth_pct,
+  income_target_pct,
+  overhead_target_pct,
+  horizon_periods
+) {
+  blend_income <- function(t) {
+    current_income_growth_pct + t * (income_target_pct - current_income_growth_pct)
+  }
+  blend_overhead <- function(t) {
+    current_overhead_growth_pct + t * (overhead_target_pct - current_overhead_growth_pct)
+  }
+
+  at_full <- periods_at(blend_income(1), blend_overhead(1))
+  if (is.na(at_full) || at_full > horizon_periods) {
+    return(list(achievable = FALSE))
+  }
+
+  lo <- 0
+  hi <- 1
+  for (i in seq_len(25)) {
+    mid <- (lo + hi) / 2
+    r <- periods_at(blend_income(mid), blend_overhead(mid))
+    if (!is.na(r) && r <= horizon_periods) hi <- mid else lo <- mid
+  }
+
   list(
-    income = .solve_income(),
-    overhead = if (overhead_searchable) .solve_overhead() else NULL
+    achievable = TRUE,
+    new_income_growth_pct = round(blend_income(hi), 1),
+    new_overhead_growth_pct = round(blend_overhead(hi), 1)
   )
 }
 
@@ -567,6 +634,108 @@ apply_membership_fee_events <- function(result, events = NULL) {
   fl
 }
 
+# -- Goal-seek: income-growth lever, expressed as extra members/month -------
+
+#' Convert a solved income-growth percentage into an approximate
+#' extra-members-per-month figure
+#'
+#' The income-growth lever itself is a compounding rate applied to
+#' whichever revenue trajectory the model already produced (see
+#' `apply_growth_assumptions()`) -- membership revenue isn't tracked
+#' separately from fee-for-service, so there's no way to derive an exact
+#' member count the way `.goal_seek_fee_lever()` does its own $/member
+#' math. This is deliberately an approximation, not a second bisected
+#' lever: it diffs the solved-vs-current revenue trajectories at the
+#' target period to get the extra monthly revenue rate the growth
+#' percentage implies, converts that to a member-equivalent using the
+#' average membership fee, and spreads it evenly across the horizon --
+#' the actual compounding shape adds members faster later on, but a flat
+#' "roughly N/month" figure is the more useful practical instruction.
+#'
+#' @param recompute Function `function(income_pct, overhead_pct)`, same
+#'   closure `.goal_seek_growth_rate()` uses -- re-run here (not reused
+#'   from the bisection) since neither the baseline nor solved trajectory
+#'   survives the search.
+#' @param current_income_growth_pct,current_overhead_growth_pct Baseline
+#'   growth rates currently in effect.
+#' @param new_income_growth_pct The already-solved income-growth
+#'   percentage from `.goal_seek_growth_rate()`'s income lever.
+#' @param target_period Integer period index the goal is reached within.
+#' @param panel_size,membership_fee Current total panel size and average
+#'   membership fee ($/member/month). `NULL`/non-positive skips this
+#'   entirely, same gate as `.goal_seek_fee_lever()`.
+#' @param frequency `"weekly"` or `"monthly"` -- `revenue_forecast` is in
+#'   per-period units, converted to a monthly rate before dividing by the
+#'   (always-monthly) `membership_fee`.
+#' @param fee_events Optional data frame with `start_date`/`revenue_delta`
+#'   columns, as built by `mod_projections.R`'s `fee_events_df()` --
+#'   scheduled future membership-fee changes. When one or more events
+#'   have already taken effect by `target_date`, a second annotation is
+#'   computed using the blended average fee those events imply, since
+#'   the current-fee figure alone would misstate the pace needed once
+#'   the change is in effect.
+#' @param target_date The calendar date of `target_period`, used to
+#'   decide which `fee_events` are active by then. `NULL` skips the
+#'   planned-fee-change annotation even if `fee_events` is supplied.
+#'
+#' @return A list with `per_month` (integer, at least 1) and `fee_used`
+#'   (the average fee it was computed against), plus `per_month_planned`/
+#'   `fee_used_planned` when a distinct planned-fee-change figure applies.
+#'   `NULL` when `panel_size`/`membership_fee` aren't both supplied, or
+#'   the solved growth rate implies no positive revenue gap at the
+#'   target period.
+#'
+#' @noRd
+.income_growth_members_equiv <- function(
+  recompute,
+  current_income_growth_pct,
+  current_overhead_growth_pct,
+  new_income_growth_pct,
+  target_period,
+  panel_size,
+  membership_fee,
+  frequency,
+  fee_events = NULL,
+  target_date = NULL
+) {
+  if (!isTRUE(panel_size > 0) || !isTRUE(membership_fee > 0)) {
+    return(NULL)
+  }
+
+  baseline <- recompute(current_income_growth_pct, current_overhead_growth_pct)
+  goal <- recompute(new_income_growth_pct, current_overhead_growth_pct)
+
+  extra_pp <- goal$forecast_data$revenue_forecast[target_period] -
+    baseline$forecast_data$revenue_forecast[target_period]
+  if (!is.finite(extra_pp) || extra_pp <= 0) {
+    return(NULL)
+  }
+
+  is_weekly <- identical(frequency, "weekly")
+  extra_monthly <- if (is_weekly) extra_pp * 4.33 else extra_pp
+
+  per_month <- max(1L, round((extra_monthly / membership_fee) / target_period))
+  result <- list(per_month = per_month, fee_used = round(membership_fee, 2))
+
+  if (!is.null(fee_events) && nrow(fee_events) > 0L && !is.null(target_date)) {
+    active <- fee_events[fee_events$start_date <= target_date, , drop = FALSE]
+    if (nrow(active) > 0L) {
+      planned_fee <- membership_fee + sum(active$revenue_delta) / panel_size
+      if (
+        isTRUE(planned_fee > 0) &&
+          !isTRUE(round(planned_fee, 2) == round(membership_fee, 2))
+      ) {
+        result$per_month_planned <- max(
+          1L, round((extra_monthly / planned_fee) / target_period)
+        )
+        result$fee_used_planned <- round(planned_fee, 2)
+      }
+    }
+  }
+
+  result
+}
+
 #' Find what growth-rate change would reach break-even within the horizon
 #'
 #' When a (growth-adjusted) break-even forecast doesn't reach break-even
@@ -598,13 +767,17 @@ apply_membership_fee_events <- function(result, events = NULL) {
 #'   income/overhead growth at their current settings. `NULL` (the
 #'   default, or either one missing/non-positive) skips this lever
 #'   entirely -- e.g. before the optional Membership Profile has been
-#'   filled in.
+#'   filled in. The same two values also gate an approximate
+#'   extra-members/month annotation attached to the income lever -- see
+#'   `.income_growth_members_equiv()`'s own doc.
 #' @param horizon_periods Integer number of forecast periods break-even
 #'   should be reached within. Defaults to
 #'   `nrow(breakeven_result$forecast_data)`.
 #'
 #' @return A `dcAnalytics_goal_seek`-classed list with `target_period`,
-#'   `income` (a list with `achievable` and, when `TRUE`, `new_growth_pct`),
+#'   `income` (a list with `achievable`, and when `TRUE`, `new_growth_pct`
+#'   and -- when `panel_size`/`membership_fee` are supplied -- a
+#'   `members_equiv` sub-list, see `.income_growth_members_equiv()`),
 #'   `overhead` (`NULL` when `overhead_flat` is set; otherwise a list with
 #'   `achievable` and, when `TRUE`, `new_growth_pct`), and `fee` (`NULL`
 #'   when `panel_size`/`membership_fee` aren't both supplied; otherwise a
@@ -648,6 +821,21 @@ goal_seek_breakeven <- function(
     overhead_searchable = is.null(overhead_flat),
     horizon_periods = horizon_periods
   )
+
+  if (isTRUE(gs$income$achievable)) {
+    gs$income$members_equiv <- .income_growth_members_equiv(
+      recompute = recompute,
+      current_income_growth_pct = current_income_growth_pct,
+      current_overhead_growth_pct = current_overhead_growth_pct,
+      new_income_growth_pct = gs$income$new_growth_pct,
+      target_period = horizon_periods,
+      panel_size = panel_size,
+      membership_fee = membership_fee,
+      frequency = breakeven_result$frequency,
+      fee_events = fee_events,
+      target_date = breakeven_result$forecast_data$period_start[horizon_periods]
+    )
+  }
 
   fee_lever <- .goal_seek_fee_lever(
     base_result = recompute(current_income_growth_pct, current_overhead_growth_pct),
@@ -733,6 +921,21 @@ goal_seek_target <- function(
     horizon_periods = horizon_periods
   )
 
+  if (isTRUE(gs$income$achievable)) {
+    gs$income$members_equiv <- .income_growth_members_equiv(
+      recompute = recompute,
+      current_income_growth_pct = current_income_growth_pct,
+      current_overhead_growth_pct = current_overhead_growth_pct,
+      new_income_growth_pct = gs$income$new_growth_pct,
+      target_period = horizon_periods,
+      panel_size = panel_size,
+      membership_fee = membership_fee,
+      frequency = target_result$frequency,
+      fee_events = fee_events,
+      target_date = target_result$forecast_data$period_start[horizon_periods]
+    )
+  }
+
   fee_lever <- .goal_seek_fee_lever(
     base_result = recompute(current_income_growth_pct, current_overhead_growth_pct),
     extract_periods = function(res) res$periods_to_target,
@@ -755,34 +958,87 @@ goal_seek_target <- function(
 #' @param pu Period-unit list, as returned by `.period_units()`.
 #' @param goal_label Text naming the goal being sought, e.g. `"break-even"`
 #'   or `"the income target"` -- interpolated directly into the sentence.
+#' @param badge Whether to prefix the output with `.pro_badge_html()`.
+#'   Defaults to `TRUE` for the live UI; the PDF report path passes
+#'   `FALSE` -- Typst has no HTML renderer, so the badge `<span>` would
+#'   otherwise survive `html_to_plain()`'s tag-stripping as a bare,
+#'   ungrammatical leading "Pro" (the tag gets stripped, the label text
+#'   inside it doesn't).
 #'
-#' @return An HTML string (a single `<p>...</p>`), or `NULL` if `gs` is
-#'   `NULL` or neither lever is achievable (nothing constructive to
-#'   suggest).
+#' @return An HTML string -- a single `<p>...</p>` when only one lever is
+#'   achievable, or a `<p>` intro followed by a `<ul>` of every achievable
+#'   lever (including "both together," see below) when two or more are.
+#'   `NULL` if `gs` is `NULL` or no lever is achievable at all.
+#'
+#' Render an `.income_growth_members_equiv()` result as a parenthetical
+#' annotation
+#'
+#' Split out of `.describe_goal_seek()` for readability -- one or two
+#' sentences appended to the income lever's clause, giving a concrete,
+#' actionable example ("about N extra members/month") alongside the
+#' abstract growth percentage. See `.income_growth_members_equiv()`'s own
+#' doc for why this is an approximation, not a second solved lever.
+#'
+#' @param me Result of `.income_growth_members_equiv()`, or `NULL`.
+#'
+#' @return A character string starting with `" ("` and ending with `")"`,
+#'   or `""` when `me` is `NULL`.
 #'
 #' @noRd
-.describe_goal_seek <- function(gs, pu, goal_label) {
+.format_members_annotation <- function(me) {
+  if (is.null(me)) {
+    return("")
+  }
+
+  .members <- function(n) paste0(n, " extra member", if (n != 1L) "s" else "")
+
+  current <- paste0(
+    "roughly <strong>", .members(me$per_month), "/month</strong> at your ",
+    "current ", fmt_dollar(me$fee_used), "/member fee"
+  )
+
+  if (is.null(me$per_month_planned)) {
+    return(paste0(" (", current, ")"))
+  }
+
+  paste0(
+    " (", current, ", or about <strong>",
+    .members(me$per_month_planned), "/month</strong> once your planned ",
+    "fee change takes effect at about ", fmt_dollar(me$fee_used_planned),
+    "/member)"
+  )
+}
+
+#' @noRd
+.describe_goal_seek <- function(gs, pu, goal_label, badge = TRUE) {
   if (is.null(gs)) {
     return(NULL)
   }
 
+  badge_prefix <- if (isTRUE(badge)) paste0(.pro_badge_html(), " ") else ""
+
   income_ok <- isTRUE(gs$income$achievable)
   overhead_ok <- !is.null(gs$overhead) && isTRUE(gs$overhead$achievable)
   fee_ok <- !is.null(gs$fee) && isTRUE(gs$fee$achievable)
+  combined_ok <- !is.null(gs$combined) && isTRUE(gs$combined$achievable)
 
   if (!income_ok && !overhead_ok && !fee_ok) {
     return(paste0(
-      "<p class='text-muted small'>", .pro_badge_html(), " Even an aggressive ",
+      "<p class='text-muted small'>", badge_prefix, "Even an aggressive ",
       "growth-rate or fee change wouldn't reach ", goal_label, " within this ",
       "forecast window on its own -- consider a longer horizon or a more ",
       "fundamental change to the revenue or cost structure.</p>"
     ))
   }
 
+  # Lower-case, verb-first clauses -- read directly as the tail of "you'd
+  # need to ___" in the single-lever case, or capitalized (below) as
+  # standalone <li> items in the multi-lever case.
   income_clause <- if (income_ok) {
     paste0(
       "raise assumed income growth to about <strong>",
-      gs$income$new_growth_pct, "%/yr</strong>"
+      gs$income$new_growth_pct, "%/yr</strong>",
+      .format_members_annotation(gs$income$members_equiv)
     )
   } else {
     NULL
@@ -810,31 +1066,42 @@ goal_seek_target <- function(
     NULL
   }
 
-  clauses <- c(income_clause, overhead_clause, fee_clause)
-
-  # "either" only reads correctly for exactly two options -- once the fee
-  # lever adds a third, switch to "any one" rather than mangling the
-  # grammar for the common (income + overhead only) two-lever case.
-  intro <- if (length(clauses) == 2L) {
+  # Only ever present alongside both income_clause and overhead_clause --
+  # see .solve_combined_growth_rate()'s own doc for how this blended
+  # value is derived. Framed as "a smaller change to both" rather than
+  # duplicating the "raise X, lower Y" phrasing of the two solo clauses,
+  # so it reads as a distinct third option rather than a repeat of them.
+  combined_clause <- if (combined_ok) {
     paste0(
-      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
-      ", either change alone would do it: you'd need to "
-    )
-  } else if (length(clauses) > 2L) {
-    paste0(
-      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
-      ", any one change alone would do it: you'd need to "
+      "make a smaller change to both together: raise income growth to ",
+      "about <strong>", gs$combined$new_income_growth_pct,
+      "%/yr</strong> and lower overhead growth to about <strong>",
+      gs$combined$new_overhead_growth_pct, "%/yr</strong>"
     )
   } else {
-    paste0(
-      "To reach ", goal_label, " within ", gs$target_period, " ", pu$plural,
-      " on this assumption alone, you'd need to "
-    )
+    NULL
   }
 
+  clauses <- c(income_clause, overhead_clause, fee_clause, combined_clause)
+
+  if (length(clauses) == 1L) {
+    return(paste0(
+      "<p>", badge_prefix, "To reach ", goal_label, " within ", gs$target_period,
+      " ", pu$plural, " on this assumption alone, you'd need to ", clauses[1],
+      ".</p>"
+    ))
+  }
+
+  capitalized <- vapply(clauses, function(x) {
+    paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+  }, character(1))
+
   paste0(
-    "<p>", .pro_badge_html(), " ", intro,
-    paste(clauses, collapse = " -- or, separately, "), ".</p>"
+    "<p>", badge_prefix, "To reach ", goal_label, " within ", gs$target_period,
+    " ", pu$plural, ", any one of the following would do it:</p>",
+    "<ul class='mb-2'>",
+    paste0("<li>", capitalized, ".</li>", collapse = ""),
+    "</ul>"
   )
 }
 
@@ -1047,19 +1314,24 @@ stress_test_breakeven <- function(
 #' @param st A `dcAnalytics_stress_test` object, as returned by
 #'   [stress_test_breakeven()].
 #' @param pu Period-unit list, as returned by `.period_units()`.
+#' @param badge Whether to prefix the output with `.pro_badge_html()`.
+#'   See `.describe_goal_seek()`'s own doc for why the PDF report path
+#'   passes `FALSE`.
 #'
 #' @return An HTML string (a single `<p>...</p>`), or `NULL` if `st` is
 #'   `NULL`.
 #'
 #' @noRd
-.describe_stress_test <- function(st, pu) {
+.describe_stress_test <- function(st, pu, badge = TRUE) {
   if (is.null(st)) {
     return(NULL)
   }
 
+  badge_prefix <- if (isTRUE(badge)) paste0(.pro_badge_html(), " ") else ""
+
   if (isTRUE(st$capped)) {
     return(paste0(
-      "<p>", .pro_badge_html(), " Your margin is wide enough that even ",
+      "<p>", badge_prefix, "Your margin is wide enough that even ",
       "losing your entire panel wouldn't put sustained break-even at risk ",
       "under current growth assumptions &mdash; fee-for-service or other ",
       "non-membership revenue is likely doing much of the work.</p>"
@@ -1068,14 +1340,14 @@ stress_test_breakeven <- function(
 
   if (st$members_loss_room <= 0L) {
     return(paste0(
-      "<p>", .pro_badge_html(), " Your break-even margin is thin: losing ",
+      "<p>", badge_prefix, "Your break-even margin is thin: losing ",
       "even a single member at current rates would put sustained ",
       "break-even at risk.</p>"
     ))
   }
 
   paste0(
-    "<p>", .pro_badge_html(), " Your current margin could absorb losing up ",
+    "<p>", badge_prefix, "Your current margin could absorb losing up ",
     "to <strong>", st$members_loss_room,
     " members</strong> before break-even would no longer be sustained ",
     "through the forecast horizon.</p>"

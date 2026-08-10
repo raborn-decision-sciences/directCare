@@ -20,7 +20,8 @@ app_ui <- function(request) {
         tags$span(
           style = "font-weight:600;font-size:0.95rem;white-space:nowrap;",
           "Direct Care Analytics"
-        )
+        ),
+        uiOutput("tier_badge_nav", inline = TRUE)
       ),
       id = "main_nav",
       theme = rds_theme(),

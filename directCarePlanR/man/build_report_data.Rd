@@ -6,15 +6,24 @@
 \usage{
 build_report_data(
   market_context = NULL,
+  market_context_compare = NULL,
   revenue = NULL,
   projections = NULL,
   capital = NULL,
   interpretations = NULL,
-  practice_name = NULL
+  practice_name = NULL,
+  plan_tier = NULL
 )
 }
 \arguments{
 \item{market_context}{A list as returned by \code{\link[=build_market_context]{build_market_context()}}.}
+
+\item{market_context_compare}{Optional list of additional
+\code{\link[=build_market_context]{build_market_context()}} results (Pro-exclusive location comparison,
+up to 2 in \code{directCarePlanner}'s current UI) -- rendered as a
+comparison table alongside the primary \code{market_context}. \code{NULL}/empty
+(the default) omits that section entirely, same as every other
+optional block here.}
 
 \item{revenue}{A \code{dcPlanR_revenue} object, as returned by
 \code{\link[=calc_mixed_revenue]{calc_mixed_revenue()}}.}
@@ -26,18 +35,29 @@ elements, as returned by \code{\link[=calc_startup_costs]{calc_startup_costs()}}
 \code{\link[=calc_personal_runway]{calc_personal_runway()}}.}
 
 \item{interpretations}{A named list of narrative strings produced by the
-\verb{interpret_*()} functions (e.g. \code{list(revenue = ..., projection = ..., capital = ...)}).}
+\verb{interpret_*()} functions (e.g. \code{list(revenue = ..., projection = ..., capital = ...)}).
+Pro-exclusive content (e.g. \code{interpret_projection()}'s
+\code{sensitivity_decomposition}/\code{goal_seek} paragraphs) is already baked
+into these strings by the caller for a Pro practice -- this function
+does no tier-based filtering of its own, it only labels the report.}
 
 \item{practice_name}{Optional character string. Defaults to a name
 derived from \code{market_context}'s geography when supplied, else
 \code{"Untitled Practice"}.}
+
+\item{plan_tier}{Optional \code{plan_tier} string (e.g. \code{r$plan_tier}),
+rendered as a plain-text tier indicator on the report's title page --
+deliberately not the pill-badge treatment a live in-app UI might use,
+since a badge reads oddly on a document the paying user already owns.
+\code{NULL} (the default) renders as \code{"Free"}.}
 }
 \value{
 A plain list, ready to be serialized to JSON with
-\code{\link[jsonlite:write_json]{jsonlite::write_json()}}. Each of \code{market}, \code{revenue}, \code{projections},
-\code{capital}, and \code{interpretations} is \code{NULL} when its corresponding
-input is \code{NULL}, so the template can render only the sections that
-were supplied.
+\code{\link[jsonlite:write_json]{jsonlite::write_json()}}. Each of \code{market}, \code{market_compare},
+\code{revenue}, \code{projections}, \code{capital}, and \code{interpretations} is \code{NULL}
+when its corresponding input is \code{NULL}/empty, so the template can
+render only the sections that were supplied. \code{plan_tier_label} is
+always one of \code{"Free"}, \code{"Starter"}, or \code{"Pro"}.
 }
 \description{
 Builds the \code{data.json} object consumed by the Planner's Typst report

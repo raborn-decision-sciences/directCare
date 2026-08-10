@@ -133,8 +133,8 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
           tags$p(class = "fw-bold fs-4 mb-1", "$39/mo"),
           tags$p(
             class = "text-muted small mb-0",
-            "Bookkeeping uploads, saved practice profile, historical ",
-            "trends, break-even analysis, downloadable reports."
+            "Market context for your location, downloadable PDF reports, ",
+            "and saved scenarios to revisit anytime."
           ),
           # mt-auto pins the button to the bottom of the (flex-column,
           # h-100) card body, so it lines up with Pro's regardless of which
@@ -155,21 +155,27 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
         )
       ),
       card(
-        class = "h-100",
+        class = "h-100 border-warning",
         card_header(tagList(bsicons::bs_icon("lightbulb"), " Pro")),
         card_body(
           tags$p(class = "fw-bold fs-4 mb-1", "$79/mo"),
           tags$p(
-            class = "text-muted small mb-0",
-            "Everything in Starter, plus guided decision tools and ",
-            "AI-generated financial interpretation."
+            class = "text-muted small mb-1",
+            "Everything in Starter, plus sensitivity decomposition, ",
+            "goal-seek modeling, and side-by-side comparison of ",
+            "scenarios and candidate locations."
+          ),
+          tags$p(
+            class = "text-muted small fst-italic mb-0",
+            bsicons::bs_icon("hourglass-split"), " Coming soon: AI-generated ",
+            "financial interpretation."
           ),
           tags$div(
             class = "mt-auto",
             actionButton(
               "btn_checkout_pro", "Upgrade",
               icon = bsicons::bs_icon("arrow-up-right-circle"),
-              class = "btn-outline-primary btn-sm w-100 mt-2",
+              class = "btn-warning btn-sm w-100 mt-2",
               style = "white-space: nowrap;"
             )
           )
@@ -255,13 +261,15 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
 #' to
 #'
 #' See directCareAnalytics's identical helper for the full rationale.
-#' text-bg-primary because bs_theme()'s `primary` is the RDS teal
-#' (app_ui.R), matching this app's existing accent color.
+#' text-bg-warning because bs_theme()'s `warning` is the RDS amber
+#' (app_ui.R) -- Pro's identity is deliberately amber rather than the RDS
+#' teal `primary` used for Starter and general branding, matching this
+#' app's existing accent color.
 #'
 #' @noRd
 .pro_badge <- function() {
   tags$span(
-    class = "badge rounded-pill text-bg-primary",
+    class = "badge rounded-pill text-bg-warning",
     style = "font-size: 0.68em; vertical-align: 2px;",
     "Pro"
   )
@@ -272,6 +280,38 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
 #' @noRd
 .pro_badge_html <- function() {
   as.character(.pro_badge())
+}
+
+#' Small navbar badge naming the practice's current plan tier
+#'
+#' See directCareAnalytics's identical helper for the full rationale --
+#' distinct from `.pro_badge()` above (which labels a specific Pro-
+#' exclusive feature), this labels the account itself, for every tier
+#' including Free.
+#'
+#' @param plan_tier A `plan_tier` string, e.g. `r$plan_tier`. Unrecognized/
+#'   `NULL`/empty values fall back to the Free treatment.
+#' @noRd
+.tier_badge <- function(plan_tier) {
+  tier <- if (isTRUE(.has_pro_plan(plan_tier))) {
+    "pro"
+  } else if (isTRUE(.has_paid_plan(plan_tier))) {
+    "starter"
+  } else {
+    "free"
+  }
+  label <- switch(tier, pro = "Pro", starter = "Starter", free = "Free")
+  css_class <- switch(
+    tier,
+    pro = "text-bg-warning",
+    starter = "text-bg-info",
+    free = "text-bg-secondary"
+  )
+  tags$span(
+    class = paste("badge rounded-pill", css_class),
+    style = "font-size: 0.68em; vertical-align: 2px;",
+    label
+  )
 }
 
 #' Save/Load scenario-slot buttons -- real ones for a paid practice, a

@@ -196,6 +196,12 @@ test_that("goal_seek_projection_recovery() reports both levers when both are ach
   expect_identical(gs$ramp$original_ramp_months, 24)
   expect_identical(gs$ramp$new_ramp_months, 13)
   expect_identical(gs$ramp$months_faster, 11)
+  expect_true(gs$combined$achievable)
+  # The combined blend is a smaller change on each lever than the solo
+  # solve: a smaller overhead cut and a smaller ramp shortening, since it
+  # only needs to move part-way toward each solo target, not all the way.
+  expect_lt(gs$combined$pct_cut, gs$overhead$pct_cut)
+  expect_gt(gs$combined$new_ramp_months, gs$ramp$new_ramp_months)
 })
 
 test_that("goal_seek_projection_recovery() reports overhead-only for a fee-for-service-only plan", {
@@ -208,6 +214,7 @@ test_that("goal_seek_projection_recovery() reports overhead-only for a fee-for-s
   expect_true(gs$overhead$achievable)
   expect_identical(gs$overhead$pct_cut, 86)
   expect_false(gs$ramp$achievable)
+  expect_false(gs$combined$achievable)
 })
 
 test_that("goal_seek_projection_recovery() reports overhead achievable = FALSE with no ramp lever at all", {
@@ -219,6 +226,7 @@ test_that("goal_seek_projection_recovery() reports overhead achievable = FALSE w
 
   expect_false(gs$overhead$achievable)
   expect_null(gs$ramp)
+  expect_null(gs$combined)
 })
 
 # -- interpret_projection() + goal_seek --------------------------------------
@@ -233,9 +241,28 @@ test_that("interpret_projection() describes both achievable levers", {
 
   text <- interpret_projection(projection, goal_seek = gs)
 
-  expect_true(grepl("either change alone would do it", text))
-  expect_true(grepl("cut monthly overhead by about 46%", text))
-  expect_true(grepl("shorten your membership ramp from 24 to about 13 months", text))
+  expect_true(grepl("any one of the following would do it", text))
+  expect_true(grepl("Cut monthly overhead by about 46%", text))
+  expect_true(grepl("Shorten your membership ramp from 24 to about 13 months", text))
+  expect_true(grepl("Make a smaller change to both together", text))
+})
+
+test_that("interpret_projection() falls back to a single-sentence, non-bulleted form for exactly one achievable lever", {
+  # A fee-for-service-only plan has no ramp lever to search (gs$ramp is
+  # NULL, see the fixture above), leaving overhead as the only lever --
+  # exercises the length(clauses) == 1L branch in .describe_goal_seek(),
+  # not the bulleted-list one.
+  assumptions <- list(
+    fee_args = list(visit_volume = 5, new_visit_fee = 50, follow_up_fee = 30, ramp_months = 1),
+    overhead_monthly = 5000
+  )
+  projection <- project_scenarios(assumptions, horizon_months = 12)
+  gs <- goal_seek_projection_recovery(assumptions, horizon_months = 12)
+
+  text <- interpret_projection(projection, goal_seek = gs)
+
+  expect_false(grepl("\n-", text, fixed = TRUE))
+  expect_true(grepl("on this lever alone, you'd need to cut monthly overhead", text))
 })
 
 test_that("interpret_projection() reports non-achievability plainly", {
