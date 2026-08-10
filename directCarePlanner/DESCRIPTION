@@ -24,6 +24,8 @@ Imports:
     ggplot2,
     golem (>= 0.5.1),
     htmltools,
+    later,
+    mirai,
     RPostgres,
     scales,
     shiny (>= 1.9.0),

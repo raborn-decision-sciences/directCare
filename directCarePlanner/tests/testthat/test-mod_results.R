@@ -155,29 +155,84 @@ test_that(".market_context_rows() returns the 6 expected fields in order", {
   expect_equal(rows[[2]]$value, "1,000,000")
 })
 
-test_that("dl_report passes r$plan_tier into directCarePlanR::build_report_data()", {
+test_that("btn_generate_report passes r$plan_tier into directCarePlanR::build_report_data()", {
+  # build_report_data() still runs in the main process (inside the
+  # btn_generate_report invoke observer), so mocking it here still works --
+  # unlike render_plan_report(), which now runs inside report_task's mirai
+  # worker and can no longer be intercepted by local_mocked_bindings() (a
+  # mirai worker loads the real installed package fresh in a separate
+  # process). See the "Generate Report..." test below for real, unmocked
+  # coverage of that call.
   r <- fixture_populated_r()
   r$plan_tier <- "pro"
 
   captured <- new.env()
 
+  # Mocking doesn't stop this test's btn_generate_report click from firing a
+  # real, unwaited-for report_task$invoke() in the background (the mock only
+  # intercepts build_report_data() in *this* process; render_plan_report()
+  # still runs for real inside the worker) -- so the mock's return value
+  # still needs to be something Typst can actually compile. An empty list()
+  # was found to leave a stray Typst error running in the background that
+  # corrupted a *later* test's real compile in the same session; calling
+  # through to build_report_data()'s own all-defaults case (confirmed to
+  # compile cleanly) avoids that while still capturing the real args passed
+  # in for the assertion below.
+  real_build_report_data <- directCarePlanR::build_report_data
+
   testServer(mod_results_server, args = list(r = r), {
     local_mocked_bindings(
       build_report_data = function(...) {
         captured$args <- list(...)
-        list()
-      },
-      render_plan_report = function(data, file) {
-        writeLines("mock pdf", file)
-        invisible(file)
+        real_build_report_data()
       },
       .package = "directCarePlanR"
     )
 
-    output$dl_report
+    session$setInputs(btn_generate_report = 1)
+    wait_for_task(report_task)
   })
 
   expect_identical(captured$args$plan_tier, "pro")
+})
+
+test_that("Generate Report resolves to a real file and reveals the download button", {
+  # End-to-end coverage of the two-step/three-state async flow (report_task):
+  # click Generate Report, wait for the background mirai worker to finish,
+  # confirm report_path() now points at a real PDF-ish file, that nav_footer()
+  # now renders the real download button, and that dl_report's now-trivial
+  # content() (file.copy() from report_path()) actually produces output.
+  # Unlike directCareAnalytics's own render_report_pdf() (which lives in the
+  # app package itself and is only dev-loaded, not installed, under
+  # devtools::test()), render_plan_report() is exported from directCarePlanR,
+  # a genuinely installed dependency package -- so this runs for real here,
+  # no install-time skip needed.
+  r <- fixture_populated_r()
+  r$plan_tier <- "pro"
+
+  testServer(mod_results_server, args = list(r = r), {
+    session$setInputs(btn_generate_report = 1)
+    wait_for_task(report_task)
+
+    expect_false(is.null(report_path()))
+    expect_true(file.exists(report_path()))
+
+    footer_html <- paste(as.character(nav_footer()), collapse = "")
+    expect_true(grepl("dl_report", footer_html, fixed = TRUE))
+
+    expect_no_error(force(output$dl_report))
+  })
+})
+
+test_that("nav_footer shows Generate Report (not Download) before a report has been generated", {
+  r <- fixture_populated_r()
+  r$plan_tier <- "pro"
+
+  testServer(mod_results_server, args = list(r = r), {
+    footer_html <- paste(as.character(nav_footer()), collapse = "")
+    expect_true(grepl("btn_generate_report", footer_html, fixed = TRUE))
+    expect_false(grepl("dl_report", footer_html, fixed = TRUE))
+  })
 })
 
 test_that(".paragraphs_to_html() splits on blank lines and wraps each in <p>", {

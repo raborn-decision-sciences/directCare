@@ -467,10 +467,10 @@ mod_plan_inputs_server <- function(id, r, parent_session = NULL) {
         any(base_proj$cumulative_net_income >= 0)
       }
       goal_seek <- if (.has_pro_plan(r$plan_tier) && !base_recovers) {
-        run_plan(directCarePlanR::goal_seek_projection_recovery(
+        run_plan(.log_elapsed("goal_seek_projection_recovery", directCarePlanR::goal_seek_projection_recovery(
           assumptions,
           horizon_months = iv("horizon_months")
-        ))
+        )))
       } else {
         NULL
       }

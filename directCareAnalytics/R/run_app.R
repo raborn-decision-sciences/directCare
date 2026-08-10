@@ -31,6 +31,25 @@ run_app <- function(
   # forecasts at once.
   mirai::daemons(n = 2)
 
+  # mod_projections.R's Generate Report ExtendedTask writes PDFs into this
+  # dedicated subdirectory (.report_output_dir(), utils_globals.R) rather
+  # than the tempdir root, so they're easy to sweep separately from
+  # anything else using tempfile(). Per-session cleanup (onSessionEnded,
+  # mod_projections.R) handles the common cases, but a mirai task isn't
+  # tied to session lifecycle, so a session ending mid-generation orphans
+  # its eventual output with nothing left to clean it up -- this recurring
+  # sweep is the actual backstop for that case, not a redundant nicety.
+  # 2 hours / 30-minute cadence are Phase-1 starting values, not tuned
+  # against real usage. (.report_output_dir() creates the directory itself
+  # if needed, so no separate dir.create() call here.)
+  sweep_old_reports <- function() {
+    old <- list.files(.report_output_dir(), full.names = TRUE)
+    old <- old[file.info(old)$mtime < Sys.time() - 2 * 60 * 60]
+    if (length(old) > 0L) unlink(old)
+    later::later(sweep_old_reports, delay = 30 * 60)
+  }
+  later::later(sweep_old_reports, delay = 30 * 60)
+
   # Resource path must be registered before secure_app() wraps the UI --
   # golem_add_external_resources() (which normally does this) only runs
   # inside app_ui(), which shinymanager doesn't call until after a

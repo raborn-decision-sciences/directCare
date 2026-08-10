@@ -511,42 +511,128 @@ mod_results_server <- function(id, r, parent_session = NULL) {
       .show_plans_modal()
     })
 
+    # -- Async PDF report generation ------------------------------------------
+    # render_plan_report() shells out to a real `typst compile` subprocess --
+    # like DCA's own report_task (mod_projections.R in directCareAnalytics,
+    # which this mirrors), that would otherwise block the *entire app* (every
+    # other session, not just this one) for its duration, since this is a
+    # single-process Shiny app. Unlike DCA, this app had no ExtendedTask/mirai
+    # infrastructure at all before this -- report_task is the first, so it
+    # gets its own new mirai::daemons() pool (run_app.R) rather than sharing
+    # one.
+    #
+    # build_report_data() stays in the main process below (it reads `r`, a
+    # reactiveValues object, which has no meaning inside a worker) -- only
+    # its resulting plain list crosses into $invoke(). out_path is computed
+    # in the main process (never via tempfile() inside the
+    # mirai::mirai({...}) block itself, which would bind the path to the
+    # long-lived daemon process's own session tempdir instead of a per-call
+    # scope) and lands inside .report_output_dir() (utils_globals.R) so
+    # run_app.R's periodic sweep can find it if this session ends before the
+    # task resolves.
+    #
+    # render_plan_report()/build_report_data() are exported from
+    # directCarePlanR (a genuinely installed dependency package, unlike
+    # DCA's own render_report_pdf() which lives in the app package itself),
+    # so directCarePlanR:: resolves normally inside the worker with no
+    # install-time caveat.
+    report_task <- ExtendedTask$new(function(out_path, data) {
+      mirai::mirai(
+        {
+          result <- tryCatch(
+            {
+              directCarePlanR::render_plan_report(data, out_path)
+              list(out_path = out_path)
+            },
+            error = function(e) {
+              structure(list(message = conditionMessage(e)), class = "report_task_error")
+            }
+          )
+          result
+        },
+        out_path = out_path,
+        data = data
+      )
+    })
+    bslib::bind_task_button(report_task, "btn_generate_report")
+
+    # Path of the most recently generated report for this session, or NULL
+    # before the first Generate click / while regeneration is in flight (see
+    # the invoke observer below, which resets this immediately to hide the
+    # stale download button). Per-session best-effort cleanup here;
+    # run_app.R's periodic sweep is the real backstop for a session that
+    # ends mid-generation (see .report_output_dir()'s comment).
+    report_path <- reactiveVal(NULL)
+    session$onSessionEnded(function() {
+      p <- isolate(report_path())
+      if (!is.null(p) && file.exists(p)) {
+        unlink(p)
+      }
+    })
+
+    observeEvent(input$btn_generate_report, {
+      # Defense in depth: nav_footer below already swaps this entire button
+      # for a "See plans" trigger when ungated, so a free-tier practice
+      # can't normally reach this observer at all -- this just guards the
+      # case where the click is somehow still fired.
+      req(.has_paid_plan(r$plan_tier))
+
+      old <- isolate(report_path())
+      if (!is.null(old) && file.exists(old)) {
+        unlink(old)
+      }
+      report_path(NULL)
+
+      # report.typ's own humanize() only knows how to prettify the raw
+      # slug (e.g. "ehr_setup" -> "EHR Setup") -- it has no idea a
+      # custom label was saved in-app. Rename line_items to the
+      # resolved display labels before they reach build_report_data()
+      # so the PDF matches what's shown on-screen; re-running an
+      # already-human label through humanize() is a no-op (no
+      # underscores left to split on), so this is safe either way.
+      capital_for_report <- r$capital
+      if (!is.null(capital_for_report$startup_costs$line_items)) {
+        names(capital_for_report$startup_costs$line_items) <- .humanize_cost_items(
+          names(capital_for_report$startup_costs$line_items),
+          r$cost_item_labels
+        )
+      }
+      data <- directCarePlanR::build_report_data(
+        market_context = r$market_context,
+        market_context_compare = r$market_context_compare,
+        revenue = r$revenue,
+        projections = r$projections,
+        capital = capital_for_report,
+        interpretations = r$interpretations,
+        practice_name = r$practice_name,
+        plan_tier = r$plan_tier
+      )
+
+      out_path <- tempfile(fileext = ".pdf", tmpdir = .report_output_dir())
+      report_task$invoke(out_path = out_path, data = data)
+    })
+
+    observeEvent(report_task$result(), {
+      res <- report_task$result()
+      if (inherits(res, "report_task_error")) {
+        showNotification(res$message, type = "error", duration = 8)
+        return(invisible())
+      }
+      report_path(res$out_path)
+    })
+
     output$dl_report <- downloadHandler(
       filename = function() {
         safe_name <- gsub("[^A-Za-z0-9_-]", "-", r$practice_name %||% "practice")
         paste0("plan-", safe_name, "-", format(Sys.Date(), "%Y%m%d"), ".pdf")
       },
       content = function(file) {
-        # Defense in depth: nav_footer below already swaps this entire
-        # button for a "See plans" trigger when ungated, so a free-tier
-        # practice can't normally reach this handler at all -- this just
-        # guards the case where the href is somehow still requested.
+        # Defense in depth, same rationale as the invoke observer above --
+        # re-checked here too, in case plan_tier changed between Generate
+        # and Download (e.g. a mid-flight downgrade).
         req(.has_paid_plan(r$plan_tier))
-        # report.typ's own humanize() only knows how to prettify the raw
-        # slug (e.g. "ehr_setup" -> "EHR Setup") -- it has no idea a
-        # custom label was saved in-app. Rename line_items to the
-        # resolved display labels before they reach build_report_data()
-        # so the PDF matches what's shown on-screen; re-running an
-        # already-human label through humanize() is a no-op (no
-        # underscores left to split on), so this is safe either way.
-        capital_for_report <- r$capital
-        if (!is.null(capital_for_report$startup_costs$line_items)) {
-          names(capital_for_report$startup_costs$line_items) <- .humanize_cost_items(
-            names(capital_for_report$startup_costs$line_items),
-            r$cost_item_labels
-          )
-        }
-        data <- directCarePlanR::build_report_data(
-          market_context = r$market_context,
-          market_context_compare = r$market_context_compare,
-          revenue = r$revenue,
-          projections = r$projections,
-          capital = capital_for_report,
-          interpretations = r$interpretations,
-          practice_name = r$practice_name,
-          plan_tier = r$plan_tier
-        )
-        directCarePlanR::render_plan_report(data, file)
+        req(report_path())
+        file.copy(report_path(), file)
       }
     )
 
@@ -554,6 +640,14 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     # render when Results is the active tab -- see app_ui.R's header
     # comment. Last step in the sequence, so Download Report (not a "Next"
     # tab) takes the forward slot.
+    #
+    # Three states, not two: Free tier always sees the "Unlock" upsell;
+    # once paid, Generate Report appears first (report_path() is NULL for a
+    # fresh session/regeneration), then Download Report once report_task
+    # resolves. .has_paid_plan() is re-checked here (not just at
+    # invoke/download time) so a mid-flight downgrade immediately hides
+    # Download/Generate in favor of the upsell, even if report_path() is
+    # still set from before the downgrade.
     nav_footer <- reactive({
       .tour_nav_footer(
         current_step = 2L,
@@ -562,17 +656,24 @@ mod_results_server <- function(id, r, parent_session = NULL) {
           tagList(bsicons::bs_icon("arrow-left-circle"), " Back to Plan Inputs"),
           class = "btn-outline-secondary"
         ),
-        forward = if (.has_paid_plan(r$plan_tier)) {
-          downloadButton(
-            ns("dl_report"),
-            tagList(bsicons::bs_icon("file-earmark-pdf"), " Download Report"),
-            class = "btn-primary"
-          )
-        } else {
+        forward = if (!.has_paid_plan(r$plan_tier)) {
           actionButton(
             ns("btn_see_plans_report"),
             tagList(bsicons::bs_icon("lock-fill"), " Unlock Download Report"),
             class = "btn-outline-primary"
+          )
+        } else if (is.null(report_path())) {
+          input_task_button(
+            ns("btn_generate_report"),
+            "Generate Report",
+            icon = bsicons::bs_icon("file-earmark-pdf"),
+            class = "btn-primary"
+          )
+        } else {
+          downloadButton(
+            ns("dl_report"),
+            tagList(bsicons::bs_icon("file-earmark-arrow-down"), " Download Report"),
+            class = "btn-primary"
           )
         },
         extra = .scenario_slots_ui("scenario", r$plan_tier)

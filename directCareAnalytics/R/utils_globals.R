@@ -89,6 +89,61 @@ NULL
   gsub("^-+|-+$", "", x)
 }
 
+#' Time an expression and log its elapsed wall time
+#'
+#' Phase 0 of the performance-improvement plan (TODO.md, "UI/UX &
+#' Performance Backlog") -- this app is a single `shiny::runApp()` process
+#' per container, so any slow synchronous call blocks every concurrently
+#' connected session, not just the one that triggered it. Wraps the
+#' handful of known-heaviest synchronous call sites (goal-seek bisection,
+#' PDF/typst generation) so degradation shows up in production logs
+#' (`docker logs`/`docker compose logs`, already rotated per-service via
+#' `docker-compose.yml`'s `logging:` block) instead of only being
+#' discoverable by reading the code. `message()`, not `cat()`/`print()`,
+#' so this goes to stderr like Shiny's own diagnostic output, and is
+#' filterable independent of stdout. `on.exit()` (not a simple
+#' before/after pair) so the elapsed time is still logged if `expr`
+#' errors, since a slow *failing* call is exactly as relevant to this as
+#' a slow successful one -- the error itself still propagates normally,
+#' this only adds a log line around it.
+#'
+#' @param label Short identifier for the call site, e.g. `"goal_seek_breakeven"`.
+#' @param expr The expression to time and return the value of.
+#'
+#' @noRd
+.log_elapsed <- function(label, expr) {
+  t0 <- proc.time()[["elapsed"]]
+  on.exit(message(sprintf(
+    "[perf] %s elapsed_ms=%s",
+    label,
+    round((proc.time()[["elapsed"]] - t0) * 1000)
+  )), add = TRUE)
+  expr
+}
+
+#' Directory for async report_task's generated PDF files
+#'
+#' `mod_projections.R`'s `report_task` (`ExtendedTask`) writes its PDF
+#' output here instead of a bare `tempfile()` in the tempdir root, so
+#' `run_app.R`'s periodic sweep (registered next to `mirai::daemons()`) can
+#' find and clean up files whose session ended mid-generation -- the one
+#' case per-session cleanup can't cover, since a mirai task isn't tied to
+#' session lifecycle. `tempdir()` is stable per R process, so every caller
+#' in this process (main process and, since mirai workers share
+#' `.libPaths()`/filesystem, the workers too) resolves the same path.
+#'
+#' Creates the directory on every call (cheap/idempotent with
+#' `showWarnings = FALSE`) rather than relying solely on `run_app()`'s
+#' one-time setup -- `testServer()`-based tests invoke module servers
+#' directly without ever calling `run_app()`, so they'd otherwise hit a
+#' missing-directory write failure the first time a test generates a report.
+#' @noRd
+.report_output_dir <- function() {
+  dir <- file.path(tempdir(), "dca_reports")
+  dir.create(dir, showWarnings = FALSE)
+  dir
+}
+
 # App-wide dollar formatter — always two decimal places.
 fmt_dollar <- function(x, ...) scales::dollar(x, accuracy = 0.01, ...)
 fmt_dollar_format <- function(...) scales::dollar_format(accuracy = 0.01, ...)

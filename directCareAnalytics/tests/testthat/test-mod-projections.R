@@ -218,7 +218,7 @@ test_that("download_ui offers the button and lists missing sections for a partia
     wait_for_task(forecast_task)
 
     html <- as.character(output$download_ui$html)
-    expect_true(grepl("Download Report", html, fixed = TRUE))
+    expect_true(grepl("Generate Report", html, fixed = TRUE))
     expect_true(grepl("will not include", html, fixed = TRUE))
     expect_true(grepl("Income Target", html, fixed = TRUE))
   })
@@ -242,12 +242,12 @@ test_that("download_ui shows no missing-sections note once all three forecasts h
     expect_false(is.null(.safe_result(adj_target())))
 
     html <- as.character(output$download_ui$html)
-    expect_true(grepl("Download Report", html, fixed = TRUE))
+    expect_true(grepl("Generate Report", html, fixed = TRUE))
     expect_false(grepl("will not include", html, fixed = TRUE))
   })
 })
 
-test_that("dl_report passes goal_seek/stress_test and badge = FALSE into interpret_breakeven()/interpret_target()", {
+test_that("btn_generate_report passes goal_seek/stress_test and badge = FALSE into interpret_breakeven()/interpret_target()", {
   # Regression coverage for the PDF report feature gap: before this, the
   # download handler never passed goal_seek/stress_test at all, so Pro
   # subscribers never saw that content in their report even though the
@@ -255,6 +255,15 @@ test_that("dl_report passes goal_seek/stress_test and badge = FALSE into interpr
   # already Pro-gated internally, returning NULL for non-Pro, so reusing
   # them here needs no separate tier check). badge = FALSE because a "Pro"
   # badge makes no sense inside a document the paying user already owns.
+  #
+  # interpret_breakeven()/interpret_target() are mocked here because the
+  # argument-assembly they're part of (build_report_data() and friends)
+  # still runs in the main process, inside the btn_generate_report invoke
+  # observer -- local_mocked_bindings() can intercept that. render_report_pdf()
+  # itself is NOT mocked: once report_task$invoke() hands off to
+  # mirai::mirai({...}), that block runs in a separate worker process that
+  # loads the real installed package fresh, invisible to mocks set up here
+  # (see test-utils-report.R for the real, unmocked coverage of that call).
   r <- make_monthly_r(6)
   r$plan_tier <- "pro"
   r$practice_name <- "Test Practice"
@@ -281,14 +290,10 @@ test_that("dl_report passes goal_seek/stress_test and badge = FALSE into interpr
         captured$tgt_args <- list(...)
         "<p>mock</p>"
       },
-      render_report_pdf = function(data, file, ...) {
-        writeLines("mock pdf", file)
-        invisible(file)
-      },
       .package = "directCareAnalytics"
     )
 
-    output$dl_report
+    session$setInputs(btn_generate_report = 1)
   })
 
   expect_identical(captured$bkevn_args$badge, FALSE)
@@ -297,4 +302,57 @@ test_that("dl_report passes goal_seek/stress_test and badge = FALSE into interpr
 
   expect_identical(captured$tgt_args$badge, FALSE)
   expect_true("goal_seek" %in% names(captured$tgt_args))
+})
+
+test_that("Generate Report resolves to a real file and reveals the download button", {
+  # End-to-end coverage of the two-step async flow (report_task): click
+  # Generate Report, wait for the background mirai worker to finish, confirm
+  # report_path() now points at a real PDF-ish file, that download_ready_ui
+  # renders the real download button, and that dl_report's now-trivial
+  # content() (file.copy() from report_path()) actually produces output.
+  #
+  # Requires directCareAnalytics to be a genuinely *installed* package, not
+  # just devtools::load_all()-loaded: report_task's mirai worker runs in a
+  # separate R process and resolves directCareAnalytics:::render_report_pdf()
+  # via .libPaths(), which only finds it if `R CMD INSTALL` (as the
+  # Dockerfile does, "install.packages('.', repos = NULL, type = 'source')")
+  # has actually run -- devtools::test()'s own in-process load_all() doesn't
+  # make the package visible to a separate worker process (find.package() in
+  # *this* process would misleadingly say yes, via load_all()'s own shim, so
+  # the check below asks a real worker process instead). Skipped rather than
+  # failing under the normal local/devtools::test() loop; runs for real
+  # against a build that did install the package (e.g. R CMD check, or a
+  # Docker image build).
+  skip_if_not(
+    isTRUE(tryCatch(
+      mirai::mirai(requireNamespace("directCareAnalytics", quietly = TRUE))[],
+      error = function(e) FALSE
+    )),
+    "requires an installed (not dev-loaded) directCareAnalytics package so the report_task mirai worker can resolve render_report_pdf()"
+  )
+
+  r <- make_monthly_r(6)
+  r$practice_name <- "Test Practice"
+
+  testServer(mod_projections_server, args = list(r = r), {
+    session$setInputs(
+      method = "linear",
+      horizon = 3,
+      confidence = 0.95,
+      forecast_type = "breakeven"
+    )
+    session$setInputs(btn_run = 1)
+    wait_for_task(forecast_task)
+
+    session$setInputs(btn_generate_report = 1)
+    wait_for_task(report_task)
+
+    expect_false(is.null(report_path()))
+    expect_true(file.exists(report_path()))
+
+    ready_html <- as.character(output$download_ready_ui$html)
+    expect_true(grepl("Download Report", ready_html, fixed = TRUE))
+
+    expect_no_error(force(output$dl_report))
+  })
 })

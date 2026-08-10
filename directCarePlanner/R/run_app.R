@@ -21,6 +21,35 @@ run_app <- function(
   # production so local development still sees real error messages.
   options(shiny.sanitize.errors = get_golem_config("app_prod"))
 
+  # Persistent background-process pool for mod_results.R's Generate Report
+  # ExtendedTask (see its own comment for the full rationale) -- set up once
+  # per app process, here, rather than lazily on first use, so the first
+  # click of a session doesn't pay a ~1s worker-spawn cost on top of report
+  # generation itself. n = 2 is a deliberately modest pool, matching
+  # directCareAnalytics's own daemons(n = 2): no CPU/memory limit set in
+  # docker-compose.yml, and a small practice-facing tool has no need for
+  # more than a couple of concurrent background report generations at once.
+  mirai::daemons(n = 2)
+
+  # mod_results.R's Generate Report ExtendedTask writes PDFs into this
+  # dedicated subdirectory (.report_output_dir(), utils_globals.R) rather
+  # than the tempdir root, so they're easy to sweep separately from
+  # anything else using tempfile(). Per-session cleanup (onSessionEnded,
+  # mod_results.R) handles the common cases, but a mirai task isn't tied to
+  # session lifecycle, so a session ending mid-generation orphans its
+  # eventual output with nothing left to clean it up -- this recurring
+  # sweep is the actual backstop for that case, not a redundant nicety.
+  # 2 hours / 30-minute cadence are Phase-1 starting values, not tuned
+  # against real usage. (.report_output_dir() creates the directory itself
+  # if needed, so no separate dir.create() call here.)
+  sweep_old_reports <- function() {
+    old <- list.files(.report_output_dir(), full.names = TRUE)
+    old <- old[file.info(old)$mtime < Sys.time() - 2 * 60 * 60]
+    if (length(old) > 0L) unlink(old)
+    later::later(sweep_old_reports, delay = 30 * 60)
+  }
+  later::later(sweep_old_reports, delay = 30 * 60)
+
   # Resource path must be registered before secure_app() wraps the UI --
   # golem_add_external_resources() (which normally does this) only runs
   # inside app_ui(), which shinymanager doesn't call until after a

@@ -186,3 +186,84 @@ test_that("build_report_data's plan_tier_label defaults to Free when r$plan_tier
     {}
   )
 })
+
+# -- render_report_pdf (real Typst compile) -----------------------------------
+# Real, unmocked coverage of render_report_pdf() itself, mirroring
+# directCarePlanR/tests/testthat/test-report.R's pattern for
+# render_plan_report(). This is now the only test that actually exercises
+# typst/ggsave -- once render_report_pdf() moved inside mod_projections.R's
+# report_task mirai worker (see that file's comment), local_mocked_bindings()
+# in test-mod-projections.R can no longer intercept it (a mirai worker loads
+# the real installed package fresh in a separate process, invisible to
+# mocks set up in the test process), so this direct call is what validates
+# actual PDF-generation correctness going forward.
+
+test_that("render_report_pdf() compiles a real, non-empty PDF", {
+  skip_if(
+    nzchar(Sys.which("typst")) == FALSE && !requireNamespace("typr", quietly = TRUE),
+    "no typst toolchain available"
+  )
+
+  shiny::testServer(
+    function(input, output, session) {
+      r <- make_r(scenario_inputs = NULL, transactions = NULL)
+      data <- build_report_data(r, list(confidence = 0.95))
+
+      out_file <- tempfile(fileext = ".pdf")
+      on.exit(unlink(out_file))
+      result <- render_report_pdf(data, out_file)
+
+      expect_equal(result, out_file)
+      expect_true(file.exists(out_file))
+      expect_gt(file.size(out_file), 0)
+    },
+    {}
+  )
+})
+
+test_that("render_report_pdf() includes forecast plots when breakeven/revenue/target results are supplied", {
+  skip_if(
+    nzchar(Sys.which("typst")) == FALSE && !requireNamespace("typr", quietly = TRUE),
+    "no typst toolchain available"
+  )
+
+  shiny::testServer(
+    function(input, output, session) {
+      r <- make_r(scenario_inputs = NULL, transactions = NULL)
+      bkevn_res <- list(
+        breakeven_date = as.Date("2026-03-01"),
+        periods_to_breakeven = 3L,
+        current_surplus_deficit = -500,
+        current_revenue = 4000,
+        current_overhead = 5000,
+        current_overhead_avg = 5000,
+        overhead_avg_n = 3L,
+        confidence_interval = c(lower = as.Date(NA), upper = as.Date(NA)),
+        forecast_data = make_bkevn_fd(with_overhead_ci = TRUE),
+        method = "linear",
+        frequency = "monthly",
+        data_warnings = NULL
+      )
+      data <- build_report_data(
+        r,
+        list(confidence = 0.95),
+        breakeven_res = bkevn_res,
+        interpret_bkevn = "<p>test</p>"
+      )
+
+      out_file <- tempfile(fileext = ".pdf")
+      on.exit(unlink(out_file))
+      render_report_pdf(
+        data,
+        out_file,
+        breakeven_res = bkevn_res,
+        income_monthly = r$income_monthly,
+        overhead_monthly = r$overhead_monthly
+      )
+
+      expect_true(file.exists(out_file))
+      expect_gt(file.size(out_file), 0)
+    },
+    {}
+  )
+})

@@ -1088,21 +1088,27 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # layout and already has nonzero size before Run Forecast is even
   # clicked, so it would report "ready" instantly -- before the real
   # computation this transition actually needs to wait on. `ready_el`
-  # overrides the poll target to `projections-dl_report` instead (the
-  # download button, only rendered via `uiOutput()` once a forecast result
-  # exists -- see the comment on `.tour_wait_and_switch()` above), while the
-  # tour still opens on `projections-forecast_type` as its first
-  # highlighted step.
+  # overrides the poll target to `projections-btn_generate_report` instead
+  # (the Generate Report button, only rendered via `uiOutput()` once a
+  # forecast result exists -- see the comment on `.tour_wait_and_switch()`
+  # above), while the tour still opens on `projections-forecast_type` as its
+  # first highlighted step. Deliberately NOT `projections-dl_report`: since
+  # the PDF report itself now generates asynchronously (mod_projections.R's
+  # report_task), that button only appears after the user clicks Generate
+  # Report and waits for it to resolve -- polling for it here would leave
+  # the tour hanging for anyone who doesn't do that mid-tour, whereas
+  # btn_generate_report appears at the exact same original timing (right
+  # after a forecast completes).
   observeEvent(
     input[["projections-btn_run"]],
     {
       .tour_advance(
         "historical", guide_proj2, "projections-forecast_type",
-        ready_el = "projections-dl_report"
+        ready_el = "projections-btn_generate_report"
       )
       .tour_advance(
         "plan", guide_proj2, "projections-forecast_type",
-        ready_el = "projections-dl_report"
+        ready_el = "projections-btn_generate_report"
       )
     },
     ignoreInit = TRUE

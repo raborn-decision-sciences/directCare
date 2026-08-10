@@ -425,7 +425,8 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
             icon = bsicons::bs_icon("play-fill"),
             class = "btn-primary w-100"
           ),
-          uiOutput(ns("download_ui"))
+          uiOutput(ns("download_ui")),
+          uiOutput(ns("download_ready_ui"))
           # Back navigation moves to the shared sticky footer below (see
           # .tour_nav_footer()) -- kept out of the sidebar to avoid showing
           # two Back controls at once.
@@ -1458,7 +1459,7 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         return(NULL)
       }
       oa <- overhead_assumptions()
-      goal_seek_breakeven(
+      .log_elapsed("goal_seek_breakeven", goal_seek_breakeven(
         breakeven_result(),
         current_income_growth_pct = input$income_growth %||% 0,
         current_overhead_growth_pct = oa$growth_pct,
@@ -1467,7 +1468,7 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         fee_events = fee_events_df(),
         panel_size = r$panel_size,
         membership_fee = r$membership_fee
-      )
+      ))
     })
 
     # Pro-exclusive, mirror image of breakeven_goal_seek: how many members'
@@ -1570,7 +1571,7 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         return(NULL)
       }
       oa <- overhead_assumptions()
-      goal_seek_target(
+      .log_elapsed("goal_seek_target", goal_seek_target(
         target_result(),
         current_income_growth_pct = input$income_growth %||% 0,
         current_overhead_growth_pct = oa$growth_pct,
@@ -1580,7 +1581,7 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         fee_events = fee_events_df(),
         panel_size = r$panel_size,
         membership_fee = r$membership_fee
-      )
+      ))
     })
 
     # -- Break-even UI --------------------------------------------------------
@@ -2044,7 +2045,90 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
       tryCatch(expr, shiny.silent.error = function(e) NULL)
     }
 
-    # -- Sidebar download button (appears once any forecast has been run) ------
+    # -- Async PDF report generation ------------------------------------------
+    # render_report_pdf() shells out to a real `typst compile` subprocess plus
+    # up to 3 ggplot2::ggsave() renders -- like Run Forecast above, this would
+    # otherwise block the *entire app* (every other session, not just this
+    # one) for its duration, since this is a single-process Shiny app. Mirrors
+    # forecast_task's ExtendedTask + mirai pattern above, deliberately sharing
+    # its daemon pool (mirai::daemons(n = 2), run_app.R) rather than starting
+    # a second one -- a shared pool just FIFO-queues mirai() calls regardless
+    # of task type, and within one practice's own session the two task types
+    # already run one at a time (run forecast, then separately generate a
+    # report), so they don't newly compete with each other; only concurrent
+    # *different* practices do, the same load driver run_app.R's n = 2 comment
+    # already accounts for.
+    #
+    # build_report_data()/interpret_*() stay in the main process below (they
+    # read `r`, a reactiveValues object, which has no meaning inside a
+    # worker) -- only their resulting plain list/strings, plus
+    # render_report_pdf()'s other already-plain arguments, cross into
+    # $invoke(). out_path is computed in the main process (never via
+    # tempfile() inside the mirai::mirai({...}) block itself, which would
+    # bind the path to the long-lived daemon process's own session tempdir
+    # instead of a per-call scope) and lands inside .report_output_dir()
+    # (utils_globals.R) so run_app.R's periodic sweep can find it if this
+    # session ends before the task resolves.
+    #
+    # render_report_pdf() is `@noRd` (not exported), so the worker -- which
+    # loads the installed package fresh, not this file's own namespace --
+    # needs directCareAnalytics::: (not ::) to reach it.
+    report_task <- ExtendedTask$new(function(
+      out_path,
+      data,
+      breakeven_res,
+      revenue_res,
+      target_res,
+      income_monthly,
+      overhead_monthly
+    ) {
+      mirai::mirai(
+        {
+          result <- tryCatch(
+            {
+              directCareAnalytics:::render_report_pdf(
+                data,
+                out_path,
+                breakeven_res = breakeven_res,
+                revenue_res = revenue_res,
+                target_res = target_res,
+                income_monthly = income_monthly,
+                overhead_monthly = overhead_monthly
+              )
+              list(out_path = out_path)
+            },
+            error = function(e) {
+              structure(list(message = conditionMessage(e)), class = "report_task_error")
+            }
+          )
+          result
+        },
+        out_path = out_path,
+        data = data,
+        breakeven_res = breakeven_res,
+        revenue_res = revenue_res,
+        target_res = target_res,
+        income_monthly = income_monthly,
+        overhead_monthly = overhead_monthly
+      )
+    })
+    bslib::bind_task_button(report_task, "btn_generate_report")
+
+    # Path of the most recently generated report for this session, or NULL
+    # before the first Generate click / after a click while regeneration is
+    # still in flight (see the invoke observer below, which resets this
+    # immediately to hide the stale download button). Per-session best-effort
+    # cleanup here; run_app.R's periodic sweep is the real backstop for a
+    # session that ends mid-generation (see .report_output_dir()'s comment).
+    report_path <- reactiveVal(NULL)
+    session$onSessionEnded(function() {
+      p <- isolate(report_path())
+      if (!is.null(p) && file.exists(p)) {
+        unlink(p)
+      }
+    })
+
+    # -- Sidebar Generate Report button (appears once any forecast has run) --
     output$download_ui <- renderUI({
       have <- c(
         "Break-even" = !is.null(.safe_result(adj_breakeven())),
@@ -2057,9 +2141,10 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
 
       missing_names <- names(have)[!have]
       tagList(
-        downloadButton(
-          ns("dl_report"),
-          tagList(bs_icon("file-earmark-pdf"), " Download Report"),
+        input_task_button(
+          ns("btn_generate_report"),
+          "Generate Report",
+          icon = bs_icon("file-earmark-pdf"),
           class = "btn-outline-secondary w-100 mt-2"
         ),
         if (length(missing_names) > 0L) {
@@ -2074,7 +2159,118 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
       )
     })
 
-    # -- Comprehensive PDF report handler -------------------------------------
+    observeEvent(input$btn_generate_report, {
+      old <- isolate(report_path())
+      if (!is.null(old) && file.exists(old)) {
+        unlink(old)
+      }
+      report_path(NULL)
+
+      bkevn_res <- .safe_result(adj_breakeven())
+      rev_res <- .safe_result(adj_revenue())
+      tgt_res <- .safe_result(adj_target())
+
+      # Collect interpretation text (HTML \u2192 plain text handled inside build_report_data).
+      # goal_seek/stress_test reuse the same already-Pro-gated reactives the
+      # live UI uses (each internally checks .has_pro_plan() and returns
+      # NULL for non-Pro), so a Free/Starter report simply gets neither
+      # paragraph -- no separate gating needed here. badge = FALSE because
+      # a "Pro" badge makes no sense inside a document the paying user
+      # already owns; the report instead carries its own, differently-
+      # styled tier indicator (see build_report_data()'s plan_tier field).
+      bkevn_text <- if (!is.null(bkevn_res)) {
+        interpret_breakeven(
+          bkevn_res,
+          r$practice_name,
+          sustained = breakeven_is_sustained(bkevn_res),
+          panel_size = r$panel_size,
+          membership_fee = r$membership_fee,
+          membership_tiers = r$membership_tiers,
+          confidence_level = input$confidence,
+          goal_seek = breakeven_goal_seek(),
+          stress_test = breakeven_stress_test(),
+          badge = FALSE
+        )
+      } else {
+        NULL
+      }
+
+      rev_text <- if (!is.null(rev_res)) {
+        interpret_revenue(
+          rev_res,
+          r$practice_name,
+          panel_size = r$panel_size,
+          membership_fee = r$membership_fee,
+          membership_tiers = r$membership_tiers,
+          confidence_level = input$confidence
+        )
+      } else {
+        NULL
+      }
+
+      tgt_text <- if (!is.null(tgt_res)) {
+        interpret_target(
+          tgt_res,
+          r$practice_name,
+          input$target_income,
+          sustained = target_is_sustained(tgt_res),
+          panel_size = r$panel_size,
+          membership_fee = r$membership_fee,
+          membership_tiers = r$membership_tiers,
+          goal_seek = target_goal_seek(),
+          badge = FALSE
+        )
+      } else {
+        NULL
+      }
+
+      data <- build_report_data(
+        r = r,
+        inputs = list(
+          method = input$method,
+          horizon = input$horizon,
+          confidence = input$confidence,
+          target_income = input$target_income
+        ),
+        breakeven_res = bkevn_res,
+        revenue_res = rev_res,
+        target_res = tgt_res,
+        interpret_bkevn = bkevn_text,
+        interpret_rev = rev_text,
+        interpret_tgt = tgt_text
+      )
+
+      out_path <- tempfile(fileext = ".pdf", tmpdir = .report_output_dir())
+      report_task$invoke(
+        out_path = out_path,
+        data = data,
+        breakeven_res = bkevn_res,
+        revenue_res = rev_res,
+        target_res = tgt_res,
+        income_monthly = r$income_monthly,
+        overhead_monthly = r$overhead_monthly
+      )
+    })
+
+    observeEvent(report_task$result(), {
+      res <- report_task$result()
+      if (inherits(res, "report_task_error")) {
+        showNotification(res$message, type = "error", duration = 8)
+        return(invisible())
+      }
+      report_path(res$out_path)
+    })
+
+    # -- Sidebar Download Report button (appears once generation resolves) ---
+    output$download_ready_ui <- renderUI({
+      req(report_path())
+      downloadButton(
+        ns("dl_report"),
+        tagList(bs_icon("file-earmark-arrow-down"), " Download Report"),
+        class = "btn-outline-secondary w-100 mt-2"
+      )
+    })
+
     output$dl_report <- downloadHandler(
       filename = function() {
         # Slugified practice_name, not practice_id -- practice_id is now
@@ -2090,91 +2286,8 @@ mod_projections_server <- function(id, r, parent_session = NULL, demo_mode = NUL
         )
       },
       content = function(file) {
-        bkevn_res <- .safe_result(adj_breakeven())
-        rev_res <- .safe_result(adj_revenue())
-        tgt_res <- .safe_result(adj_target())
-
-        # Collect interpretation text (HTML \u2192 plain text handled inside build_report_data).
-        # goal_seek/stress_test reuse the same already-Pro-gated reactives the
-        # live UI uses (each internally checks .has_pro_plan() and returns
-        # NULL for non-Pro), so a Free/Starter report simply gets neither
-        # paragraph -- no separate gating needed here. badge = FALSE because
-        # a "Pro" badge makes no sense inside a document the paying user
-        # already owns; the report instead carries its own, differently-
-        # styled tier indicator (see build_report_data()'s plan_tier field).
-        bkevn_text <- if (!is.null(bkevn_res)) {
-          interpret_breakeven(
-            bkevn_res,
-            r$practice_name,
-            sustained = breakeven_is_sustained(bkevn_res),
-            panel_size = r$panel_size,
-            membership_fee = r$membership_fee,
-            membership_tiers = r$membership_tiers,
-            confidence_level = input$confidence,
-            goal_seek = breakeven_goal_seek(),
-            stress_test = breakeven_stress_test(),
-            badge = FALSE
-          )
-        } else {
-          NULL
-        }
-
-        rev_text <- if (!is.null(rev_res)) {
-          interpret_revenue(
-            rev_res,
-            r$practice_name,
-            panel_size = r$panel_size,
-            membership_fee = r$membership_fee,
-            membership_tiers = r$membership_tiers,
-            confidence_level = input$confidence
-          )
-        } else {
-          NULL
-        }
-
-        tgt_text <- if (!is.null(tgt_res)) {
-          interpret_target(
-            tgt_res,
-            r$practice_name,
-            input$target_income,
-            sustained = target_is_sustained(tgt_res),
-            panel_size = r$panel_size,
-            membership_fee = r$membership_fee,
-            membership_tiers = r$membership_tiers,
-            goal_seek = target_goal_seek(),
-            badge = FALSE
-          )
-        } else {
-          NULL
-        }
-
-        data <- build_report_data(
-          r = r,
-          inputs = list(
-            method = input$method,
-            horizon = input$horizon,
-            confidence = input$confidence,
-            target_income = input$target_income
-          ),
-          breakeven_res = bkevn_res,
-          revenue_res = rev_res,
-          target_res = tgt_res,
-          interpret_bkevn = bkevn_text,
-          interpret_rev = rev_text,
-          interpret_tgt = tgt_text
-        )
-
-        withProgress(message = "Generating PDF report\u2026", value = 0.5, {
-          render_report_pdf(
-            data,
-            file,
-            breakeven_res = bkevn_res,
-            revenue_res = rev_res,
-            target_res = tgt_res,
-            income_monthly = r$income_monthly,
-            overhead_monthly = r$overhead_monthly
-          )
-        })
+        req(report_path())
+        file.copy(report_path(), file)
       }
     )
 

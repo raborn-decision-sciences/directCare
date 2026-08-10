@@ -10,6 +10,46 @@ NULL
 # render. Matches directCareAnalytics's R/utils_globals.R convention.
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' Time an expression and log its elapsed wall time
+#'
+#' Matches directCareAnalytics's R/utils_globals.R identical helper -- see
+#' that file's own roxygen comment for the full rationale (Phase 0 of the
+#' performance-improvement plan in TODO.md). Any call wrapped here that
+#' isn't routed through `mod_results.R`'s `report_task` `ExtendedTask` is
+#' still a full-app-blocking call, same as before that was added.
+#'
+#' @param label Short identifier for the call site, e.g.
+#'   `"goal_seek_projection_recovery"`.
+#' @param expr The expression to time and return the value of.
+#'
+#' @noRd
+.log_elapsed <- function(label, expr) {
+  t0 <- proc.time()[["elapsed"]]
+  on.exit(message(sprintf(
+    "[perf] %s elapsed_ms=%s",
+    label,
+    round((proc.time()[["elapsed"]] - t0) * 1000)
+  )), add = TRUE)
+  expr
+}
+
+#' Directory for async report_task's generated PDF files
+#'
+#' Matches directCareAnalytics's R/utils_globals.R identical helper -- see
+#' that file's own roxygen comment for the full rationale. `mod_results.R`'s
+#' `report_task` (`ExtendedTask`) writes its PDF output here instead of a
+#' bare `tempfile()` in the tempdir root, so `run_app.R`'s periodic sweep
+#' can find and clean up files whose session ended mid-generation. Creates
+#' the directory on every call (cheap/idempotent) rather than relying
+#' solely on `run_app()`'s one-time setup, since `testServer()`-based tests
+#' invoke module servers directly without ever calling `run_app()`.
+#' @noRd
+.report_output_dir <- function() {
+  dir <- file.path(tempdir(), "planner_reports")
+  dir.create(dir, showWarnings = FALSE)
+  dir
+}
+
 #' JS handler that redirects the browser to a Stripe-hosted URL
 #'
 #' Matches directCareAnalytics's R/utils_globals.R convention -- see that
