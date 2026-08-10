@@ -206,7 +206,17 @@ test_that("Generate Report resolves to a real file and reveals the download butt
   # app package itself and is only dev-loaded, not installed, under
   # devtools::test()), render_plan_report() is exported from directCarePlanR,
   # a genuinely installed dependency package -- so this runs for real here,
-  # no install-time skip needed.
+  # no install-time skip needed. It does still need an actual typst
+  # toolchain (CLI binary or the typr R fallback) to compile the PDF,
+  # which directCarePlanner.yaml's CI doesn't install (unlike
+  # directCarePlanR.yaml's own suite, which does) -- skip rather than fail
+  # there, matching directCareAnalytics/tests/testthat/test-utils-report.R's
+  # identical guard for its own real-typst-compile test.
+  skip_if(
+    nzchar(Sys.which("typst")) == FALSE && !requireNamespace("typr", quietly = TRUE),
+    "no typst toolchain available"
+  )
+
   r <- fixture_populated_r()
   r$plan_tier <- "pro"
 
