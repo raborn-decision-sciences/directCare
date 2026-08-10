@@ -22,6 +22,14 @@
 # were already covered by directCareAuth's list below, so only the local
 # install step and path triggers needed the addition.
 #
+# Same bug a third time when `later`/`mirai` were added as new Imports:
+# dependencies of directCarePlanner (async PDF report generation via
+# ExtendedTask) without updating the CRAN dependency list below -- CI
+# failed with "Package required but not available: 'mirai'". Every new
+# top-level Imports: dependency needs adding here explicitly; this
+# workflow does not resolve DESCRIPTION's Imports automatically the way a
+# normal pak-based setup would.
+#
 # Unlike directCarePlanR, directCarePlanner's tests don't exercise the
 # PDF-report download handler (no testServer() call touches
 # output$dl_report), so no Typst binary is needed here.
@@ -60,7 +68,7 @@ jobs:
         # no CRAN deps listed here at all). directCareBilling's own Imports
         # (DBI/httr2/openssl) are already covered by directCareAuth's list.
         run: |
-          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "openssl", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "later", "mirai", "openssl", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
       - name: Install local directCareAuth, directCareBilling, directCareData, directCarePlanR, and directCareScenarios
         run: |

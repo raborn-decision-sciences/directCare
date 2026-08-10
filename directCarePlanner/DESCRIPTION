@@ -10,6 +10,8 @@ Description: A Golem-based Shiny app that wraps the directCarePlanR
     multi-scenario financial projections, capital requirements, and a
     downloadable PDF launch plan.
 License: Apache License (>= 2) | file LICENSE
+Depends:
+    R (>= 4.1.0)
 Imports:
     bcrypt,
     bsicons,
