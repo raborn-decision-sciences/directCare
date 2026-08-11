@@ -60,7 +60,12 @@ stripe_create_checkout_session <- function(practice_id, price_lookup_key,
       success_url = success_url,
       cancel_url = cancel_url,
       "line_items[0][price]" = price_id,
-      "line_items[0][quantity]" = "1"
+      "line_items[0][quantity]" = "1",
+      # Off by default on every Checkout Session -- without this, Stripe
+      # never renders an "Add promotion code" field on the hosted page at
+      # all, regardless of what Coupons/Promotion Codes exist in the
+      # Dashboard. Not a Dashboard setting; must be set per-session here.
+      allow_promotion_codes = "true"
     ) |>
     httr2::req_perform() |>
     httr2::resp_body_json()

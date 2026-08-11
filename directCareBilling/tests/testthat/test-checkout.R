@@ -48,6 +48,7 @@ test_that("stripe_create_checkout_session resolves the price and returns the ses
   expect_equal(body_data$client_reference_id, "42")
   expect_equal(body_data$customer_email, "doc@example.com")
   expect_equal(body_data[["line_items[0][price]"]], "price_abc")
+  expect_equal(body_data$allow_promotion_codes, "true")
 })
 
 test_that("stripe_create_checkout_session errors if no active price matches the lookup_key", {
