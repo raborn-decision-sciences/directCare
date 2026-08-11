@@ -25,6 +25,25 @@
 	}
 }
 
+# Performance Backlog Phase 3: response compression + static-asset caching,
+# both free wins at this layer with no app-code risk.
+(compression) {
+	encode zstd gzip
+}
+
+(static_cache) {
+	# No cache-busting hash in these filenames (golem's default static
+	# serving), so a long-lived cache risks staleness after a real deploy --
+	# max-age=86400 (1 day) is a Phase-3 starting value, not yet tuned.
+	@static path *.css *.js *.svg *.png *.jpg *.jpeg *.ico *.woff *.woff2
+	header @static {
+		# Delete first in case httpuv already sets one on these responses --
+		# same duplicate-header guard as X-Content-Type-Options above.
+		-Cache-Control
+		Cache-Control "public, max-age=86400"
+	}
+}
+
 (maintenance_page) {
 	# Served whenever the upstream app container is unreachable (e.g.
 	# mid-deploy, between the old container stopping and the new one
@@ -181,12 +200,16 @@
 app.directcareanalytics.com {
 	import security_headers
 	import maintenance_page
+	import compression
+	import static_cache
 	reverse_proxy dca:3838
 }
 
 planner.directcareanalytics.com {
 	import security_headers
 	import maintenance_page
+	import compression
+	import static_cache
 	reverse_proxy planner:3838
 }
 

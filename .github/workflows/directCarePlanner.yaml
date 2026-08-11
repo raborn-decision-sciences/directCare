@@ -68,7 +68,7 @@ jobs:
         # no CRAN deps listed here at all). directCareBilling's own Imports
         # (DBI/httr2/openssl) are already covered by directCareAuth's list.
         run: |
-          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "later", "mirai", "openssl", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
+          Rscript -e 'install.packages(c("dplyr", "jsonlite", "rlang", "tibble", "bcrypt", "bsicons", "bslib", "config", "DBI", "DT", "ggplot2", "golem", "httr2", "later", "mirai", "openssl", "pool", "RPostgres", "scales", "shiny", "shinymanager", "thematic", "testthat", "withr", "rcmdcheck"))'
 
       - name: Install local directCareAuth, directCareBilling, directCareData, directCarePlanR, and directCareScenarios
         run: |

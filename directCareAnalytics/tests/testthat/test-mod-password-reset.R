@@ -30,7 +30,7 @@ test_that(".extract_reset_token returns NULL for a blank token value", {
 
 test_that("request_submit rejects a blank email without touching the DB", {
   local_mocked_bindings(
-    db_connect = function() stop("db_connect() should not be called"),
+    db_checkout = function() stop("db_checkout() should not be called"),
     .package = "directCareAuth"
   )
 
@@ -44,7 +44,7 @@ test_that("request_submit shows the generic message and sends an email for a kno
   logged <- list()
   sent <- NULL
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     auth_event_log = function(con, event_type, email = NA, practice_id = NA,
                                detail = NA, ip_address = NA) {
@@ -60,7 +60,7 @@ test_that("request_submit shows the generic message and sends an email for a kno
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
   withr::local_envvar(APP_BASE_URL = "https://app.example.com")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
@@ -75,7 +75,7 @@ test_that("request_submit shows the generic message and sends an email for a kno
 
 test_that("request_submit shows the same generic message for an unknown email, without sending", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     password_reset_is_rate_limited = function(con, email) FALSE,
@@ -84,7 +84,7 @@ test_that("request_submit shows the same generic message for an unknown email, w
     send_password_reset_email = function(...) stop("send_password_reset_email() should not be called"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(email = "nobody@example.com", request_submit = 1)
@@ -94,7 +94,7 @@ test_that("request_submit shows the same generic message for an unknown email, w
 
 test_that("request_submit skips the lookup entirely when rate-limited by email", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     password_reset_is_rate_limited = function(con, email) TRUE,
@@ -102,7 +102,7 @@ test_that("request_submit skips the lookup entirely when rate-limited by email",
     password_reset_request = function(...) stop("password_reset_request() should not be called"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(email = "doc@example.com", request_submit = 1)
@@ -112,7 +112,7 @@ test_that("request_submit skips the lookup entirely when rate-limited by email",
 
 test_that("request_submit skips the lookup entirely when rate-limited by IP", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) "203.0.113.7",
     auth_event_log = function(...) invisible(NULL),
     password_reset_is_rate_limited = function(con, email) FALSE,
@@ -120,7 +120,7 @@ test_that("request_submit skips the lookup entirely when rate-limited by IP", {
     password_reset_request = function(...) stop("password_reset_request() should not be called"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(email = "someone@example.com", request_submit = 1)
@@ -134,7 +134,7 @@ test_that("request_submit skips the lookup entirely when rate-limited by IP", {
 
 test_that("reset_submit rejects mismatched passwords without calling password_reset_consume", {
   local_mocked_bindings(
-    db_connect = function() stop("db_connect() should not be called"),
+    db_checkout = function() stop("db_checkout() should not be called"),
     .package = "directCareAuth"
   )
 
@@ -150,14 +150,14 @@ test_that("reset_submit rejects mismatched passwords without calling password_re
 test_that("reset_submit succeeds: marks reset_done and logs completion", {
   logged <- NULL
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     password_reset_consume = function(con, token, new_password) list(ok = TRUE, practice_id = 1L),
     auth_event_log = function(con, event_type, email = NA, practice_id = NA, detail = NA) {
       logged <<- list(event_type = event_type, practice_id = practice_id)
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(
@@ -172,11 +172,11 @@ test_that("reset_submit succeeds: marks reset_done and logs completion", {
 
 test_that("reset_submit surfaces an invalid/expired token error", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     password_reset_consume = function(...) list(ok = FALSE, reason = "invalid_or_expired_token"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(
@@ -190,11 +190,11 @@ test_that("reset_submit surfaces an invalid/expired token error", {
 
 test_that("reset_submit surfaces a weak-password error", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     password_reset_consume = function(...) list(ok = FALSE, reason = "weak_password"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_password_reset_server, args = list(id = "reset"), {
     session$setInputs(

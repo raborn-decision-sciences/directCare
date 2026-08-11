@@ -24,8 +24,8 @@
 #'   `auth_is_locked_out_by_ip()` treats `NA` as "nothing to gate on".
 #' @noRd
 check_credentials_db <- function(user, password, ip = NA_character_) {
-  con <- directCareAuth::db_connect()
-  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  con <- directCareAuth::db_checkout()
+  on.exit(directCareAuth::db_release(con), add = TRUE)
 
   if (directCareAuth::auth_is_locked_out(con, user) ||
         directCareAuth::auth_is_locked_out_by_ip(con, ip)) {

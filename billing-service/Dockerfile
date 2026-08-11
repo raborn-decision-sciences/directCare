@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # apt package needed.
 ARG PPM_SNAPSHOT_DATE=2026-07-19
 RUN R -e "install.packages(c( \
-    'plumber', 'DBI', 'RPostgres', 'httr2', 'openssl', 'jsonlite', 'bcrypt' \
+    'plumber', 'DBI', 'RPostgres', 'httr2', 'openssl', 'jsonlite', 'bcrypt', 'pool' \
   ), repos = 'https://packagemanager.posit.co/cran/__linux__/jammy/${PPM_SNAPSHOT_DATE}')"
 
 # Same non-root convention as docker/base.Dockerfile (same UID, so the

@@ -378,8 +378,8 @@ mod_results_server <- function(id, r, parent_session = NULL) {
     scenario_compare_state <- reactive({
       req(r$projections)
       req(r$practice_id)
-      con <- directCareAuth::db_connect()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      con <- directCareAuth::db_checkout()
+      on.exit(directCareAuth::db_release(con), add = TRUE)
       listed <- directCareScenarios::scenario_list(con, "plan_scenarios", r$practice_id)
       if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
         return(list(count = nrow(listed), narrative = NULL))

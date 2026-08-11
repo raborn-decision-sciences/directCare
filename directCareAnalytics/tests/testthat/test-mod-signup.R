@@ -38,7 +38,7 @@ test_that("a successful signup moves to the plan picker and logs a signup event"
   logged <- NULL
   captured <- NULL
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -52,7 +52,7 @@ test_that("a successful signup moves to the plan picker and logs a signup event"
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -76,7 +76,7 @@ test_that("a successful signup moves to the plan picker and logs a signup event"
 test_that("filled-in optional profile fields are passed through to practice_create()", {
   captured <- NULL
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -87,7 +87,7 @@ test_that("filled-in optional profile fields are passed through to practice_crea
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -108,7 +108,7 @@ test_that("filled-in optional profile fields are passed through to practice_crea
 
 test_that("choosing Free from the plan picker moves to the done stage", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -116,7 +116,7 @@ test_that("choosing Free from the plan picker moves to the done stage", {
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -131,7 +131,7 @@ test_that("choosing Free from the plan picker moves to the done stage", {
 
 test_that("choosing Starter from the plan picker starts a Checkout redirect", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -139,7 +139,7 @@ test_that("choosing Starter from the plan picker starts a Checkout redirect", {
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   captured <- NULL
   local_mocked_bindings(
@@ -171,7 +171,7 @@ test_that("choosing Starter from the plan picker starts a Checkout redirect", {
 
 test_that("email_taken keeps the form up", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -179,7 +179,7 @@ test_that("email_taken keeps the form up", {
     practice_create = function(...) list(ok = FALSE, reason = "email_taken"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -193,7 +193,7 @@ test_that("email_taken keeps the form up", {
 
 test_that("weak_password keeps the form up", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     signup_is_rate_limited = function(...) FALSE,
     signup_is_rate_limited_by_ip = function(...) FALSE,
@@ -201,7 +201,7 @@ test_that("weak_password keeps the form up", {
     practice_create = function(...) list(ok = FALSE, reason = "weak_password"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -215,7 +215,7 @@ test_that("weak_password keeps the form up", {
 
 test_that("a rate-limited email shows a message and never calls practice_create", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) NA_character_,
     auth_event_log = function(...) invisible(NULL),
     signup_is_rate_limited = function(...) TRUE,
@@ -223,7 +223,7 @@ test_that("a rate-limited email shows a message and never calls practice_create"
     practice_create = function(...) stop("practice_create() should not be called"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(
@@ -237,7 +237,7 @@ test_that("a rate-limited email shows a message and never calls practice_create"
 
 test_that("a rate-limited IP shows a message and never calls practice_create", {
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     extract_client_ip = function(session) "203.0.113.7",
     auth_event_log = function(...) invisible(NULL),
     signup_is_rate_limited = function(...) FALSE,
@@ -245,7 +245,7 @@ test_that("a rate-limited IP shows a message and never calls practice_create", {
     practice_create = function(...) stop("practice_create() should not be called"),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   testServer(mod_signup_server, {
     session$setInputs(

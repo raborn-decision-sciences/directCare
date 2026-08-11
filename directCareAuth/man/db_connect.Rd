@@ -11,7 +11,7 @@ An open \code{DBI} connection. Caller is responsible for
 \code{DBI::dbDisconnect()}.
 }
 \description{
-Connection params come from env vars set in docker-compose.yml. The
-password is read from a Docker secret file (DB_PASSWORD_FILE) when
-present, falling back to a plain DB_PASSWORD env var for local dev.
+Connection params come from env vars set in docker-compose.yml. See
+\code{\link[=db_pool]{db_pool()}}/\code{\link[=db_checkout]{db_checkout()}} for a pooled alternative -- most callers in
+this codebase should prefer that over \code{db_connect()}.
 }

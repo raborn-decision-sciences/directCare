@@ -31,6 +31,17 @@ run_app <- function(
   # forecasts at once.
   mirai::daemons(n = 2)
 
+  # Shared Postgres connection pool (Performance Backlog Phase 3) -- pre-
+  # warmed here, once per app process, rather than lazily on first
+  # checkout, so the first request of a session doesn't pay the pool's
+  # initial-connection cost on top of its own work. See
+  # directCareAuth::db_pool()'s own comment for the minSize/maxSize
+  # rationale. onStop() closes the pool's connections on a clean shutdown;
+  # a no-op is fine on an unclean one (container kill), same as every
+  # other in-process state here.
+  directCareAuth::db_pool()
+  shiny::onStop(directCareAuth::db_pool_close)
+
   # mod_projections.R's Generate Report ExtendedTask writes PDFs into this
   # dedicated subdirectory (.report_output_dir(), utils_globals.R) rather
   # than the tempdir root, so they're easy to sweep separately from

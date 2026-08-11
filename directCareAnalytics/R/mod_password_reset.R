@@ -105,8 +105,8 @@ mod_password_reset_server <- function(id) {
         return()
       }
 
-      con <- directCareAuth::db_connect()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      con <- directCareAuth::db_checkout()
+      on.exit(directCareAuth::db_release(con), add = TRUE)
       ip <- directCareAuth::extract_client_ip(session)
 
       # Logged unconditionally -- both for the audit trail and so the rate
@@ -152,8 +152,8 @@ mod_password_reset_server <- function(id) {
         return()
       }
 
-      con <- directCareAuth::db_connect()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      con <- directCareAuth::db_checkout()
+      on.exit(directCareAuth::db_release(con), add = TRUE)
       result <- directCareAuth::password_reset_consume(con, token_r(), new_password)
 
       if (isTRUE(result$ok)) {

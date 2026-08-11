@@ -152,9 +152,17 @@ mod_scenario_banner_ui <- function(id) {
 #' @param table One of `"plan_scenarios"`, `"dca_calculator_scenarios"`,
 #'   `"dca_forecast_scenarios"`.
 #' @param get_con A zero-arg function returning a fresh, open `DBI`
-#'   connection for each action (opened and closed within a single
-#'   observer, matching this app's existing `db_connect()`/`on.exit()`
-#'   convention -- never held open across the module's lifetime).
+#'   connection for each action (checked out and released within a single
+#'   observer, matching this app's `directCareAuth::db_checkout()`/
+#'   `on.exit()` convention -- never held open across the module's
+#'   lifetime).
+#' @param release_con A one-arg function called with a connection obtained
+#'   from `get_con()` once an action finishes, to release it. Defaults to
+#'   `DBI::dbDisconnect()`, correct for a plain one-off connection; a host
+#'   passing a pooled `get_con` (e.g. `directCareAuth::db_checkout`) must
+#'   pass the matching `directCareAuth::db_release` here too -- pairing the
+#'   wrong release function with a pooled connection either errors or
+#'   silently destroys it instead of returning it to the pool.
 #' @param practice_id A zero-arg function (e.g. `function() r$practice_id`)
 #'   returning the current practice's id.
 #' @param get_inputs_for_save For the two JSONB tables: a zero-arg function
@@ -200,6 +208,7 @@ mod_scenario_banner_ui <- function(id) {
 #' @return `list(loaded_label = <reactive>)`.
 #' @export
 mod_scenario_slots_server <- function(id, table, get_con, practice_id,
+                                       release_con = function(con) DBI::dbDisconnect(con),
                                        get_inputs_for_save = NULL,
                                        get_bundle_for_save = NULL,
                                        get_source_filename = NULL,
@@ -298,7 +307,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
 
     .do_save <- function(label, overwrite_id = NULL) {
       con <- get_con()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      on.exit(release_con(con), add = TRUE)
 
       if (is_forecast) {
         scenario_save_forecast(
@@ -326,7 +335,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
       }
 
       con <- get_con()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      on.exit(release_con(con), add = TRUE)
       slots <- scenario_list(con, table, practice_id())
       picker_slots(slots)
 
@@ -406,7 +415,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
         return(invisible(NULL))
       }
       con <- get_con()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      on.exit(release_con(con), add = TRUE)
       slots <- scenario_list(con, table, practice_id())
 
       if (nrow(slots) == 0) {
@@ -424,7 +433,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
     shiny::observeEvent(input$load_confirm, {
       shiny::req(input$load_choice)
       con <- get_con()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      on.exit(release_con(con), add = TRUE)
 
       loaded <- if (is_forecast) {
         scenario_load_forecast(con, as.integer(input$load_choice))
@@ -473,7 +482,7 @@ mod_scenario_slots_server <- function(id, table, get_con, practice_id,
     shiny::observeEvent(input$delete_confirm, {
       shiny::req(input$load_choice)
       con <- get_con()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      on.exit(release_con(con), add = TRUE)
       deleted_id <- as.integer(input$load_choice)
       ok <- scenario_delete(con, table, practice_id(), deleted_id)
 

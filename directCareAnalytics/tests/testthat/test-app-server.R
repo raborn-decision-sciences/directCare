@@ -40,7 +40,7 @@ test_that("global_confirm_start_over clears data but keeps practice identity", {
 test_that("account_save_profile saves the optional profile fields and writes them back to res_auth", {
   captured <- NULL
   local_mocked_bindings(
-    db_connect = function() structure(list(), class = "mock_con"),
+    db_checkout = function() structure(list(), class = "mock_con"),
     practice_update_profile = function(con, practice_id, practice_name, address, ...) {
       captured <<- list(...)
       list(ok = TRUE)
@@ -48,7 +48,7 @@ test_that("account_save_profile saves the optional profile fields and writes the
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   res_auth <- reactiveValues(
     practice_id = 7L, email = "doc@example.com",

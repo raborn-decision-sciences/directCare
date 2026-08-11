@@ -9,6 +9,7 @@ mod_scenario_slots_server(
   table,
   get_con,
   practice_id,
+  release_con = function(con) DBI::dbDisconnect(con),
   get_inputs_for_save = NULL,
   get_bundle_for_save = NULL,
   get_source_filename = NULL,
@@ -27,12 +28,21 @@ mod_scenario_slots_server(
 \code{"dca_forecast_scenarios"}.}
 
 \item{get_con}{A zero-arg function returning a fresh, open \code{DBI}
-connection for each action (opened and closed within a single
-observer, matching this app's existing \code{db_connect()}/\code{on.exit()}
-convention -- never held open across the module's lifetime).}
+connection for each action (checked out and released within a single
+observer, matching this app's \code{directCareAuth::db_checkout()}/
+\code{on.exit()} convention -- never held open across the module's
+lifetime).}
 
 \item{practice_id}{A zero-arg function (e.g. \code{function() r$practice_id})
 returning the current practice's id.}
+
+\item{release_con}{A one-arg function called with a connection obtained
+from \code{get_con()} once an action finishes, to release it. Defaults to
+\code{DBI::dbDisconnect()}, correct for a plain one-off connection; a host
+passing a pooled \code{get_con} (e.g. \code{directCareAuth::db_checkout}) must
+pass the matching \code{directCareAuth::db_release} here too -- pairing the
+wrong release function with a pooled connection either errors or
+silently destroys it instead of returning it to the pool.}
 
 \item{get_inputs_for_save}{For the two JSONB tables: a zero-arg function
 returning the plain R list to save. Ignored when \code{is_forecast = TRUE}.}

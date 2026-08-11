@@ -16,6 +16,7 @@ Imports:
     DBI,
     httr2,
     openssl,
+    pool,
     RPostgres
 Suggests:
     testthat (>= 3.0.0),

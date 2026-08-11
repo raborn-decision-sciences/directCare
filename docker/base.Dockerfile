@@ -42,7 +42,7 @@ RUN R -e "install.packages(c( \
     'scales', 'thematic', 'dplyr', 'tibble', 'tidyr', 'rlang', \
     'jsonlite', 'htmltools', 'pkgload', 'forecast', 'lubridate', 'readr', \
     'shinymanager', 'DBI', 'RPostgres', 'bcrypt', 'remotes', \
-    'cicerone', 'later', 'httr2', 'openssl', 'xml2', 'mirai' \
+    'cicerone', 'later', 'httr2', 'openssl', 'xml2', 'mirai', 'pool' \
   ), repos = 'https://packagemanager.posit.co/cran/__linux__/bookworm/${PPM_SNAPSHOT_DATE}')"
 
 # Non-root user for running the app (created here, switched to at the end of

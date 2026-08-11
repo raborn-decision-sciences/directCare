@@ -190,7 +190,8 @@ mod_calculator_server <- function(id, r, parent_session = NULL, demo_mode = NULL
     directCareScenarios::mod_scenario_slots_server(
       "scenario",
       table = "dca_calculator_scenarios",
-      get_con = directCareAuth::db_connect,
+      get_con = directCareAuth::db_checkout,
+      release_con = directCareAuth::db_release,
       practice_id = function() r$practice_id,
       get_inputs_for_save = calc_inputs_for_save,
       get_dirty_signal = calc_inputs_for_save,
@@ -252,8 +253,8 @@ mod_calculator_server <- function(id, r, parent_session = NULL, demo_mode = NULL
       if (isTRUE(demo_mode())) {
         return(list(count = 0L, narrative = NULL))
       }
-      con <- directCareAuth::db_connect()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      con <- directCareAuth::db_checkout()
+      on.exit(directCareAuth::db_release(con), add = TRUE)
       listed <- directCareScenarios::scenario_list(con, "dca_calculator_scenarios", r$practice_id)
       if (nrow(listed) < 2L || !.has_pro_plan(r$plan_tier)) {
         return(list(count = nrow(listed), narrative = NULL))

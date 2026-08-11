@@ -123,7 +123,7 @@ test_that("other income exceeding overhead floors the membership requirement at 
 
 test_that("calculator_compare_state never touches the DB when demo_mode() is TRUE", {
   local_mocked_bindings(
-    db_connect = function(...) stop("db_connect() should not be called in demo mode"),
+    db_checkout = function(...) stop("db_checkout() should not be called in demo mode"),
     .package = "directCareAuth"
   )
   r <- empty_r()

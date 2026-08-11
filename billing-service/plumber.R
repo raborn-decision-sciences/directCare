@@ -10,6 +10,15 @@
 # stripe_webhook_events insert-before-processing check), and translate the
 # result into an HTTP response.
 
+# Shared Postgres connection pool (Performance Backlog Phase 3) -- top-
+# level code in a plumber router file runs once, when plumber::plumb()
+# parses it, so this pre-warms the pool before the first request the same
+# way both Shiny apps' run_app.R does. No onStop() equivalent here (this
+# minimal setup has no such hook) -- the container's own process exit
+# reclaims the connections, and this service has no other in-process
+# state that needs a clean-shutdown path either.
+directCareAuth::db_pool()
+
 #* @get /healthz
 #* @serializer unboxedJSON
 function() {
@@ -34,8 +43,8 @@ function(req, res) {
 
   event <- jsonlite::fromJSON(req$postBody, simplifyVector = FALSE)
 
-  con <- directCareAuth::db_connect()
-  on.exit(DBI::dbDisconnect(con), add = TRUE)
+  con <- directCareAuth::db_checkout()
+  on.exit(directCareAuth::db_release(con), add = TRUE)
 
   # Idempotency: Stripe retries delivery for up to 72 hours on anything
   # other than a 2xx response, and can also just send the same event twice

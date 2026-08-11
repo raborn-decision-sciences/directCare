@@ -5,7 +5,7 @@
 # query shape, etc.) is tested in that package directly.
 
 test_that("check_credentials_db grants access on a valid email/password pair", {
-  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+  local_mocked_bindings(db_checkout = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) FALSE,
@@ -32,7 +32,7 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
   local_mocked_bindings(checkpw = function(password, hash) TRUE, .package = "bcrypt")
 
   result <- check_credentials_db("doc@example.com", "correct-password", ip = "203.0.113.7")
@@ -53,7 +53,7 @@ test_that("check_credentials_db grants access on a valid email/password pair", {
 })
 
 test_that("check_credentials_db denies access on a wrong password and logs a failure with the ip", {
-  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+  local_mocked_bindings(db_checkout = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   logged <- NULL
   local_mocked_bindings(
@@ -72,7 +72,7 @@ test_that("check_credentials_db denies access on a wrong password and logs a fai
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
   local_mocked_bindings(checkpw = function(password, hash) FALSE, .package = "bcrypt")
 
   result <- check_credentials_db("doc@example.com", "wrong-password", ip = "203.0.113.7")
@@ -84,7 +84,7 @@ test_that("check_credentials_db denies access on a wrong password and logs a fai
 })
 
 test_that("check_credentials_db denies access for an unknown email without hashing", {
-  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+  local_mocked_bindings(db_checkout = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   local_mocked_bindings(
     auth_is_locked_out = function(con, email) FALSE,
@@ -99,7 +99,7 @@ test_that("check_credentials_db denies access for an unknown email without hashi
     auth_event_log = function(...) invisible(NULL),
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
   # nrow != 1 should short-circuit before checkpw() is ever reached.
   local_mocked_bindings(
     checkpw = function(...) stop("checkpw() should not be called"),
@@ -112,7 +112,7 @@ test_that("check_credentials_db denies access for an unknown email without hashi
 })
 
 test_that("check_credentials_db denies access when locked out by email, without querying the practice", {
-  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+  local_mocked_bindings(db_checkout = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   logged <- NULL
   local_mocked_bindings(
@@ -125,7 +125,7 @@ test_that("check_credentials_db denies access when locked out by email, without 
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   result <- check_credentials_db("doc@example.com", "correct-password")
 
@@ -137,7 +137,7 @@ test_that("check_credentials_db denies access when locked out by ip, without que
   # The other half of the OR condition -- a spray attack across many
   # emails from one IP, none of which individually trips the email-based
   # lockout, should still be blocked.
-  local_mocked_bindings(db_connect = function() structure(list(), class = "mock_con"),
+  local_mocked_bindings(db_checkout = function() structure(list(), class = "mock_con"),
     .package = "directCareAuth")
   logged <- NULL
   local_mocked_bindings(
@@ -150,7 +150,7 @@ test_that("check_credentials_db denies access when locked out by ip, without que
     },
     .package = "directCareAuth"
   )
-  local_mocked_bindings(dbDisconnect = function(conn) invisible(NULL), .package = "DBI")
+  local_mocked_bindings(db_release = function(con) invisible(NULL), .package = "directCareAuth")
 
   result <- check_credentials_db("someone@example.com", "correct-password", ip = "203.0.113.7")
 

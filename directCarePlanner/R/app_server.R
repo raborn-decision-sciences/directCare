@@ -253,8 +253,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
     practice_specialty <- trimws(input$account_practice_specialty %||% "")
     referral_source <- trimws(input$account_referral_source %||% "")
 
-    con <- directCareAuth::db_connect()
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    con <- directCareAuth::db_checkout()
+    on.exit(directCareAuth::db_release(con), add = TRUE)
     directCareAuth::practice_update_profile(
       con, res_auth$practice_id, practice_name, address,
       first_name = first_name, last_name = last_name,
@@ -292,8 +292,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
       return()
     }
 
-    con <- directCareAuth::db_connect()
-    on.exit(DBI::dbDisconnect(con), add = TRUE)
+    con <- directCareAuth::db_checkout()
+    on.exit(directCareAuth::db_release(con), add = TRUE)
     result <- directCareAuth::practice_update_password(
       con, res_auth$practice_id, input$account_current_password %||% "", new_password
     )
@@ -427,7 +427,8 @@ app_server <- function(input, output, session, res_auth = NULL) {
   directCareScenarios::mod_scenario_slots_server(
     "scenario",
     table = "plan_scenarios",
-    get_con = directCareAuth::db_connect,
+    get_con = directCareAuth::db_checkout,
+    release_con = directCareAuth::db_release,
     practice_id = function() r$practice_id,
     get_inputs_for_save = plan_inputs_result$get_inputs_for_save,
     get_dirty_signal = plan_inputs_result$get_dirty_signal,

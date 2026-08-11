@@ -186,8 +186,8 @@ mod_signup_server <- function(id) {
         return()
       }
 
-      con <- directCareAuth::db_connect()
-      on.exit(DBI::dbDisconnect(con), add = TRUE)
+      con <- directCareAuth::db_checkout()
+      on.exit(directCareAuth::db_release(con), add = TRUE)
       ip <- directCareAuth::extract_client_ip(session)
 
       # Logged unconditionally, before the rate-limit check, so repeated
