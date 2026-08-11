@@ -1,3 +1,46 @@
+#' Cached, keyed indices for `resolve_geography()`'s two default
+#' crosswalk/geo tables
+#'
+#' Package-level cache, built once (lazily, on first use) and reused for
+#' the life of the R process -- named-list lookups (built via `split()`)
+#' instead of the linear `df$col == x` vector-equality scan
+#' `resolve_geography()` otherwise does on every call. Only ever consulted
+#' when the caller uses the package's own default `crosswalk`/`geo` data
+#' (detected via `missing()` in `resolve_geography()` itself) -- a
+#' caller-supplied table (e.g. every test in this package, via its own
+#' fixture data) always takes the original, unindexed path unchanged,
+#' since there's no way to know a caller-supplied table is stable across
+#' calls the way the package's own static data is.
+#' @noRd
+.geo_index_env <- new.env(parent = emptyenv())
+
+#' @noRd
+.zip_index <- function(crosswalk) {
+  if (is.null(.geo_index_env$zip_index)) {
+    .geo_index_env$zip_index <- split(seq_len(nrow(crosswalk)), crosswalk$zip)
+  }
+  .geo_index_env$zip_index
+}
+
+#' @noRd
+.county_name_index <- function(geo) {
+  if (is.null(.geo_index_env$county_name_index)) {
+    normalized <- tolower(trimws(sub("\\s+county$", "", geo$county_name, ignore.case = TRUE)))
+    .geo_index_env$county_name_index <- split(seq_len(nrow(geo)), normalized)
+  }
+  .geo_index_env$county_name_index
+}
+
+#' @noRd
+.county_fips_index <- function(geo) {
+  if (is.null(.geo_index_env$county_fips_index)) {
+    idx <- seq_len(nrow(geo))
+    names(idx) <- geo$county_fips
+    .geo_index_env$county_fips_index <- idx
+  }
+  .geo_index_env$county_fips_index
+}
+
 #' Resolve a Geography to FIPS and Metro Identifiers
 #'
 #' Takes a county or ZIP code input and resolves it to the FIPS codes and
@@ -26,6 +69,12 @@ resolve_geography <- function(
   crosswalk = directCareData::zip_county_crosswalk,
   geo = directCareData::county_cbsa_crosswalk
 ) {
+  # Only the package's own default tables are stable across calls (static
+  # package data); a caller-supplied crosswalk/geo (every test in this
+  # package, via its own fixture data) skips the cache entirely and keeps
+  # the original per-call scan, unchanged.
+  use_index <- missing(crosswalk) && missing(geo)
+
   if (!rlang::is_scalar_character(location) || is.na(location)) {
     rlang::abort(
       "`location` must be a single, non-missing character string.",
@@ -34,7 +83,11 @@ resolve_geography <- function(
   }
 
   if (grepl("^[0-9]{5}$", location)) {
-    matches <- crosswalk[crosswalk$zip == location, ]
+    matches <- if (use_index) {
+      crosswalk[.zip_index(crosswalk)[[location]], , drop = FALSE]
+    } else {
+      crosswalk[crosswalk$zip == location, ]
+    }
     if (nrow(matches) == 0L) {
       rlang::abort(
         paste0("No county found for ZIP code '", location, "'."),
@@ -53,8 +106,12 @@ resolve_geography <- function(
     county_fips <- matches$county_fips[matches$is_primary][1]
   } else {
     normalized <- tolower(trimws(sub("\\s+county$", "", location, ignore.case = TRUE)))
-    geo_normalized <- tolower(trimws(sub("\\s+county$", "", geo$county_name, ignore.case = TRUE)))
-    candidates <- geo[geo_normalized == normalized, ]
+    candidates <- if (use_index) {
+      geo[.county_name_index(geo)[[normalized]], , drop = FALSE]
+    } else {
+      geo_normalized <- tolower(trimws(sub("\\s+county$", "", geo$county_name, ignore.case = TRUE)))
+      geo[geo_normalized == normalized, ]
+    }
     if (!is.null(state)) {
       candidates <- candidates[toupper(candidates$state_abb) == toupper(state), ]
     }
@@ -77,7 +134,11 @@ resolve_geography <- function(
     county_fips <- candidates$county_fips[1]
   }
 
-  geo_row <- geo[geo$county_fips == county_fips, ]
+  geo_row <- if (use_index) {
+    geo[.county_fips_index(geo)[county_fips], , drop = FALSE]
+  } else {
+    geo[geo$county_fips == county_fips, ]
+  }
 
   structure(
     list(

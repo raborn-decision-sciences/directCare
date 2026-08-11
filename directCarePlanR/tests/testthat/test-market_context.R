@@ -190,3 +190,42 @@ test_that("resolve_geography() agrees between ZIP and county-name lookup", {
   expect_equal(by_zip$county_fips, by_name$county_fips)
   expect_equal(by_zip$county_fips, "13121")
 })
+
+# -- resolve_geography()'s cached index (default crosswalk/geo only) --------
+
+test_that("resolve_geography() builds and reuses one cached index across calls with default args", {
+  skip_if_not(
+    nrow(directCareData::county_cbsa_crosswalk) > 0L,
+    "directCareData geography crosswalks are still the empty placeholder"
+  )
+  rm(list = ls(.geo_index_env), envir = .geo_index_env)
+
+  expect_null(.geo_index_env$zip_index)
+  resolve_geography("30309")
+  first_index <- .geo_index_env$zip_index
+  expect_false(is.null(first_index))
+
+  resolve_geography("30309")
+  expect_identical(.geo_index_env$zip_index, first_index)
+})
+
+test_that("resolve_geography() with a caller-supplied crosswalk/geo never touches the cache", {
+  rm(list = ls(.geo_index_env), envir = .geo_index_env)
+
+  resolve_geography("10001", crosswalk = fixture_crosswalk, geo = fixture_geo)
+
+  expect_null(.geo_index_env$zip_index)
+  expect_null(.geo_index_env$county_name_index)
+  expect_null(.geo_index_env$county_fips_index)
+})
+
+test_that("resolve_geography() errors correctly via the cached (default-args) path", {
+  skip_if_not(
+    nrow(directCareData::county_cbsa_crosswalk) > 0L,
+    "directCareData geography crosswalks are still the empty placeholder"
+  )
+  rm(list = ls(.geo_index_env), envir = .geo_index_env)
+
+  expect_error(resolve_geography("00000"), class = "dcPlanR_zip_not_found")
+  expect_error(resolve_geography("Nonexistent County"), class = "dcPlanR_county_not_found")
+})
