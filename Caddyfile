@@ -27,8 +27,17 @@
 
 # Performance Backlog Phase 3: response compression + static-asset caching,
 # both free wins at this layer with no app-code risk.
+#
+# gzip only, not zstd: zstd is negotiated by real browsers (Chrome sends
+# "Accept-Encoding: ...zstd" by default) but isn't understood by
+# libcurl-based tools, including shinyloadtest::record_session()'s
+# recording proxy -- confirmed live 2026-08-12 via record_session()
+# erroring ("Unrecognized content encoding type. libcurl understands
+# deflate, gzip content encodings.") against a real browser-driven
+# session. gzip is universally supported and the practical size
+# difference vs zstd is marginal for this app's asset sizes.
 (compression) {
-	encode zstd gzip
+	encode gzip
 }
 
 (static_cache) {
