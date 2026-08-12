@@ -105,11 +105,20 @@ STRIPE_LOOKUP_KEY_PRO <- "pro_monthly"
 #'
 #' Same redirect mechanism as `.start_stripe_checkout()` -- see its own
 #' comment. Used only by Account Settings' "Manage Billing" button, which
-#' is itself only shown once `r$stripe_customer_id` is set (a practice with
-#' no completed Checkout has no Stripe Customer for the Portal to manage).
+#' is shown based on `.has_paid_plan(r$plan_tier)`, not on whether
+#' `r$stripe_customer_id` is actually set (`app_server.R`'s own comment
+#' explains why: a practice that started or completed a Checkout keeps
+#' its `stripe_customer_id` forever once set, even if later moved back to
+#' Free, so gating the button on `plan_tier` alone is deliberate) -- a
+#' paid-tier practice that never completed a real Checkout (e.g. one
+#' whose `plan_tier` was set some other way) can still reach this
+#' function with a `NULL` `stripe_customer_id`. `stripe_create_portal_session()`
+#' rejects that, which the `tryCatch` below turns into a plain "couldn't
+#' open the billing portal" notification rather than a crash.
 #'
 #' @param session The current Shiny session.
-#' @param stripe_customer_id The practice's `cus_...` id (`r$stripe_customer_id`).
+#' @param stripe_customer_id The practice's `cus_...` id (`r$stripe_customer_id`),
+#'   possibly `NULL` -- see above.
 #' @param return_url Where Stripe sends the browser back after the Portal.
 #' @noRd
 .start_stripe_portal <- function(session, stripe_customer_id, return_url) {
