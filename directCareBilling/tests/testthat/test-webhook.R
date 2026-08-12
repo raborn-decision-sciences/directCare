@@ -88,12 +88,26 @@ test_that("stripe_handle_webhook_event checkout.session.completed updates the pr
     .package = "DBI"
   )
   httr2::local_mocked_responses(function(req) {
+    if (grepl("/line_items", req$url, fixed = TRUE)) {
+      return(httr2::response(
+        status_code = 200,
+        headers = list("Content-Type" = "application/json"),
+        body = charToRaw(jsonlite::toJSON(list(
+          data = list(list(price = list(lookup_key = "pro_monthly")))
+        ), auto_unbox = TRUE))
+      ))
+    }
+    # The Subscription fetch -- checkout.session.completed's own payload
+    # only carries the Checkout Session's status ("complete"), a
+    # different, unrelated status than the Subscription's own
+    # ("active" here) -- see .stripe_fetch_subscription()'s own comment.
     httr2::response(
       status_code = 200,
       headers = list("Content-Type" = "application/json"),
-      body = charToRaw(jsonlite::toJSON(list(
-        data = list(list(price = list(lookup_key = "pro_monthly")))
-      ), auto_unbox = TRUE))
+      body = charToRaw(jsonlite::toJSON(
+        list(status = "active", current_period_end = 1755000000),
+        auto_unbox = TRUE
+      ))
     )
   })
 
@@ -101,7 +115,7 @@ test_that("stripe_handle_webhook_event checkout.session.completed updates the pr
     type = "checkout.session.completed",
     data = list(object = list(
       id = "cs_123", client_reference_id = "42",
-      customer = "cus_1", subscription = "sub_1", status = "active"
+      customer = "cus_1", subscription = "sub_1", status = "complete"
     ))
   )
 
@@ -111,7 +125,9 @@ test_that("stripe_handle_webhook_event checkout.session.completed updates the pr
   expect_equal(captured[[1]], "cus_1")
   expect_equal(captured[[2]], "sub_1")
   expect_equal(captured[[3]], "pro")
-  expect_equal(captured[[5]], 42L)
+  expect_equal(captured[[4]], "active")
+  expect_equal(captured[[5]], as.POSIXct(1755000000, origin = "1970-01-01", tz = "UTC"))
+  expect_equal(captured[[6]], 42L)
 })
 
 test_that("stripe_handle_webhook_event errors on an unmapped price lookup_key", {

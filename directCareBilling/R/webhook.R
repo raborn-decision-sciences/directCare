@@ -1,6 +1,3 @@
-# NULL-coalescing operator for values that may be NULL before use.
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
 #' Attach Stripe's own error message to a request's failure conditions
 #'
 #' httr2's default error message for a non-2xx response is just the status
@@ -152,6 +149,31 @@ stripe_verify_webhook_signature <- function(payload_raw, sig_header, secret,
   any(vapply(v1_sigs, function(v1) .timing_safe_equal(expected, v1), logical(1)))
 }
 
+#' Fetch a Stripe Subscription object by id
+#'
+#' `checkout.session.completed`'s own payload only carries the
+#' Subscription's id (`obj$subscription`), not its `status`/
+#' `current_period_end` -- those live on the Subscription object itself,
+#' fetched here the same way `.stripe_resolve_plan_tier()` fetches the
+#' Checkout Session's line items. Do **not** use the Checkout Session's
+#' own `status` field for `subscription_status` -- that's a *Checkout
+#' Session* status (`open`/`complete`/`expired`), an entirely different
+#' vocabulary from a *Subscription*'s status (`active`/`trialing`/
+#' `past_due`/...) that this column is documented to hold. Confirmed live
+#' in production (2026-08-12): every fresh Checkout was writing the
+#' literal string `"complete"` into `subscription_status` instead of the
+#' Subscription's real `"active"`, with `current_period_end` left blank
+#' until (if ever) a later `customer.subscription.updated` event happened
+#' to arrive and correct it.
+#' @noRd
+.stripe_fetch_subscription <- function(subscription_id) {
+  httr2::request(paste0("https://api.stripe.com/v1/subscriptions/", subscription_id)) |>
+    httr2::req_auth_bearer_token(.stripe_secret_key()) |>
+    .stripe_req_error() |>
+    httr2::req_perform() |>
+    httr2::resp_body_json()
+}
+
 #' Look up the practice a Stripe Checkout Session's line item resolves to
 #'
 #' Fetches the session's line items (not included on the webhook event
@@ -230,15 +252,21 @@ stripe_handle_webhook_event <- function(con, event) {
       stop("checkout.session.completed event has no client_reference_id")
     }
     plan_tier <- .stripe_resolve_plan_tier(obj$id)
+    subscription <- .stripe_fetch_subscription(obj$subscription)
+    period_end <- if (is.null(subscription$current_period_end)) {
+      NA
+    } else {
+      as.POSIXct(subscription$current_period_end, origin = "1970-01-01", tz = "UTC")
+    }
     n <- DBI::dbExecute(
       con,
       "UPDATE practices
          SET stripe_customer_id = $1, stripe_subscription_id = $2,
-             plan_tier = $3, subscription_status = $4
-         WHERE id = $5",
+             plan_tier = $3, subscription_status = $4, current_period_end = $5
+         WHERE id = $6",
       params = list(
         obj$customer, obj$subscription, plan_tier,
-        obj$status %||% "active", as.integer(practice_id)
+        subscription$status, period_end, as.integer(practice_id)
       )
     )
     return(invisible(n > 0))
