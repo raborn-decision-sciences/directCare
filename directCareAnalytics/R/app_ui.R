@@ -264,9 +264,19 @@ golem_add_external_resources <- function() {
         substr(tools::md5sum(app_sys("app/www/custom.css")), 1, 10)
       )
     ),
-    # Loads driver.js (cicerone's underlying JS/CSS) for the guided-tour
-    # walkthroughs launched from the help modal -- see R/utils_tours.R.
-    cicerone::use_cicerone(),
+    # driver.js (cicerone's underlying JS/CSS) for the guided-tour
+    # walkthroughs is deliberately NOT loaded here -- most sessions never
+    # take a tour, so paying ~55KB across 3 requests on every single page
+    # load isn't worth it. Instead app_server.R's .tour_launch() injects
+    # cicerone::use_cicerone() into <head> the first time a tour actually
+    # starts (once per session), via insertUI(). This also keeps it off the
+    # critical burst of requests that fires right after login (everything
+    # in this tagList does), which matters for anything -- a real user on a
+    # slow connection, or a tool like shinyloadtest's recording proxy --
+    # that's sensitive to how much has to load in that window; confirmed
+    # empirically 2026-08-12 that shinyloadtest::record_session()'s
+    # single-threaded recorder proxy could drop the client WebSocket if
+    # that post-login burst took too long. See R/utils_tours.R.
     # Hide workflow tabs from the navbar — navigation is via Next/Back buttons.
     # JS runs after DOM construction and is not subject to :has() browser support.
     tags$script(HTML(
@@ -316,6 +326,27 @@ golem_add_external_resources <- function() {
             } catch (e) {}
             Shiny.setInputValue('show_tour_prompt', Math.random(), {priority: 'event'});
           }
+        });
+        // Fires once driver.min.css (inserted lazily by .tour_launch(),
+        // app_server.R, the first time a tour starts) has actually
+        // finished loading -- see that function's own comment for why
+        // this can't just assume synchronous <link> loading the way
+        // inserted <script> tags do.
+        Shiny.addCustomMessageHandler('waitCiceroneCss', function(msg) {
+          var link = document.querySelector('link[href*=\"driver.min.css\"]');
+          function ready() {
+            Shiny.setInputValue('cicerone_ready', Math.random(), {priority: 'event'});
+          }
+          if (!link || link.sheet) {
+            // Missing (shouldn't happen) or already loaded (e.g. from
+            // browser cache, which can resolve `sheet` before this handler
+            // even runs) -- either way, don't wait on an event that may
+            // never fire.
+            ready();
+            return;
+          }
+          link.addEventListener('load', ready, {once: true});
+          link.addEventListener('error', ready, {once: true});
         });
         Shiny.addCustomMessageHandler('tourWaitForElement', function(msg) {
           var attempts = 0;

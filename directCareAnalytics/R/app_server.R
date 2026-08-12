@@ -798,10 +798,48 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # Switch to the named tour's next chapter, but only if `tour_name` is the
   # one currently running -- gated on `first_el` actually being ready (see
   # above) rather than a guessed delay.
+  #
+  # Resets the *outgoing* chapter immediately, not deferred until the next
+  # chapter's element-ready signal fires: confirmed live 2026-08-12 that
+  # leaving it mounted for the whole wait (the original behavior -- see the
+  # tour_element_ready observer's own reset call above) left its popover
+  # visibly stuck on screen -- e.g. h4's "Once your categories look right,
+  # click here for Summary" step, still pointing at a button already
+  # clicked, for the entire time Summary's charts were rendering behind it.
+  # This doesn't reintroduce the back-to-back reset/switch animation race
+  # that comment warns about: that race is specifically about tearing down
+  # and starting a *new* instance in the same message batch, and resetting
+  # here is now separated from `.tour_switch()`'s actual start (inside the
+  # tour_element_ready observer) by the real wait for the next chapter's
+  # content to render -- driver.js's 300ms exit animation has always
+  # finished well before that point in practice, so `tour_element_ready`'s
+  # own had_prev/later::later(delay = 0.35) guard correctly finds nothing
+  # left to wait out (.tour_reset_current() is already documented safe to
+  # call on nothing current).
+  #
+  # `active_tour` never resets to NULL on its own -- there's no signal
+  # available from cicerone/driver.js in this version for "the user actually
+  # dismissed the guide" (neither exposes an onReset/onDeselected-style
+  # hook), so it can't reliably detect a genuine finish vs. an early
+  # Escape/click-outside close. Confirmed live 2026-08-12: without this
+  # guard, going back to re-visit an earlier tab (e.g. Review & Edit, to
+  # adjust the date filter, after already reaching Projections) and
+  # re-clicking a navigation button this function is also wired to (e.g.
+  # "Next: Summary") replayed that chapter's popover on perfectly ordinary,
+  # non-tour navigation -- `active_tour` was still set from the original
+  # run, so nothing distinguished "still touring" from "just using the app
+  # again, coincidentally via the same button." Tracking which chapters
+  # have already been shown this run and skipping a repeat makes every
+  # chapter fire at most once per tour, which is what a guided walkthrough
+  # (linear and one-directional by this app's own design -- see this
+  # file's chapter-scoping comments) should do regardless of whether a
+  # true "finished" signal exists.
   .tour_advance <- function(tour_name, guide, first_el, ready_el = NULL) {
-    if (!identical(active_tour(), tour_name)) {
+    if (!identical(active_tour(), tour_name) || guide$id %in% visited_chapters()) {
       return(invisible())
     }
+    visited_chapters(c(visited_chapters(), guide$id))
+    .tour_reset_current()
     .tour_wait_and_switch(guide, first_el, ready_el = ready_el)
   }
 
@@ -813,12 +851,59 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # covers this the same way: the wait starts immediately, but won't
   # resolve until the Upload tab has actually finished switching client-side
   # and `first_el` genuinely exists.
+  # cicerone's driver.js (see app_ui.R for why this isn't loaded upfront):
+  # inserted into <head> at most once per session, the first time any tour
+  # actually starts. insertUI() sends 2 <script> + 2 <link rel="stylesheet">
+  # tags. The <script> tags load synchronously as part of DOM insertion, but
+  # <link> stylesheets load asynchronously in the background regardless --
+  # confirmed live 2026-08-12: without waiting for driver.min.css, driver.js
+  # itself (already loaded) ran fine and computed a highlight overlay, but
+  # positioned/sized it using unstyled (pre-CSS) layout, producing a visibly
+  # wrong highlight box that only "corrected" once something else (e.g. a
+  # manual scroll) forced a reflow after the stylesheet actually applied.
+  # Fixed with a real readiness signal -- the injected <link>'s own `load`
+  # event -- via the same custom-message/input-event pattern this file
+  # already uses for tour-element readiness (see tourWaitForElement/
+  # tour_element_ready, app_ui.R), not a guessed delay.
+  cicerone_loaded <- reactiveVal(FALSE)
+  cicerone_ready <- reactiveVal(FALSE)
+  pending_tour <- reactiveValues(tour_name = NULL, guide = NULL, first_el = NULL)
+  # Chapter ids (guide$id) already shown during the *current* tour run --
+  # see .tour_advance()'s own comment for why this exists. Reset on every
+  # fresh .tour_launch() (a real restart, not a stale run's leftover ids
+  # blocking that restart's own forward progress).
+  visited_chapters <- reactiveVal(character(0))
   .tour_launch <- function(tour_name, guide, first_el) {
+    if (!cicerone_ready()) {
+      pending_tour$tour_name <- tour_name
+      pending_tour$guide <- guide
+      pending_tour$first_el <- first_el
+      if (!cicerone_loaded()) {
+        cicerone_loaded(TRUE)
+        insertUI("head", where = "beforeEnd", ui = cicerone::use_cicerone(), immediate = TRUE)
+        session$sendCustomMessage("waitCiceroneCss", list())
+      }
+      return(invisible())
+    }
+    # Fresh start (including a deliberate re-launch from the Help modal
+    # after finishing or abandoning a previous run) -- see .tour_advance()
+    # below for why this needs resetting here, not just initializing once.
+    visited_chapters(character(0))
     removeModal()
     active_tour(tour_name)
     updateNavbarPage(session, "main_nav", selected = "upload")
     .tour_wait_and_switch(guide, first_el)
   }
+
+  observeEvent(input$cicerone_ready, {
+    cicerone_ready(TRUE)
+    req(pending_tour$tour_name)
+    tn <- pending_tour$tour_name
+    g <- pending_tour$guide
+    fe <- pending_tour$first_el
+    pending_tour$tour_name <- NULL
+    .tour_launch(tn, g, fe)
+  })
 
   observeEvent(input$launch_tour_historical, {
     .tour_launch("historical", guide_h1, "upload-btn_use_real")
