@@ -101,11 +101,16 @@ test_that("stripe_handle_webhook_event checkout.session.completed updates the pr
     # only carries the Checkout Session's status ("complete"), a
     # different, unrelated status than the Subscription's own
     # ("active" here) -- see .stripe_fetch_subscription()'s own comment.
+    # current_period_end lives on the item, not the Subscription itself
+    # -- see .stripe_subscription_period_end()'s own comment.
     httr2::response(
       status_code = 200,
       headers = list("Content-Type" = "application/json"),
       body = charToRaw(jsonlite::toJSON(
-        list(status = "active", current_period_end = 1755000000),
+        list(
+          status = "active",
+          items = list(data = list(list(current_period_end = 1755000000)))
+        ),
         auto_unbox = TRUE
       ))
     )
@@ -169,8 +174,16 @@ test_that("stripe_handle_webhook_event customer.subscription.updated refreshes s
     type = "customer.subscription.updated",
     data = list(object = list(
       customer = "cus_1", status = "past_due",
-      current_period_end = 1893456000,
-      items = list(data = list(list(price = list(lookup_key = "starter_monthly"))))
+      # current_period_end lives on the Subscription Item, not the
+      # Subscription itself, in current Stripe API versions -- a bare
+      # top-level current_period_end (the old, wrong shape) is exactly
+      # the real bug found live in production 2026-08-12: it silently
+      # read as NULL/NA forever, never once caught by this test because
+      # nothing here asserted on captured[[3]] (period_end) below.
+      items = list(data = list(list(
+        price = list(lookup_key = "starter_monthly"),
+        current_period_end = 1893456000
+      )))
     ))
   )
 
@@ -179,6 +192,7 @@ test_that("stripe_handle_webhook_event customer.subscription.updated refreshes s
   expect_true(result)
   expect_equal(captured[[1]], "past_due")
   expect_equal(captured[[2]], "starter")
+  expect_equal(captured[[3]], as.POSIXct(1893456000, origin = "1970-01-01", tz = "UTC"))
   expect_equal(captured[[4]], "cus_1")
 })
 
@@ -203,8 +217,10 @@ test_that("stripe_handle_webhook_event customer.subscription.updated tolerates a
     type = "customer.subscription.updated",
     data = list(object = list(
       customer = "cus_1", status = "active",
-      current_period_end = 1893456000,
-      items = list(data = list(list(price = list(lookup_key = "some_unmapped_price"))))
+      items = list(data = list(list(
+        price = list(lookup_key = "some_unmapped_price"),
+        current_period_end = 1893456000
+      )))
     ))
   )
 

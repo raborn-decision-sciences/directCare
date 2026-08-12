@@ -174,6 +174,28 @@ stripe_verify_webhook_signature <- function(payload_raw, sig_header, secret,
     httr2::resp_body_json()
 }
 
+#' Extract a Subscription's `current_period_end` as a POSIXct, or `NA`
+#'
+#' In current Stripe API versions, `current_period_end` lives on each
+#' Subscription **Item** (`items$data[[i]]$current_period_end`), not on
+#' the Subscription object itself -- the top-level field this handler
+#' originally read is always `NULL` now. A second real bug found
+#' alongside the `subscription_status` one (2026-08-12): every
+#' subscription's `current_period_end` column stayed blank in production
+#' even after `subscription_status` had already updated correctly via a
+#' real `customer.subscription.updated` event, confirming this wasn't
+#' specific to the newly-fixed `checkout.session.completed` path. Reads
+#' the first item, matching how `plan_tier` resolution already reads the
+#' first item's `price$lookup_key` just below -- this app only ever
+#' creates single-item subscriptions.
+#'
+#' @param subscription A Stripe Subscription object (parsed JSON).
+#' @noRd
+.stripe_subscription_period_end <- function(subscription) {
+  raw <- subscription$items$data[[1]]$current_period_end
+  if (is.null(raw)) NA else as.POSIXct(raw, origin = "1970-01-01", tz = "UTC")
+}
+
 #' Look up the practice a Stripe Checkout Session's line item resolves to
 #'
 #' Fetches the session's line items (not included on the webhook event
@@ -253,11 +275,7 @@ stripe_handle_webhook_event <- function(con, event) {
     }
     plan_tier <- .stripe_resolve_plan_tier(obj$id)
     subscription <- .stripe_fetch_subscription(obj$subscription)
-    period_end <- if (is.null(subscription$current_period_end)) {
-      NA
-    } else {
-      as.POSIXct(subscription$current_period_end, origin = "1970-01-01", tz = "UTC")
-    }
+    period_end <- .stripe_subscription_period_end(subscription)
     n <- DBI::dbExecute(
       con,
       "UPDATE practices
@@ -284,11 +302,7 @@ stripe_handle_webhook_event <- function(con, event) {
     # plan_tier untouched when unresolved."
     plan_tier <- if (!is.null(lookup_key)) tier_map[[lookup_key]] else NA_character_
     if (is.null(plan_tier)) plan_tier <- NA_character_
-    period_end <- if (is.null(obj$current_period_end)) {
-      NA
-    } else {
-      as.POSIXct(obj$current_period_end, origin = "1970-01-01", tz = "UTC")
-    }
+    period_end <- .stripe_subscription_period_end(obj)
     n <- DBI::dbExecute(
       con,
       "UPDATE practices
