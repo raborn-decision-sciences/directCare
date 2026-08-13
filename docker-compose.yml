@@ -5,6 +5,19 @@ services:
       dockerfile: directCareAnalytics/Dockerfile
     image: directcare/dca:latest
     restart: unless-stopped
+    # Performance Backlog Phase 4 (TODO.md): shinycannon load test against
+    # the real droplet (2026-08-13) measured this container's memory at
+    # ~1.38GB in-test peak under 25 concurrent full workflows (including
+    # PDF generation), rising to ~1.49GB several minutes after the test
+    # ended and CPU was already back to idle -- possibly just GC lag, not
+    # confirmed either way. 2.5g gives real headroom above both those
+    # numbers while capping the previously-unbounded worst case, so a
+    # runaway/leak here can't starve planner/billing/db on the same host.
+    # CPU is deliberately left unlimited: the same test found this
+    # container already saturates the droplet's full 2 vCPUs under load
+    # (the actual capacity ceiling, see TODO.md) -- constraining cpus
+    # further would only make that worse, not better.
+    mem_limit: 2.5g
     # Docker's default json-file driver has no size cap -- on a
     # long-running server, container logs grow unbounded and can
     # eventually fill the disk, taking down the whole stack (not just
