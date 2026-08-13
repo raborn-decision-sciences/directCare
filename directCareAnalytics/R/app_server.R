@@ -1564,7 +1564,18 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # so there's no way for two to ever be visible at once (see app_ui.R's
   # header comment for the duplicate-DOM-id history this avoids).
   output$main_nav_footer <- renderUI({
-    switch(input$main_nav,
+    # input$main_nav is NULL for a brief window on every fresh session --
+    # suspendWhenHidden = FALSE means this evaluates eagerly, before the
+    # client has necessarily reported the navbar's initial selected tab
+    # back yet. switch(NULL, ...) throws ("EXPR must be a length 1
+    # vector"), an uncaught error here kills the whole session -- normally
+    # a tight enough race against a direct browser connection to go
+    # unnoticed, but confirmed live 2026-08-13 reliably losing that race
+    # through shinyloadtest::record_session()'s recorder proxy (its own
+    # single-threaded relay overhead perturbs the timing). "upload" is the
+    # app's actual first/default nav_panel (see app_ui.R), so it's the
+    # correct fallback, not just a guess to avoid the crash.
+    switch(input$main_nav %||% "upload",
       "upload" = upload_result$nav_footer(),
       "edit" = edit_result$nav_footer(),
       "summary" = summary_result$nav_footer(),

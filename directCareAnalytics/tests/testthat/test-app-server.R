@@ -1,6 +1,21 @@
 # Unit tests for app_server's global Start Over logic and Account Settings
 # profile save.
 
+# Regression coverage for a real, session-crashing bug found live 2026-08-13
+# via shinyloadtest::record_session(): output$main_nav_footer is
+# suspendWhenHidden = FALSE (evaluates eagerly, before the client
+# necessarily reports the navbar's initial selected tab back), and its
+# switch(input$main_nav, ...) threw ("EXPR must be a length 1 vector") on
+# NULL -- an uncaught error here kills the whole Shiny session. Normally a
+# tight enough race against a direct browser connection to go unnoticed;
+# reliably lost through the recorder proxy's own relay overhead.
+test_that("main_nav_footer doesn't error when input$main_nav is still NULL", {
+  testServer(app_server, {
+    session$flushReact()
+    expect_no_error(session$getOutput("main_nav_footer"))
+  })
+})
+
 test_that("global_confirm_start_over clears data but keeps practice identity", {
   testServer(app_server, {
     r$practice_id <- "river-dpc"
