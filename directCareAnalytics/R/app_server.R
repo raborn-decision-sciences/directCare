@@ -834,13 +834,13 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # (linear and one-directional by this app's own design -- see this
   # file's chapter-scoping comments) should do regardless of whether a
   # true "finished" signal exists.
-  .tour_advance <- function(tour_name, guide, first_el, ready_el = NULL) {
-    if (!identical(active_tour(), tour_name) || guide$id %in% visited_chapters()) {
+  .tour_advance <- function(tour_name, guide, first_el, ready_el = NULL, prefill = NULL) {
+    if (!identical(active_tour(), tour_name) || first_el %in% visited_chapters()) {
       return(invisible())
     }
-    visited_chapters(c(visited_chapters(), guide$id))
+    visited_chapters(c(visited_chapters(), first_el))
     .tour_reset_current()
-    .tour_wait_and_switch(guide, first_el, ready_el = ready_el)
+    .tour_wait_and_switch(guide, first_el, prefill = prefill, ready_el = ready_el)
   }
 
   # Launching a tour: the Help modal (and its "Take the guided tour"
@@ -868,9 +868,14 @@ app_server <- function(input, output, session, res_auth = NULL) {
   cicerone_loaded <- reactiveVal(FALSE)
   cicerone_ready <- reactiveVal(FALSE)
   pending_tour <- reactiveValues(tour_name = NULL, guide = NULL, first_el = NULL)
-  # Chapter ids (guide$id) already shown during the *current* tour run --
-  # see .tour_advance()'s own comment for why this exists. Reset on every
-  # fresh .tour_launch() (a real restart, not a stale run's leftover ids
+  # Chapters (keyed by first_el, their target element -- Cicerone's R6
+  # object doesn't actually expose `id` as a public field despite it being
+  # a constructor arg, confirmed live 2026-08-12: guide$id is always NULL,
+  # which silently produced a length-0 %in% result and crashed .tour_advance()'s
+  # `if()` with "missing value where TRUE/FALSE needed" on the very first
+  # chapter transition of any tour) already shown during the *current* tour
+  # run -- see .tour_advance()'s own comment for why this exists. Reset on
+  # every fresh .tour_launch() (a real restart, not a stale run's leftover ids
   # blocking that restart's own forward progress).
   visited_chapters <- reactiveVal(character(0))
   .tour_launch <- function(tour_name, guide, first_el) {
@@ -1087,29 +1092,32 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # have the identical top-level content gate and hit the same failure mode
   # reaching Projections) -- unrelated to, and unaffected by, the
   # fixed-delay-vs-readiness-gate question this section otherwise concerns.
+  # Routed through .tour_advance() (not a direct .tour_wait_and_switch()
+  # call, as this used to be) so revisiting Upload and re-clicking "Plan My
+  # Practice" -- active_tour still "plan" from the original run, same as
+  # every other chapter-switch trigger in this file -- can't replay this
+  # chapter and re-run its prefill a second time, silently clobbering
+  # whatever the user has since typed into the Quick Estimator form.
+  # Confirmed live 2026-08-12 as a real, reproducible bug, not a hypothetical.
   observeEvent(
     input[["upload-btn_use_plan"]],
-    {
-      if (identical(active_tour(), "plan")) {
-        .tour_wait_and_switch(guide_p2, "edit-est_rent", prefill = function() {
-          updateNumericInput(session, "edit-est_rent", value = .tour_demo_overhead$rent)
-          updateNumericInput(session, "edit-est_payroll", value = .tour_demo_overhead$payroll)
-          updateNumericInput(session, "edit-est_ehr", value = .tour_demo_overhead$ehr)
-          updateNumericInput(session, "edit-est_malpractice", value = .tour_demo_overhead$malpractice)
-          updateNumericInput(session, "edit-est_supplies", value = .tour_demo_overhead$supplies)
-          updateNumericInput(session, "edit-est_other_overhead", value = .tour_demo_overhead$other)
-          updateTextInput(session, "edit-est_tier_label_1", value = .tour_demo_tier$label)
-          updateNumericInput(session, "edit-est_tier_members_1", value = .tour_demo_tier$members)
-          updateNumericInput(session, "edit-est_tier_fee_1", value = .tour_demo_tier$fee)
-          updateNumericInput(session, "edit-est_tier_growth_1", value = .tour_demo_tier$growth)
-          updateNumericInput(session, "edit-est_new_visit_fee", value = .tour_demo_ffs$new_visit_fee)
-          updateNumericInput(session, "edit-est_new_patients_mo", value = .tour_demo_ffs$new_patients_mo)
-          updateNumericInput(session, "edit-est_followup_fee", value = .tour_demo_ffs$followup_fee)
-          updateNumericInput(session, "edit-est_followups_mo", value = .tour_demo_ffs$followups_mo)
-          updateNumericInput(session, "edit-est_other_income", value = .tour_demo_ffs$other_income)
-        })
-      }
-    },
+    .tour_advance("plan", guide_p2, "edit-est_rent", prefill = function() {
+      updateNumericInput(session, "edit-est_rent", value = .tour_demo_overhead$rent)
+      updateNumericInput(session, "edit-est_payroll", value = .tour_demo_overhead$payroll)
+      updateNumericInput(session, "edit-est_ehr", value = .tour_demo_overhead$ehr)
+      updateNumericInput(session, "edit-est_malpractice", value = .tour_demo_overhead$malpractice)
+      updateNumericInput(session, "edit-est_supplies", value = .tour_demo_overhead$supplies)
+      updateNumericInput(session, "edit-est_other_overhead", value = .tour_demo_overhead$other)
+      updateTextInput(session, "edit-est_tier_label_1", value = .tour_demo_tier$label)
+      updateNumericInput(session, "edit-est_tier_members_1", value = .tour_demo_tier$members)
+      updateNumericInput(session, "edit-est_tier_fee_1", value = .tour_demo_tier$fee)
+      updateNumericInput(session, "edit-est_tier_growth_1", value = .tour_demo_tier$growth)
+      updateNumericInput(session, "edit-est_new_visit_fee", value = .tour_demo_ffs$new_visit_fee)
+      updateNumericInput(session, "edit-est_new_patients_mo", value = .tour_demo_ffs$new_patients_mo)
+      updateNumericInput(session, "edit-est_followup_fee", value = .tour_demo_ffs$followup_fee)
+      updateNumericInput(session, "edit-est_followups_mo", value = .tour_demo_ffs$followups_mo)
+      updateNumericInput(session, "edit-est_other_income", value = .tour_demo_ffs$other_income)
+    }),
     ignoreInit = TRUE
   )
   observeEvent(
@@ -1127,38 +1135,39 @@ app_server <- function(input, output, session, res_auth = NULL) {
   # pre-filled). Same pre-fill pattern as Plan My Practice, one path-
   # selection away rather than a tab switch; c2 is the tour's only other
   # chapter since nothing gets removed from the DOM mid-flow here.
+  # Routed through .tour_advance() -- see the "Plan My Practice" observer's
+  # own comment just above for why (the identical bug, reported live
+  # 2026-08-12 as the tour restarting when "Open Calculator" is re-clicked
+  # after finishing or abandoning a previous run of this same tour).
   observeEvent(
     input[["upload-btn_use_calculator"]],
-    {
-      if (identical(active_tour(), "calculator")) {
-        .tour_wait_and_switch(
-          guide_c2,
+    .tour_advance(
+      "calculator",
+      guide_c2,
+      "upload-calculator-monthly_overhead",
+      prefill = function() {
+        updateNumericInput(
+          session,
           "upload-calculator-monthly_overhead",
-          prefill = function() {
-            updateNumericInput(
-              session,
-              "upload-calculator-monthly_overhead",
-              value = .tour_demo_calc_overhead
-            )
-            updateTextInput(
-              session,
-              "upload-calculator-tier_label_1",
-              value = .tour_demo_tier$label
-            )
-            updateNumericInput(
-              session,
-              "upload-calculator-tier_members_1",
-              value = .tour_demo_tier$members
-            )
-            updateNumericInput(
-              session,
-              "upload-calculator-tier_fee_1",
-              value = .tour_demo_tier$fee
-            )
-          }
+          value = .tour_demo_calc_overhead
+        )
+        updateTextInput(
+          session,
+          "upload-calculator-tier_label_1",
+          value = .tour_demo_tier$label
+        )
+        updateNumericInput(
+          session,
+          "upload-calculator-tier_members_1",
+          value = .tour_demo_tier$members
+        )
+        updateNumericInput(
+          session,
+          "upload-calculator-tier_fee_1",
+          value = .tour_demo_tier$fee
         )
       }
-    },
+    ),
     ignoreInit = TRUE
   )
 

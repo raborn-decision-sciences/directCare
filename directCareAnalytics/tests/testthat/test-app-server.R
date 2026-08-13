@@ -79,3 +79,66 @@ test_that("account_save_profile saves the optional profile fields and writes the
     expect_equal(res_auth$practice_type, "Physician")
   })
 })
+
+# -- Guided tour chapter transitions ----------------------------------------
+# Regression coverage for a real bug found live 2026-08-12: .tour_advance()
+# used to key its "already shown this chapter" tracking off guide$id, which
+# cicerone's Cicerone R6 object does not actually expose as a public field
+# (it's always NULL despite being a constructor arg) -- `NULL %in% x`
+# produces a zero-length result, and `FALSE || logical(0)` evaluates to NA
+# in R, which crashed .tour_advance()'s `if()` with "missing value where
+# TRUE/FALSE needed" on the very first chapter transition of *any* tour.
+# An uncaught error inside an observeEvent kills the whole Shiny session by
+# default, which is what made this so severe live: the tour looked "stuck"
+# on its first popup because the session behind it had already died.
+
+test_that(".tour_advance() does not error advancing into a real chapter", {
+  testServer(app_server, {
+    session$setInputs(launch_tour_historical = 1)
+    session$setInputs(cicerone_ready = 1)
+    expect_equal(active_tour(), "historical")
+
+    expect_no_error(session$setInputs(`upload-btn_use_real` = 1))
+    expect_equal(visited_chapters(), "upload-csv_file")
+  })
+})
+
+test_that(".tour_advance() does not replay a chapter already shown this run", {
+  testServer(app_server, {
+    session$setInputs(launch_tour_historical = 1)
+    session$setInputs(cicerone_ready = 1)
+    session$setInputs(`upload-btn_use_real` = 1)
+    expect_equal(visited_chapters(), "upload-csv_file")
+
+    # Simulate going back to Upload and re-clicking the same button --
+    # active_tour is still "historical" (nothing resets it to NULL), so
+    # without the visited-chapters guard this would replay h2's popover on
+    # perfectly ordinary, non-tour navigation.
+    expect_no_error(session$setInputs(`upload-btn_use_real` = 2))
+    expect_equal(visited_chapters(), "upload-csv_file")
+  })
+})
+
+test_that("re-opening Quick Calculator after finishing its tour doesn't replay it", {
+  testServer(app_server, {
+    session$setInputs(launch_tour_calculator = 1)
+    session$setInputs(cicerone_ready = 1)
+    session$setInputs(`upload-btn_use_calculator` = 1)
+    expect_equal(visited_chapters(), "upload-calculator-monthly_overhead")
+
+    expect_no_error(session$setInputs(`upload-btn_use_calculator` = 2))
+    expect_equal(visited_chapters(), "upload-calculator-monthly_overhead")
+  })
+})
+
+test_that("re-opening Plan My Practice after finishing its tour doesn't replay it", {
+  testServer(app_server, {
+    session$setInputs(launch_tour_plan = 1)
+    session$setInputs(cicerone_ready = 1)
+    session$setInputs(`upload-btn_use_plan` = 1)
+    expect_equal(visited_chapters(), "edit-est_rent")
+
+    expect_no_error(session$setInputs(`upload-btn_use_plan` = 2))
+    expect_equal(visited_chapters(), "edit-est_rent")
+  })
+})
