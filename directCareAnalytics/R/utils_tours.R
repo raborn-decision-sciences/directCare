@@ -139,8 +139,19 @@
 
 #' @noRd
 .build_tour_h2 <- function() {
-  # Upload tab, upload-path form (file input + Upload & Process).
+  # Upload tab, upload-path form (bookkeeping software + file input +
+  # Upload & Process).
   guide <- .tour_guide("tour_h2")
+  guide$step(
+    el = "upload-software",
+    title = "Choose your bookkeeping software",
+    description = paste0(
+      "GnuCash has the most complete support. Don't use GnuCash? Try ",
+      "<strong>Other / Generic CSV</strong> -- it accepts any spreadsheet ",
+      "with date, description, amount, and category columns."
+    ),
+    position = "right"
+  )
   guide$step(
     el = "upload-csv_file_wrap",
     title = "Choose a file",
@@ -191,6 +202,16 @@
 .build_tour_h4 <- function() {
   # Review & Edit tab, CSV editing view.
   guide <- .tour_guide("tour_h4")
+  guide$step(
+    el = "edit-date_filter",
+    title = "Filter by date range",
+    description = paste0(
+      "Narrow the forecast to a specific window of your history -- useful ",
+      "if older data isn't representative of the practice today. Leave it ",
+      "at the full range to use everything you uploaded."
+    ),
+    position = "bottom"
+  )
   guide$step(
     el = "edit-edit_table",
     title = "Review categories",
@@ -461,9 +482,17 @@
     title = "Optional: planned overhead changes",
     description = paste0(
       "Add a one-time planned cost increase -- hiring staff, a new office -- ",
-      "that kicks in at a specific point in the forecast. Use ",
-      "<strong>Add Fee Change</strong> just below for planned membership fee ",
-      "changes the same way."
+      "that kicks in at a specific point in the forecast."
+    ),
+    position = "right"
+  )
+  guide$step(
+    el = "projections-btn_add_fee_event",
+    title = "Optional: planned fee changes",
+    description = paste0(
+      "Add a planned membership fee change for one of your tiers, effective ",
+      "at a specific point in the forecast -- the revenue forecast steps up ",
+      "(or down) by the resulting change from that period forward."
     ),
     position = "right"
   )
@@ -479,7 +508,23 @@
 
 #' @noRd
 .build_tour_proj2 <- function() {
-  # Projections tab, after running the forecast.
+  # Projections tab, after running the forecast -- Break-even (the default
+  # active tab). Split into 3 chapters (proj2/proj2b/proj2c), one per
+  # forecast_type tab, rather than one long chapter describing all three
+  # while only Break-even is actually on screen: each chapter is scoped to
+  # a single DOM-stable stretch (this file's own convention -- see the
+  # header comment above .build_tour_h1()), and Revenue Forecast/Income
+  # Target's content doesn't exist in the DOM at all until their tab is
+  # actually selected (bslib's navset hides inactive tab-pane content, not
+  # just visually collapses it) -- cicerone/driver.js resolves every
+  # step's element immediately at $init() and silently drops any that
+  # doesn't exist yet, so a single chapter spanning all three tabs would
+  # have had its Revenue/Target steps dropped before ever reaching them.
+  # The user does the actual tab-clicking (same "click this real button/
+  # link" pattern as every other show_btns = FALSE step in this file);
+  # app_server.R observes the navset's own selected-tab input (Shiny
+  # provides this automatically for any navset given an `id`) and advances
+  # into the next chapter the same way any other real click does.
   guide <- .tour_guide("tour_proj2")
   guide$step(
     el = "projections-forecast_type",
@@ -487,7 +532,43 @@
     description = paste0(
       "Break-even, Revenue Forecast, and Income Target are shown as ",
       "separate tabs here -- each with its own chart and plain-language ",
-      "interpretation below it."
+      "interpretation below it. Click the <strong>Revenue Forecast</strong> ",
+      "tab above to continue."
+    ),
+    position = "bottom",
+    show_btns = FALSE
+  )
+  guide
+}
+
+#' @noRd
+.build_tour_proj2b <- function() {
+  # Projections tab, Revenue Forecast sub-tab.
+  guide <- .tour_guide("tour_proj2b")
+  guide$step(
+    el = "projections-revenue_plot",
+    title = "Revenue forecast",
+    description = paste0(
+      "Projected total revenue over the forecast horizon, with a plain-",
+      "language interpretation below the chart. Click the ",
+      "<strong>Income Target</strong> tab above to continue."
+    ),
+    position = "bottom",
+    show_btns = FALSE
+  )
+  guide
+}
+
+#' @noRd
+.build_tour_proj2c <- function() {
+  # Projections tab, Income Target sub-tab -- the tour's final chapter.
+  guide <- .tour_guide("tour_proj2c")
+  guide$step(
+    el = "projections-target_plot",
+    title = "Income target",
+    description = paste0(
+      "What it takes to reach the income target you set earlier, with the ",
+      "same kind of plain-language interpretation below the chart."
     ),
     position = "bottom"
   )

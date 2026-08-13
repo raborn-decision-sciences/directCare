@@ -878,6 +878,24 @@ mod_calculator_server <- function(id, r, parent_session = NULL, demo_mode = NULL
         }
       )
     })
+    # Without this, results_ui only starts evaluating once the client
+    # reports the calculator panel (revealed via mod_upload.R's
+    # path_chosen() switching content within the Upload tab, not a
+    # separate navbar tab) as visible -- a Shiny handshake that hadn't yet
+    # completed by the time the guided tour's c2 chapter calls
+    # guide_c2$init() right after launch. cicerone/driver.js resolves
+    # every step's target element immediately at $init() and silently
+    # *drops* (not skips -- removes from the internal step array) any
+    # step whose element doesn't exist yet -- see utils_tours.R's own
+    # comment on this exact failure mode for `projections-method`. That
+    # made the Quick Calculator tour look like it stopped after the
+    # "Set an income target" step: results_box (the guide's 4th and
+    # final step) had already been silently dropped by the time it
+    # would have been reached. Confirmed live 2026-08-12, same root
+    # cause and same fix already applied elsewhere (mod_edit.R,
+    # mod_summary.R, mod_projections.R -- see their own "content"/
+    # "method_selector" outputOptions calls).
+    outputOptions(output, "results_ui", suspendWhenHidden = FALSE)
 
     # -- Back button ------------------------------------------------------------
     go_back <- reactiveVal(NULL)

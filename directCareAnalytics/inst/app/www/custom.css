@@ -286,7 +286,23 @@ code {
    div inserted to hold the bar's normal-flow height so content doesn't
    jump when it switches to fixed. Still safe against full_screen card
    overlays -- bslib's full-screen z-index is far higher than this, so an
-   expanded chart/table still correctly covers the bar while open. */
+   expanded chart/table still correctly covers the bar while open.
+
+   `!important` on .tour-nav-pinned's `position: fixed` below (added
+   2026-08-12) is required, not decorative: driver.js applies its own
+   `.driver-position-relative { position: relative !important; }` to
+   whatever element it's currently highlighting (confirmed by inspecting
+   driver.min.css/js directly -- used for the highlight overlay's stacking
+   context). Without a matching !important here, driver.js's rule always
+   wins regardless of our higher selector specificity (2 classes vs. 1) --
+   !important beats specificity entirely, at any tier. The visible bug:
+   whenever a tour step's target lives in this bar *while pinned* (i.e.
+   scrolled past the real navbar), the bar was silently forced out of
+   position: fixed back into its normal document-flow position the moment
+   driver.js highlighted it, landing the highlight box wherever that
+   happened to fall instead of on the actual visible button -- e.g. the
+   Review & Edit tab's "Continue" step, confirmed live landing over the
+   Customize Category Labels sidebar instead of the pinned Next button. */
 .tour-nav-footer {
   z-index: 20;
   display: flex;
@@ -300,7 +316,7 @@ code {
 }
 
 .tour-nav-footer.tour-nav-pinned {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   right: 0;

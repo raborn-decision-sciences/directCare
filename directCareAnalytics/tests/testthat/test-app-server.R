@@ -142,3 +142,47 @@ test_that("re-opening Plan My Practice after finishing its tour doesn't replay i
     expect_equal(visited_chapters(), "edit-est_rent")
   })
 })
+
+# -- Projections tab (proj2/proj2b/proj2c): forecast_type tab clicks --------
+# guide_proj2/proj2b/proj2c cover Break-even/Revenue Forecast/Income Target
+# respectively -- split into 3 chapters because bslib's navset hides
+# inactive tab-pane content entirely, so a single chapter spanning all three
+# would have had its Revenue/Target steps silently dropped by cicerone at
+# $init() time (same failure class as guide$id, just for a different
+# reason). Reaching proj2 for real requires a completed forecast (async,
+# mirai-based) -- these tests instead set active_tour()/visited_chapters()
+# directly, exactly as if guide_proj2 had already started, and exercise only
+# the forecast_type tab-click observer itself.
+
+test_that("clicking the Revenue Forecast tab advances proj2 -> proj2b", {
+  testServer(app_server, {
+    active_tour("historical")
+    # Leading no-op flush -- see this file's very first test for why: the
+    # observer's ignoreInit skip would otherwise consume the real trigger
+    # below, since this is the first time this input is ever set.
+    session$setInputs(`projections-forecast_type` = "breakeven")
+    expect_no_error(session$setInputs(`projections-forecast_type` = "revenue"))
+    expect_true("projections-revenue_plot" %in% visited_chapters())
+  })
+})
+
+test_that("clicking the Income Target tab advances proj2 -> proj2c", {
+  testServer(app_server, {
+    active_tour("historical")
+    session$setInputs(`projections-forecast_type` = "breakeven")
+    expect_no_error(session$setInputs(`projections-forecast_type` = "target"))
+    expect_true("projections-target_plot" %in% visited_chapters())
+  })
+})
+
+test_that("re-clicking the same forecast_type tab doesn't replay its chapter", {
+  testServer(app_server, {
+    active_tour("plan")
+    session$setInputs(`projections-forecast_type` = "breakeven")
+    session$setInputs(`projections-forecast_type` = "revenue")
+    expect_equal(visited_chapters(), "projections-revenue_plot")
+
+    expect_no_error(session$setInputs(`projections-forecast_type` = "revenue"))
+    expect_equal(visited_chapters(), "projections-revenue_plot")
+  })
+})

@@ -674,7 +674,9 @@ app_server <- function(input, output, session, res_auth = NULL) {
   guide_c1 <- .build_tour_c1()
   guide_c2 <- .build_tour_c2()
   guide_proj1 <- .build_tour_proj1() # shared: Projections, before Run
-  guide_proj2 <- .build_tour_proj2() # shared: Projections, after Run
+  guide_proj2 <- .build_tour_proj2() # shared: Projections, Break-even tab
+  guide_proj2b <- .build_tour_proj2b() # shared: Projections, Revenue Forecast tab
+  guide_proj2c <- .build_tour_proj2c() # shared: Projections, Income Target tab
 
   # Reset whichever chapter was previously on-screen (if any), then init +
   # start the new one at its own step 1.
@@ -1204,6 +1206,28 @@ app_server <- function(input, output, session, res_auth = NULL) {
         "plan", guide_proj2, "projections-forecast_type",
         ready_el = "projections-btn_generate_report"
       )
+    },
+    ignoreInit = TRUE
+  )
+
+  # Advances proj2 -> proj2b -> proj2c as the user clicks each real
+  # forecast_type tab -- Shiny automatically provides this input for any
+  # navset given an `id` (bslib's navset_card_underline here), same as any
+  # other real click this file observes. Fires on every tab click whether
+  # a tour is running or not; .tour_advance()'s own active_tour()/
+  # visited_chapters() guards make that a no-op outside a tour or on a
+  # repeat visit, matching every other observer in this section.
+  observeEvent(
+    input[["projections-forecast_type"]],
+    {
+      val <- input[["projections-forecast_type"]]
+      if (identical(val, "revenue")) {
+        .tour_advance("historical", guide_proj2b, "projections-revenue_plot")
+        .tour_advance("plan", guide_proj2b, "projections-revenue_plot")
+      } else if (identical(val, "target")) {
+        .tour_advance("historical", guide_proj2c, "projections-target_plot")
+        .tour_advance("plan", guide_proj2c, "projections-target_plot")
+      }
     },
     ignoreInit = TRUE
   )
