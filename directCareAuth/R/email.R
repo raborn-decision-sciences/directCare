@@ -69,14 +69,24 @@ send_password_reset_email <- function(to_email, practice_name, reset_url) {
     )
   )
 
-  httr2::request("https://api.zeptomail.com/v1.1/email") |>
-    httr2::req_headers(
-      Authorization = paste("Zoho-enczapikey", token),
-      `Content-Type` = "application/json"
-    ) |>
-    httr2::req_body_json(body) |>
-    httr2::req_perform() |>
-    invisible()
+  tryCatch(
+    httr2::request("https://api.zeptomail.com/v1.1/email") |>
+      httr2::req_headers(
+        Authorization = paste("Zoho-enczapikey", token),
+        `Content-Type` = "application/json"
+      ) |>
+      httr2::req_body_json(body) |>
+      httr2::req_perform() |>
+      invisible(),
+    # ZeptoMail's response body carries the actual reason for a non-2xx
+    # (invalid/unverified from-address, bad payload, etc.) -- httr2's
+    # default error message is just the status line, so callers logging
+    # conditionMessage(e) would otherwise never see it.
+    httr2_http = function(e) {
+      detail <- tryCatch(httr2::resp_body_string(e$resp), error = function(e2) NULL)
+      stop(paste0(conditionMessage(e), if (!is.null(detail)) paste0(" -- ", detail)), call. = FALSE)
+    }
+  )
 }
 
 # NULL-coalescing operator for values that may be NULL/NA before use.
