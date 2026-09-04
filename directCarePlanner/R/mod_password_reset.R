@@ -126,13 +126,24 @@ mod_password_reset_server <- function(id) {
         if (isTRUE(result$ok)) {
           reset_url <- paste0(Sys.getenv("APP_BASE_URL"), "/?reset=1&token=", result$token)
           tryCatch(
-            directCareAuth::send_password_reset_email(email, result$practice_name, reset_url),
+            {
+              directCareAuth::send_password_reset_email(email, result$practice_name, reset_url)
+              message("password_reset: email send succeeded (practice_id=", result$practice_id, ")")
+            },
             # A send failure shouldn't change what the user sees (see
             # below) or leak whether the account exists -- there's no
             # different actionable next step for them regardless of cause.
-            error = function(e) NULL
+            # It's still logged server-side (message() -> stderr -> docker
+            # logs) so a send outage is visible instead of silently invisible.
+            error = function(e) {
+              message("password_reset: email send FAILED (practice_id=", result$practice_id, "): ", conditionMessage(e))
+            }
           )
+        } else {
+          message("password_reset: no matching practice for requested email")
         }
+      } else {
+        message("password_reset: request rate-limited")
       }
 
       reset_msg(tags$p(
