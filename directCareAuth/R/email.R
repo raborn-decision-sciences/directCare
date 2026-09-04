@@ -4,13 +4,22 @@
 #' token comes from a Docker secret file (`ZEPTOMAIL_TOKEN_FILE`) when
 #' present, falling back to a plain `ZEPTOMAIL_TOKEN` env var for local
 #' dev.
+#'
+#' ZeptoMail's own dashboard displays the token as the full
+#' `Zoho-enczapikey <value>` curl header rather than the bare value, which
+#' invites pasting that whole string into the secret -- confirmed live:
+#' this doubled the prefix in the request's Authorization header and got
+#' every send rejected with an opaque, unlogged 500 (see auth git history).
+#' Stripped here so that mistake is harmless instead of a silent outage.
 #' @noRd
 .zeptomail_token <- function() {
   token_file <- Sys.getenv("ZEPTOMAIL_TOKEN_FILE", unset = NA)
-  if (!is.na(token_file) && file.exists(token_file)) {
-    return(trimws(readLines(token_file, warn = FALSE)))
+  raw <- if (!is.na(token_file) && file.exists(token_file)) {
+    trimws(readLines(token_file, warn = FALSE))
+  } else {
+    Sys.getenv("ZEPTOMAIL_TOKEN", unset = "")
   }
-  Sys.getenv("ZEPTOMAIL_TOKEN", unset = "")
+  sub("^Zoho-enczapikey\\s+", "", raw, ignore.case = TRUE)
 }
 
 #' Minimal HTML-escaping for values interpolated into the email body
